@@ -679,8 +679,8 @@ class AMH2B_ApplyScale(bpy.types.Operator):
 #####################################################
 #     Automate MakeHuman 2 Blender (AMH2B)
 #     Repose Rig
-# Re-pose rig by way of a duplicate of original that moves mesh to desired pose,
-# then original rig is pose-apply'ed and takes over from duplicate rig.
+# Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original
+# that moves mesh to desired pose, then original rig is pose-apply'ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
 # duplicate selected objects
