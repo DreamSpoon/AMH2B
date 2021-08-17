@@ -143,9 +143,9 @@ def doBridgeRigs(self, mhx2Rig, mhx2RigType, otherRig, otherRigType, boneNameTra
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # *** Blender 2.7x
-    bpy.context.scene.objects.active = otherRig
+    #bpy.context.scene.objects.active = otherRig
     # *** Blender 2.8x and higher
-    #bpy.context.view_layer.objects.active = otherRig
+    bpy.context.view_layer.objects.active = otherRig
     # ***
 
     bpy.ops.object.mode_set(mode='EDIT')
@@ -154,7 +154,13 @@ def doBridgeRigs(self, mhx2Rig, mhx2RigType, otherRig, otherRigType, boneNameTra
     renameBonesBeforeJoin(otherRig, dest_stitch.get('blist_rename'))
 
     bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.context.scene.objects.active = mhx2Rig
+
+    # *** Blender 2.7x
+    #bpy.context.scene.objects.active = mhx2Rig
+    # *** Blender 2.8x and higher
+    bpy.context.view_layer.objects.active = mhx2Rig
+    # ***
+
     bpy.ops.object.join()
     bpy.ops.object.mode_set(mode='EDIT')
     stitchBones(self, mhx2Rig, dest_stitch, boneNameTranslations)
@@ -502,23 +508,23 @@ class AMH2B_BoneWoven(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
+    #torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
+    #arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
     # *** Blender 2.8x and higher
-    #src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    #torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    #arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
     # ***
 
     def execute(self, context):
@@ -542,9 +548,9 @@ class AMH2B_SwapMaterials(Operator, ImportHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    filter_glob = StringProperty(default='*.blend', options={'HIDDEN'})
+    #filter_glob = StringProperty(default='*.blend', options={'HIDDEN'})
     # *** Blender 2.8x
-    #filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
+    filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
     # ***
 
     # returns True if material was successfully appended
@@ -679,13 +685,10 @@ class AMH2B_ApplyScale(bpy.types.Operator):
 
 # duplicate selected objects
 def dupSelected():
-    template_ob = bpy.data.objects.get("template")
-    bpy.ops.object.duplicate(
-            {"object" : template_ob,
-             "selected_objects" : [template_ob]},
-            linked=False)
+    obj_to_dup = bpy.context.active_object
+    bpy.ops.object.duplicate({"object" : obj_to_dup, "selected_objects" : [obj_to_dup]}, linked=False)
     # return ref to newly duped object
-    return bpy.context.object
+    return bpy.context.active_object
 
 
 def addArmatureToObjects(arm_obj, objs_list):
@@ -731,20 +734,23 @@ def doReposeRig():
 
     # Blender 2.7x *** {
     # select the old active_object in the 3D viewport
-    selection_active_obj.select = True
+    #selection_active_obj.select = True
     # make it the active selected object
-    bpy.context.scene.objects.active = selection_active_obj
+    #bpy.context.scene.objects.active = selection_active_obj
     # Blender 2.7x *** }
     # Blender 2.8x *** {
     # select the old active_object in the 3D viewport
-    #selection_active_obj.select_set(True)
+    selection_active_obj.select_set(True)
     # make it the active selected object
-    #bpy.context.view_layer.objects.active = selection_active_obj
+    bpy.context.view_layer.objects.active = selection_active_obj
     # Blender 2.8x *** }
 
     # duplicate the original armature
     new_arm = dupSelected()
-
+    print('new_arm=')
+    print(new_arm)
+    print('selection_active=')
+    print(selection_active_obj)
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
     new_arm.parent = selection_active_obj
 
@@ -753,10 +759,10 @@ def doReposeRig():
 
     # select original armature
     # Blender 2.7x *** {
-    bpy.context.scene.objects.active = selection_active_obj
+    #bpy.context.scene.objects.active = selection_active_obj
     # Blender 2.7x *** }
     # Blender 2.8x *** {
-    #bpy.context.view_layer.objects.active = selection_active_obj
+    bpy.context.view_layer.objects.active = selection_active_obj
     # Blender 2.8x *** }
 
     bpy.ops.object.mode_set(mode='POSE')
@@ -911,15 +917,15 @@ def doLucky(self):
 
     # Blender 2.7x *** {
     # select the other armature (the imported animated armature) in the 3D viewport
-    otherArmature.select = True
+    #otherArmature.select = True
     # make it the active selected object
-    bpy.context.scene.objects.active = otherArmature
+    #bpy.context.scene.objects.active = otherArmature
     # Blender 2.7x *** }
     # Blender 2.8x *** {
     # select the other armature (the imported animated armature) in the 3D viewport
-    #otherArmature.select_set(True)
+    otherArmature.select_set(True)
     # make it the active selected object
-    #bpy.context.view_layer.objects.active = otherArmature
+    bpy.context.view_layer.objects.active = otherArmature
     # Blender 2.8x *** }
 
     # let Blender apply location and rotation to animated armature
@@ -930,17 +936,17 @@ def doLucky(self):
     # otherArmature will still be selected and the active_object, so just add the MHX armature
     # to the selected list and make it the active object.
 
-        # Blender 2.7x *** {
+    # Blender 2.7x *** {
     # select the MHX armature (the armature that lacks animation) in the 3D viewport
-    mhx_arm_obj.select = True
+    #mhx_arm_obj.select = True
     # make it the active selected object
-    bpy.context.scene.objects.active = mhx_arm_obj
+    #bpy.context.scene.objects.active = mhx_arm_obj
     # Blender 2.7x *** }
     # Blender 2.8x *** {
     # select the MHX armature (the armature that lacks animation) in the 3D viewport
-    #mhx_arm_obj.select_set(True)
+    mhx_arm_obj.select_set(True)
     # make it the active selected object
-    #bpy.context.view_layer.objects.active = mhx_arm_obj
+    bpy.context.view_layer.objects.active = mhx_arm_obj
     # Blender 2.8x *** }
 
     # do bone woven
@@ -957,25 +963,25 @@ class AMH2B_Lucky(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    repose_rig_enum = bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
-    src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #repose_rig_enum = bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
+    #src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
+    #torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
+    #arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    #fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
     # *** Blender 2.8x and higher
-    #repose_rig_enum : bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
-    #src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    #torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    #arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    repose_rig_enum : bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
+    src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
     # ***
 
     def execute(self, context):
