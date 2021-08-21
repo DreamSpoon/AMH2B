@@ -4,25 +4,14 @@ Addon for Blender 2.7x through Blender 2.93 (may work with later versions too).
 
 Automate as much as possible of the MakeHuman to Blender workflow, e.g. materials, rig, and animation preparation.
 
-Two flavors of addon: Blender 2.7x and Blender 2.8x
-
-Blender 2.8x flavor is compatible with Blender 2.9x
-
 To install this addon in Blender:
-
-Copy the amh2b.py file (one of Blender 2.7x or Blender 2.8x flavor) into your Blender addons folder. Folder name depends on where you installed Blender, and which version of Blender was installed, like so:
-
-e.g. Blender 2.79
-
-C:\Program Files\blender-2.79b-windows64\2.79\scripts\addons
-
-e.g. Blender 2.83
-
-C:\Program Files\blender-2.83-windows64\2.83\scripts\addons
+1) Start Blender
+2) Go to User Preferences -> Addons -> Install addon from file
+3) Choose the AMH2B zip file you downloaded (available for download from the 'Releases' section of this website)
 
 To use this addon in Blender:
 
-The buttons to do the work are in the Object menu, in the 3D Viewport view.
+Look for 'AMH2B' buttons in the Object menu, in the 3D Viewport view.
 
 3D Viewport -> Object -> AMH2B ...
 

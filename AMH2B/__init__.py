@@ -17,14 +17,14 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.8x and 2.9x Addon (with commented code for 2.7x)
+#   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "version": (1, 0, 0),
-    "blender": (2, 80, 0),
+    "blender": (2, 70, 0),
     "location": "3DView > Object menu > AMH2B ...",
     "description": "Automate process of importing MakeHuman models, and animating these models.",
     "category": "Object",
@@ -35,23 +35,14 @@ import os
 import fnmatch
 import numpy
 
-from bpy.props import StringProperty
-from bpy_extras.io_utils import ImportHelper
 from bpy.types import Operator
 
+if bpy.app.version < (2,80,0):
+    from .imp_v27 import *
+else:
+    from .imp_v28 import *
 
-def set_active_object(ob):
-    # *** Blender 2.7x
-    #bpy.context.scene.objects.active = ob
-    # *** Blender 2.8x and 2.9x
-    bpy.context.view_layer.objects.active = ob
-
-
-def select_object(ob):
-    # *** Blender 2.7x
-    #ob.select = True
-    # *** Blender 2.8x and 2.9x
-    ob.select_set(True)
+from .imp_items import *
 
 
 #####################################################
@@ -68,22 +59,6 @@ def select_object(ob):
 # Rig B controls Rig A, allowing the user to tweak the final animation by animating Rig A.
 # Caveat: Rig A and Rig B should be in the same pose.
 # Side-note: Ugly, But Works
-
-amh2b_fk_ik_both_none_items = [
-    ('BOTH', "Both", "", 1),
-    ('FORWARDK', "FK", "", 2),
-    ('INVERSEK', "IK", "", 3),
-    ('NONE', "None", "", 4),
-]
-amh2b_src_rig_type_items = [
-    ('I_AUTOMATIC', "Automatic", "", 1),
-    ('I_MIXAMO_NATIVE_FBX', "Mixamo Native FBX", "", 2),
-    ('I_MAKEHUMAN_CMU_MB', "MakeHuman CMU MB", "", 3),
-]
-amh2b_yes_no_items = [
-    ('YES', "Yes", "", 1),
-    ('NO', "No", "", 2),
-]
 
 # minimum number of bones matching by string to justify matching rig found = true
 amh2b_min_bones_for_rig_match = 10  # 10 is estimate, todo: check estimate
@@ -533,32 +508,23 @@ def do_bone_woven(self):
     print("boneWoven() end.")
 
 
-class AMH2B_BoneWoven(bpy.types.Operator):
+class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Bone Woven"""
     """MHX2 Rig to Rig Animation Bridge"""
     bl_idname = "object.amh2b_bone_woven"
     bl_label = "AMH2B Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # *** Blender 2.7x
-    #src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    #torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    #arm_left_stitch_enum = bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum = bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum = bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    # *** Blender 2.8x and 2.9x
-    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    # ***
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "src_rig_type_enum")
+        layout.prop(self, "torso_stitch_enum")
+        layout.prop(self, "arm_left_stitch_enum")
+        layout.prop(self, "arm_right_stitch_enum")
+        layout.prop(self, "leg_left_stitch_enum")
+        layout.prop(self, "leg_right_stitch_enum")
+        layout.prop(self, "fingers_left_stitch_enum")
+        layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
         do_bone_woven(self)
@@ -573,18 +539,12 @@ class AMH2B_BoneWoven(bpy.types.Operator):
 #   1) User chooses file with source materials.
 #   2) Materials are appended "blindly", by trimming names of materials on selected objects
 #      and trying to append trimmed name materials from the blend file chosen by the user.
-class AMH2B_SwapMaterials(Operator, ImportHelper):
+class AMH2B_SwapMaterials(AMH2B_SwapMaterialsInner, Operator, ImportHelper):
     """Automate MakeHuman 2 Blender - Swap Materials"""
     """Swap Materials from Source Blend File"""
     bl_idname = "object.amh2b_swap_materials"
     bl_label = "AMH2B Swap Materials"
     bl_options = {'REGISTER', 'UNDO'}
-
-    # *** Blender 2.7x
-    #filter_glob = StringProperty(default="*.blend", options={'HIDDEN'})
-    # *** Blender 2.8x and 2.9x
-    filter_glob : StringProperty(default="*.blend", options={'HIDDEN'})
-    # ***
 
     # returns True if material was successfully appended
     # TODO check if the material already exists in this file, if it does exist then rename
@@ -957,34 +917,24 @@ def do_lucky(self):
 
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.
-class AMH2B_Lucky(bpy.types.Operator):
+class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Lucky"""
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then ApplyScale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
     bl_idname = "object.amh2b_lucky"
     bl_label = "AMH2B Lucky"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # *** Blender 2.7x
-    #repose_rig_enum = bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
-    #src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    #torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    #arm_left_stitch_enum = bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum = bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum = bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    # *** Blender 2.8x and 2.9x
-    repose_rig_enum : bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
-    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    # ***
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "repose_rig_enum")
+        layout.prop(self, "src_rig_type_enum")
+        layout.prop(self, "torso_stitch_enum")
+        layout.prop(self, "arm_left_stitch_enum")
+        layout.prop(self, "arm_right_stitch_enum")
+        layout.prop(self, "leg_left_stitch_enum")
+        layout.prop(self, "leg_right_stitch_enum")
+        layout.prop(self, "fingers_left_stitch_enum")
+        layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
         do_lucky(self)
@@ -1040,7 +990,5 @@ def unregister():
     bpy.types.VIEW3D_MT_object.remove(amh2b_swap_shaders_menu_func)
     bpy.utils.unregister_class(AMH2B_SwapMaterials)
 
-# This allows you to run the script directly from Blender"s Text editor
-# to test the add-on without having to install it.
 if __name__ == "__main__":
     register()
