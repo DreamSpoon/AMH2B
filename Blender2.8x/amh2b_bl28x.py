@@ -17,16 +17,17 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.8x Addon - Tested and works with Blender 2.93
+#   Blender 2.8x and 2.9x Addon (with commented code for 2.7x)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
+
 bl_info = {
-    'name': 'Automate MakeHuman 2 Blender (AMH2B)',
-    'version': (1, 0, 0),
-    'blender': (2, 80, 0),
-    'location': '3DView > Object menu > AMH2B ...',
-    'description': 'Automate process of importing MakeHuman models, and animating these models.',
-    'category': 'Object',
+    "name": "Automate MakeHuman 2 Blender (AMH2B)",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 0),
+    "location": "3DView > Object menu > AMH2B ...",
+    "description": "Automate process of importing MakeHuman models, and animating these models.",
+    "category": "Object",
 }
 
 import bpy
@@ -34,9 +35,23 @@ import os
 import fnmatch
 import numpy
 
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty
 from bpy_extras.io_utils import ImportHelper
 from bpy.types import Operator
+
+
+def set_active_object(ob):
+    # *** Blender 2.7x
+    #bpy.context.scene.objects.active = ob
+    # *** Blender 2.8x and 2.9x
+    bpy.context.view_layer.objects.active = ob
+
+
+def select_object(ob):
+    # *** Blender 2.7x
+    #ob.select = True
+    # *** Blender 2.8x and 2.9x
+    ob.select_set(True)
 
 
 #####################################################
@@ -46,7 +61,7 @@ from bpy.types import Operator
 # for great functionality e.g. finger movements.
 # In a perfect world, Blender and MakeHuman would work seamlessly with any and all motion capture data,
 # and any motion capture sharing website (including body, facial, etc. rig).
-# The real world includes problems with bone names, 'bone roll', vertex groups, etc.
+# The real world includes problems with bone names, "bone roll", vertex groups, etc.
 # This addon bridges some real world gaps between different rigs.
 # Basically, bones from Rig B (this could be a downloaded rig from a mocap sharing website, etc.)
 # are mapped to Rig A so that Rig B acts like "marionettist" to the Rig A "marionette".
@@ -55,244 +70,240 @@ from bpy.types import Operator
 # Side-note: Ugly, But Works
 
 amh2b_fk_ik_both_none_items = [
-    ('BOTH', 'Both', '', 1),
-    ('FORWARDK', 'FK', '', 2),
-    ('INVERSEK', 'IK', '', 3),
-    ('NONE', 'None', '', 4),
+    ('BOTH', "Both", "", 1),
+    ('FORWARDK', "FK", "", 2),
+    ('INVERSEK', "IK", "", 3),
+    ('NONE', "None", "", 4),
 ]
 amh2b_src_rig_type_items = [
-    ('I_AUTOMATIC', 'Automatic', '', 1),
-    ('I_MIXAMO_NATIVE_FBX', 'Mixamo Native FBX', '', 2),
-    ('I_MAKEHUMAN_CMU_MB', 'MakeHuman CMU MB', '', 3),
+    ('I_AUTOMATIC', "Automatic", "", 1),
+    ('I_MIXAMO_NATIVE_FBX', "Mixamo Native FBX", "", 2),
+    ('I_MAKEHUMAN_CMU_MB', "MakeHuman CMU MB", "", 3),
 ]
 amh2b_yes_no_items = [
-    ('YES', 'Yes', '', 1),
-    ('NO', 'No', '', 2),
+    ('YES', "Yes", "", 1),
+    ('NO', "No", "", 2),
 ]
 
 # minimum number of bones matching by string to justify matching rig found = true
 amh2b_min_bones_for_rig_match = 10  # 10 is estimate, todo: check estimate
 
 amh2b_rig_type_bone_names = {
-    'makehuman_cmu_mb': ['Hips', 'LHipJoint', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'LowerBack', 'Spine', 'Spine1', 'LeftShoulder', 'LeftArm', 'LeftForeArm','LeftHand', 'LThumb', 'LeftFingerBase', 'LeftHandFinger1', 'Neck', 'Neck1', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand','RThumb', 'RightFingerBase', 'RightHandFinger1', 'RHipJoint', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase'],
+    "makehuman_cmu_mb": ["Hips", "LHipJoint", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LowerBack", "Spine", "Spine1", "LeftShoulder", "LeftArm", "LeftForeArm","LeftHand", "LThumb", "LeftFingerBase", "LeftHandFinger1", "Neck", "Neck1", "Head", "RightShoulder", "RightArm", "RightForeArm", "RightHand","RThumb", "RightFingerBase", "RightHandFinger1", "RHipJoint", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase"],
 
-    'mixamo_native_fbx': ['*:Hips', '*:Spine', '*:Spine1', '*:Spine2', '*:Neck', '*:Head','*:LeftShoulder', '*:LeftArm', '*:LeftForeArm', '*:LeftHand', '*:LeftHandThumb1', '*:LeftHandThumb2', '*:LeftHandThumb3', '*:LeftHandIndex1', '*:LeftHandIndex2', '*:LeftHandIndex3', '*:LeftHandMiddle1', '*:LeftHandMiddle2', '*:LeftHandMiddle3', '*:LeftHandRing1', '*:LeftHandRing2', '*:LeftHandRing3', '*:LeftHandPinky1', '*:LeftHandPinky2', '*:LeftHandPinky3', '*:RightShoulder', '*:RightArm', '*:RightForeArm', '*:RightHand', '*:RightHandThumb1', '*:RightHandThumb2', '*:RightHandThumb3', '*:RightHandIndex1', '*:RightHandIndex2', '*:RightHandIndex3', '*:RightHandMiddle1', '*:RightHandMiddle2', '*:RightHandMiddle3', '*:RightHandRing1', '*:RightHandRing2', '*:RightHandRing3', '*:RightHandPinky1', '*:RightHandPinky2', '*:RightHandPinky3', '*:LeftUpLeg', '*:LeftLeg', '*:LeftFoot', '*:LeftToeBase', '*:RightUpLeg', '*:RightLeg', '*:RightFoot', '*:RightToeBase'],
+    "mixamo_native_fbx": ["*:Hips", "*:Spine", "*:Spine1", "*:Spine2", "*:Neck", "*:Head","*:LeftShoulder", "*:LeftArm", "*:LeftForeArm", "*:LeftHand", "*:LeftHandThumb1", "*:LeftHandThumb2", "*:LeftHandThumb3", "*:LeftHandIndex1", "*:LeftHandIndex2", "*:LeftHandIndex3", "*:LeftHandMiddle1", "*:LeftHandMiddle2", "*:LeftHandMiddle3", "*:LeftHandRing1", "*:LeftHandRing2", "*:LeftHandRing3", "*:LeftHandPinky1", "*:LeftHandPinky2", "*:LeftHandPinky3", "*:RightShoulder", "*:RightArm", "*:RightForeArm", "*:RightHand", "*:RightHandThumb1", "*:RightHandThumb2", "*:RightHandThumb3", "*:RightHandIndex1", "*:RightHandIndex2", "*:RightHandIndex3", "*:RightHandMiddle1", "*:RightHandMiddle2", "*:RightHandMiddle3", "*:RightHandRing1", "*:RightHandRing2", "*:RightHandRing3", "*:RightHandPinky1", "*:RightHandPinky2", "*:RightHandPinky3", "*:LeftUpLeg", "*:LeftLeg", "*:LeftFoot", "*:LeftToeBase", "*:RightUpLeg", "*:RightLeg", "*:RightFoot", "*:RightToeBase"],
 
-    'import_mhx': ['master', 'root', 'spine', 'spine-1', 'chest', 'DEF-serratus.L', 'DEF-serratus.R', 'DEF-pect.L', 'breast.L', 'DEF-breast.L', 'DEF-pect.R', 'breast.R', 'DEF-breast.R', 'chest-1', 'neck', 'neck-1', 'head', 'lolid.R', 'lolid.L', 'jaw', 'tongue_base', 'tongue_mid', 'tongue_tip', 'uplid.L', 'uplid.R', 'eyes', 'eye_parent.L', 'eye.L', 'DEF-eye.L', 'eye_parent.R', 'eye.R', 'DEF-eye.R', 'DEF-uplid.L', 'DEF-uplid.R', 'DEF-lolid.L', 'DEF-lolid.R', 'DEF-jaw', 'DEF-tongue_base', 'DEF-tongue_mid', 'DEF-tongue_tip', 'DEF-neck-1', 'DEF-head', 'clavicle.L', 'DEF-deltoid.L', 'shoulder01.L', 'arm_base.L', 'elbow.pt.ik.L', 'pectIk.L', 'scap-parent.R', 'DEF-scapula.R', 'scap-parent.L', 'DEF-scapula.L', 'clavicle.R', 'DEF-deltoid.R', 'pectIk.R', 'shoulder01.R', 'arm_base.R', 'elbow.pt.ik.R', 'DEF-sternum', 'DEF-clavicle.R', 'DEF-chest', 'DEF-chest-1', 'DEF-clavicle.L', 'DEF-neck', 'hips', 'pelvis.L', 'leg_base.L', 'DEF-hip.R', 'DEF-gluteus.L', 'DEF-hip.L', 'DEF-gluteus.R', 'pelvis.R', 'leg_base.R', 'arm_hinge.R', 'arm_socket.R', 'upper_arm.R','forearm.R', 'hand.R', 'palm_middle.R', 'f_middle.01.R', 'f_middle.02.R', 'f_middle.03.R', 'DEF-f_middle.02.R', 'DEF-f_middle.03.R', 'middle.R', 'thumb.01.R', 'thumb.02.R', 'thumb.03.R', 'DEF-thumb.03.R', 'thumb.R', 'DEF-thumb.02.R', 'palm_index.R', 'f_index.01.R', 'f_index.02.R', 'f_index.03.R', 'DEF-f_index.03.R', 'index.R', 'DEF-f_index.01.R', 'DEF-f_index.02.R', 'palm_pinky.R', 'f_pinky.01.R', 'f_pinky.02.R', 'f_pinky.03.R', 'pinky.R', 'palm_ring.R', 'f_ring.01.R', 'f_ring.02.R', 'f_ring.03.R', 'DEF-f_ring.03.R', 'DEF-f_ring.02.R', 'ring.R', 'DEF-palm_ring.R', 'DEF-f_ring.01.R', 'DEF-thumb.01.R', 'DEF-palm_middle.R', 'DEF-f_middle.01.R', 'DEF-palm_pinky.R', 'DEF-f_pinky.01.R', 'DEF-f_pinky.02.R', 'DEF-f_pinky.03.R', 'shoulderIk.R', 'serratusIk.R', 'DEF-elbow_fan.R', 'DEF-forearm.01.R', 'DEF-forearm.02.R', 'DEF-forearm.03.R', 'DEF-hand.R', 'DEF-palm_index.R', 'forearm_X120.R', 'upper_arm.fk.R', 'forearm.fk.R', 'hand.fk.R', 'upper_arm.ik.R', 'elbow.link.R', 'forearm.ik.R', 'DEF-upper_arm.R', 'leg_hinge.R', 'leg_socket.R','thigh.R', 'gluteusIk.R', 'DEF-knee_fan.R', 'hipIk.R', 'shin.R', 'foot.R', 'toe.R', 'DEF-shin.01.R', 'DEF-shin.02.R', 'DEF-shin.03.R', 'DEF-foot.R', 'DEF-toe.R', 'shin_X150.R', 'thigh.fk.R', 'shin.fk.R', 'foot.fk.R', 'heel.marker.R', 'ball.marker.R', 'toe.fk.R', 'toe.marker.R', 'thigh.ik.R', 'knee.link.R', 'shin.ik.R', 'DEF-thigh.R', 'thigh_X-90.R', 'leg_hinge.L', 'leg_socket.L', 'thigh.L', 'hipIk.L', 'DEF-knee_fan.L', 'gluteusIk.L', 'shin.L', 'foot.L', 'toe.L', 'DEF-shin.01.L', 'DEF-shin.02.L', 'DEF-shin.03.L', 'DEF-foot.L', 'DEF-toe.L', 'shin_X150.L','thigh.fk.L', 'shin.fk.L', 'foot.fk.L', 'heel.marker.L', 'ball.marker.L', 'toe.fk.L', 'toe.marker.L', 'thigh.ik.L', 'knee.link.L', 'shin.ik.L', 'DEF-thigh.L', 'thigh_X-90.L', 'arm_hinge.L', 'arm_socket.L', 'upper_arm.L', 'serratusIk.L', 'forearm.L', 'hand.L', 'palm_pinky.L', 'f_pinky.01.L', 'f_pinky.02.L', 'f_pinky.03.L', 'DEF-f_pinky.03.L', 'DEF-f_pinky.02.L', 'pinky.L', 'DEF-f_pinky.01.L', 'thumb.01.L', 'thumb.02.L', 'thumb.03.L', 'thumb.L', 'palm_index.L', 'f_index.01.L','f_index.02.L', 'f_index.03.L', 'DEF-f_index.03.L', 'index.L', 'DEF-f_index.01.L', 'DEF-f_index.02.L', 'palm_ring.L', 'f_ring.01.L', 'f_ring.02.L', 'f_ring.03.L', 'ring.L', 'DEF-f_ring.01.L', 'DEF-f_ring.02.L', 'DEF-f_ring.03.L', 'palm_middle.L', 'f_middle.01.L', 'f_middle.02.L', 'f_middle.03.L', 'DEF-f_middle.02.L', 'DEF-f_middle.03.L', 'middle.L', 'DEF-palm_middle.L', 'DEF-f_middle.01.L', 'DEF-thumb.01.L', 'DEF-thumb.02.L', 'DEF-thumb.03.L', 'shoulderIk.L', 'DEF-elbow_fan.L', 'DEF-forearm.01.L', 'DEF-forearm.02.L', 'DEF-forearm.03.L', 'DEF-hand.L', 'DEF-palm_pinky.L', 'DEF-palm_ring.L', 'DEF-palm_index.L', 'forearm_X120.L', 'upper_arm.fk.L', 'forearm.fk.L', 'hand.fk.L', 'upper_arm.ik.L', 'elbow.link.L', 'forearm.ik.L', 'DEF-upper_arm.L', 'DEF-spine', 'DEF-spine-1', 'DEF-hips', 'DEF-pelvis.R', 'DEF-pelvis.L', 'p_face', 'p_lo_lid.R', 'p_mouth_in.L', 'p_nose', 'p_lo_lip.R', 'p_lo_lid.L', 'p_cheek.R', 'p_tongue', 'p_brow_in.R', 'p_cheek.L', 'p_lo_lip_mid', 'p_face_display', 'p_mouth_out.L', 'p_up_lid.L', 'p_up_lid.R', 'p_mouth_out.R', 'p_up_lip.R', 'p_mouth_in.R', 'p_up_lip.L', 'p_brow_out.L', 'p_jaw', 'p_brow_mid', 'p_brow_out.R', 'p_brow_in.L', 'p_mouth_mid', 'p_lo_lip.L', 'p_up_lip_mid', 'gaze_parent', 'gaze', 'ankle.L', 'ankle.R', 'foot.ik.L', 'toe.rev.L', 'foot.rev.L', 'ankle.ik.L', 'knee.pt.ik.L', 'foot.pt.ik.L', 'foot.ik.R', 'toe.rev.R', 'foot.rev.R', 'foot.pt.ik.R', 'ankle.ik.R', 'knee.pt.ik.R', 'hand.ik.L', 'hand.ik.R'],
+    "import_mhx": ["master", "root", "spine", "spine-1", "chest", "DEF-serratus.L", "DEF-serratus.R", "DEF-pect.L", "breast.L", "DEF-breast.L", "DEF-pect.R", "breast.R", "DEF-breast.R", "chest-1", "neck", "neck-1", "head", "lolid.R", "lolid.L", "jaw", "tongue_base", "tongue_mid", "tongue_tip", "uplid.L", "uplid.R", "eyes", "eye_parent.L", "eye.L", "DEF-eye.L", "eye_parent.R", "eye.R", "DEF-eye.R", "DEF-uplid.L", "DEF-uplid.R", "DEF-lolid.L", "DEF-lolid.R", "DEF-jaw", "DEF-tongue_base", "DEF-tongue_mid", "DEF-tongue_tip", "DEF-neck-1", "DEF-head", "clavicle.L", "DEF-deltoid.L", "shoulder01.L", "arm_base.L", "elbow.pt.ik.L", "pectIk.L", "scap-parent.R", "DEF-scapula.R", "scap-parent.L", "DEF-scapula.L", "clavicle.R", "DEF-deltoid.R", "pectIk.R", "shoulder01.R", "arm_base.R", "elbow.pt.ik.R", "DEF-sternum", "DEF-clavicle.R", "DEF-chest", "DEF-chest-1", "DEF-clavicle.L", "DEF-neck", "hips", "pelvis.L", "leg_base.L", "DEF-hip.R", "DEF-gluteus.L", "DEF-hip.L", "DEF-gluteus.R", "pelvis.R", "leg_base.R", "arm_hinge.R", "arm_socket.R", "upper_arm.R","forearm.R", "hand.R", "palm_middle.R", "f_middle.01.R", "f_middle.02.R", "f_middle.03.R", "DEF-f_middle.02.R", "DEF-f_middle.03.R", "middle.R", "thumb.01.R", "thumb.02.R", "thumb.03.R", "DEF-thumb.03.R", "thumb.R", "DEF-thumb.02.R", "palm_index.R", "f_index.01.R", "f_index.02.R", "f_index.03.R", "DEF-f_index.03.R", "index.R", "DEF-f_index.01.R", "DEF-f_index.02.R", "palm_pinky.R", "f_pinky.01.R", "f_pinky.02.R", "f_pinky.03.R", "pinky.R", "palm_ring.R", "f_ring.01.R", "f_ring.02.R", "f_ring.03.R", "DEF-f_ring.03.R", "DEF-f_ring.02.R", "ring.R", "DEF-palm_ring.R", "DEF-f_ring.01.R", "DEF-thumb.01.R", "DEF-palm_middle.R", "DEF-f_middle.01.R", "DEF-palm_pinky.R", "DEF-f_pinky.01.R", "DEF-f_pinky.02.R", "DEF-f_pinky.03.R", "shoulderIk.R", "serratusIk.R", "DEF-elbow_fan.R", "DEF-forearm.01.R", "DEF-forearm.02.R", "DEF-forearm.03.R", "DEF-hand.R", "DEF-palm_index.R", "forearm_X120.R", "upper_arm.fk.R", "forearm.fk.R", "hand.fk.R", "upper_arm.ik.R", "elbow.link.R", "forearm.ik.R", "DEF-upper_arm.R", "leg_hinge.R", "leg_socket.R","thigh.R", "gluteusIk.R", "DEF-knee_fan.R", "hipIk.R", "shin.R", "foot.R", "toe.R", "DEF-shin.01.R", "DEF-shin.02.R", "DEF-shin.03.R", "DEF-foot.R", "DEF-toe.R", "shin_X150.R", "thigh.fk.R", "shin.fk.R", "foot.fk.R", "heel.marker.R", "ball.marker.R", "toe.fk.R", "toe.marker.R", "thigh.ik.R", "knee.link.R", "shin.ik.R", "DEF-thigh.R", "thigh_X-90.R", "leg_hinge.L", "leg_socket.L", "thigh.L", "hipIk.L", "DEF-knee_fan.L", "gluteusIk.L", "shin.L", "foot.L", "toe.L", "DEF-shin.01.L", "DEF-shin.02.L", "DEF-shin.03.L", "DEF-foot.L", "DEF-toe.L", "shin_X150.L","thigh.fk.L", "shin.fk.L", "foot.fk.L", "heel.marker.L", "ball.marker.L", "toe.fk.L", "toe.marker.L", "thigh.ik.L", "knee.link.L", "shin.ik.L", "DEF-thigh.L", "thigh_X-90.L", "arm_hinge.L", "arm_socket.L", "upper_arm.L", "serratusIk.L", "forearm.L", "hand.L", "palm_pinky.L", "f_pinky.01.L", "f_pinky.02.L", "f_pinky.03.L", "DEF-f_pinky.03.L", "DEF-f_pinky.02.L", "pinky.L", "DEF-f_pinky.01.L", "thumb.01.L", "thumb.02.L", "thumb.03.L", "thumb.L", "palm_index.L", "f_index.01.L","f_index.02.L", "f_index.03.L", "DEF-f_index.03.L", "index.L", "DEF-f_index.01.L", "DEF-f_index.02.L", "palm_ring.L", "f_ring.01.L", "f_ring.02.L", "f_ring.03.L", "ring.L", "DEF-f_ring.01.L", "DEF-f_ring.02.L", "DEF-f_ring.03.L", "palm_middle.L", "f_middle.01.L", "f_middle.02.L", "f_middle.03.L", "DEF-f_middle.02.L", "DEF-f_middle.03.L", "middle.L", "DEF-palm_middle.L", "DEF-f_middle.01.L", "DEF-thumb.01.L", "DEF-thumb.02.L", "DEF-thumb.03.L", "shoulderIk.L", "DEF-elbow_fan.L", "DEF-forearm.01.L", "DEF-forearm.02.L", "DEF-forearm.03.L", "DEF-hand.L", "DEF-palm_pinky.L", "DEF-palm_ring.L", "DEF-palm_index.L", "forearm_X120.L", "upper_arm.fk.L", "forearm.fk.L", "hand.fk.L", "upper_arm.ik.L", "elbow.link.L", "forearm.ik.L", "DEF-upper_arm.L", "DEF-spine", "DEF-spine-1", "DEF-hips", "DEF-pelvis.R", "DEF-pelvis.L", "p_face", "p_lo_lid.R", "p_mouth_in.L", "p_nose", "p_lo_lip.R", "p_lo_lid.L", "p_cheek.R", "p_tongue", "p_brow_in.R", "p_cheek.L", "p_lo_lip_mid", "p_face_display", "p_mouth_out.L", "p_up_lid.L", "p_up_lid.R", "p_mouth_out.R", "p_up_lip.R", "p_mouth_in.R", "p_up_lip.L", "p_brow_out.L", "p_jaw", "p_brow_mid", "p_brow_out.R", "p_brow_in.L", "p_mouth_mid", "p_lo_lip.L", "p_up_lip_mid", "gaze_parent", "gaze", "ankle.L", "ankle.R", "foot.ik.L", "toe.rev.L", "foot.rev.L", "ankle.ik.L", "knee.pt.ik.L", "foot.pt.ik.L", "foot.ik.R", "toe.rev.R", "foot.rev.R", "foot.pt.ik.R", "ankle.ik.R", "knee.pt.ik.R", "hand.ik.L", "hand.ik.R"],
 }
 
 amh2b_rig_stitch_dest_list = {
-    'import_mhx': {
-        'makehuman_cmu_mb': {
-            'blist_dup_swap_stitch_torso': [('Hips', 'root', 0, 0), ('LowerBack', 'spine', 0, 0), ('Spine', 'chest', 0, 0), ('Spine1', 'chest-1', 0, 0), ('Neck', 'neck', 0, 0), ('Neck1', 'neck-1', 0, 0), ('Head', 'head', 0, 0)],
-            'blist_setparent_torso': [('Hips', 'master')],
-            'blist_dup_swap_stitch_arm_L_fk': [('LeftArm', 'arm_base.L', 0.06, 0.35), ('LeftShoulder', 'clavicle.L', 0, 0), ('LeftForeArm', 'forearm.fk.L', 0, 0), ('LeftHand', 'hand.fk.L', 0, 0)],
-            'blist_dup_swap_stitch_arm_R_fk': [('RightArm', 'arm_base.R', 0.06, 0.35), ('RightShoulder', 'clavicle.R', 0, 0), ('RightForeArm', 'forearm.fk.R', 0, 0), ('RightHand', 'hand.fk.R', 0, 0)],
-            'blist_setparent_arm_L_ik': [('elbow.pt.ik.L', 'LeftForeArm'), ('elbow.link.L', 'LeftForeArm'), ('hand.ik.L', 'LeftHand')],
-            'blist_setparent_arm_R_ik': [('elbow.pt.ik.R', 'RightForeArm'), ('elbow.link.R', 'RightForeArm'), ('hand.ik.R', 'RightHand')],
-            'blist_dup_swap_stitch_leg_L_fk': [('LHipJoint', 'leg_socket.L', 0, 0), ('LeftUpLeg', 'thigh.fk.L', 0, 0), ('LeftLeg', 'shin.fk.L', 0, 0), ('LeftFoot', 'foot.fk.L', 0, 0), ('LeftToeBase', 'toe.fk.L', 0, 0)],
-            'blist_dup_swap_stitch_leg_R_fk': [('RHipJoint', 'leg_socket.R', 0, 0), ('RightUpLeg', 'thigh.fk.R', 0, 0), ('RightLeg', 'shin.fk.R', 0, 0), ('RightFoot', 'foot.fk.R', 0, 0), ('RightToeBase', 'toe.fk.R', 0, 0)],
-            'blist_setparent_leg_L_ik': [('knee.pt.ik.L', 'LeftLeg'), ('knee.link.L', 'LeftLeg'), ('foot.ik.L', 'LeftFoot')],
-            'blist_setparent_leg_R_ik': [('knee.pt.ik.R', 'RightLeg'), ('knee.link.R', 'RightLeg'), ('foot.ik.R', 'RightFoot')],
+    "import_mhx": {
+        "makehuman_cmu_mb": {
+            "blist_dup_swap_stitch_torso": [("Hips", "root", 0, 0), ("LowerBack", "spine", 0, 0), ("Spine", "chest", 0, 0), ("Spine1", "chest-1", 0, 0), ("Neck", "neck", 0, 0), ("Neck1", "neck-1", 0, 0), ("Head", "head", 0, 0)],
+            "blist_setparent_torso": [("Hips", "master")],
+            "blist_dup_swap_stitch_arm_L_fk": [("LeftArm", "arm_base.L", 0.06, 0.35), ("LeftShoulder", "clavicle.L", 0, 0), ("LeftForeArm", "forearm.fk.L", 0, 0), ("LeftHand", "hand.fk.L", 0, 0)],
+            "blist_dup_swap_stitch_arm_R_fk": [("RightArm", "arm_base.R", 0.06, 0.35), ("RightShoulder", "clavicle.R", 0, 0), ("RightForeArm", "forearm.fk.R", 0, 0), ("RightHand", "hand.fk.R", 0, 0)],
+            "blist_setparent_arm_L_ik": [("elbow.pt.ik.L", "LeftForeArm"), ("elbow.link.L", "LeftForeArm"), ("hand.ik.L", "LeftHand")],
+            "blist_setparent_arm_R_ik": [("elbow.pt.ik.R", "RightForeArm"), ("elbow.link.R", "RightForeArm"), ("hand.ik.R", "RightHand")],
+            "blist_dup_swap_stitch_leg_L_fk": [("LHipJoint", "leg_socket.L", 0, 0), ("LeftUpLeg", "thigh.fk.L", 0, 0), ("LeftLeg", "shin.fk.L", 0, 0), ("LeftFoot", "foot.fk.L", 0, 0), ("LeftToeBase", "toe.fk.L", 0, 0)],
+            "blist_dup_swap_stitch_leg_R_fk": [("RHipJoint", "leg_socket.R", 0, 0), ("RightUpLeg", "thigh.fk.R", 0, 0), ("RightLeg", "shin.fk.R", 0, 0), ("RightFoot", "foot.fk.R", 0, 0), ("RightToeBase", "toe.fk.R", 0, 0)],
+            "blist_setparent_leg_L_ik": [("knee.pt.ik.L", "LeftLeg"), ("knee.link.L", "LeftLeg"), ("foot.ik.L", "LeftFoot")],
+            "blist_setparent_leg_R_ik": [("knee.pt.ik.R", "RightLeg"), ("knee.link.R", "RightLeg"), ("foot.ik.R", "RightFoot")],
         },
-        'mixamo_native_fbx': {
-            'blist_dup_swap_stitch_torso': [('*:Hips', 'root', 0, 0), ('*:Spine', 'spine-1', 0, 0), ('*:Spine1', 'chest', 0, 0), ('*:Spine2', 'chest-1', 0, 0), ('*:Neck', 'neck', 0, 0), ('*:Head', 'head', 0, 0)],
-            'blist_setparent_torso': [('*:Hips', 'master')],
-            'blist_dup_swap_stitch_arm_L_fk': [('*:LeftShoulder', 'clavicle.L', 0, 0), ('*:LeftArm', 'arm_base.L', 0.06, 0.35), ('*:LeftForeArm', 'forearm.fk.L', 0, 0), ('*:LeftHand', 'hand.fk.L', 0, 0)],
-            'blist_dup_swap_stitch_arm_R_fk': [('*:RightShoulder', 'clavicle.R', 0, 0), ('*:RightArm', 'arm_base.R', 0.06, 0.35), ('*:RightForeArm', 'forearm.fk.R', 0, 0), ('*:RightHand', 'hand.fk.R', 0, 0)],
-            'blist_setparent_arm_L_ik': [('hand.ik.L', '*:LeftHand'), ('elbow.pt.ik.L', '*:LeftForeArm'), ('elbow.link.L', '*:LeftForeArm')],
-            'blist_setparent_arm_R_ik': [('hand.ik.R', '*:RightHand'), ('elbow.pt.ik.R', '*:RightForeArm'), ('elbow.link.R', '*:RightForeArm')],
-            'blist_dup_swap_stitch_leg_L_fk': [('*:LeftUpLeg', 'thigh.fk.L', 0, 0), ('*:LeftLeg', 'shin.fk.L', 0, 0), ('*:LeftFoot', 'foot.fk.L', 0, 0), ('*:LeftToeBase', 'toe.fk.L', 0, 0)],
-            'blist_dup_swap_stitch_leg_R_fk': [('*:RightUpLeg', 'thigh.fk.R', 0, 0), ('*:RightLeg', 'shin.fk.R', 0, 0), ('*:RightFoot', 'foot.fk.R', 0, 0), ('*:RightToeBase', 'toe.fk.R', 0, 0)],
-            'blist_setparent_leg_L_ik': [('knee.pt.ik.L', '*:LeftLeg'), ('knee.link.L', '*:LeftLeg'), ('foot.ik.L', '*:LeftFoot')],
-            'blist_setparent_leg_R_ik': [('knee.pt.ik.R', '*:RightLeg'), ('knee.link.R', '*:RightLeg'), ('foot.ik.R', '*:RightFoot')],
-            'blist_dup_swap_stitch_fingers_L': [('*:LeftHandThumb1', 'thumb.01.L', 0, 0), ('*:LeftHandThumb2', 'thumb.02.L', 0, 0), ('*:LeftHandThumb3', 'thumb.03.L', 0, 0), ('*:LeftHandIndex1', 'f_index.01.L', 0, 0), ('*:LeftHandIndex2', 'f_index.02.L', 0, 0), ('*:LeftHandIndex3', 'f_index.03.L', 0, 0), ('*:LeftHandMiddle1', 'f_middle.01.L', 0, 0), ('*:LeftHandMiddle2', 'f_middle.02.L', 0, 0), ('*:LeftHandMiddle3', 'f_middle.03.L', 0, 0), ('*:LeftHandRing1', 'f_ring.01.L', 0, 0), ('*:LeftHandRing2', 'f_ring.02.L', 0, 0), ('*:LeftHandRing3', 'f_ring.03.L', 0, 0), ('*:LeftHandPinky1', 'f_pinky.01.L', 0, 0), ('*:LeftHandPinky2', 'f_pinky.02.L', 0, 0), ('*:LeftHandPinky3', 'f_pinky.03.L', 0, 0)],
-            'blist_dup_swap_stitch_fingers_R': [('*:RightHandThumb1', 'thumb.01.R', 0, 0), ('*:RightHandThumb2', 'thumb.02.R', 0, 0), ('*:RightHandThumb3', 'thumb.03.R', 0, 0), ('*:RightHandIndex1', 'f_index.01.R', 0, 0), ('*:RightHandIndex2', 'f_index.02.R', 0, 0), ('*:RightHandIndex3', 'f_index.03.R', 0, 0), ('*:RightHandMiddle1', 'f_middle.01.R', 0, 0), ('*:RightHandMiddle2', 'f_middle.02.R', 0, 0), ('*:RightHandMiddle3', 'f_middle.03.R', 0, 0), ('*:RightHandRing1', 'f_ring.01.R', 0, 0), ('*:RightHandRing2', 'f_ring.02.R', 0, 0), ('*:RightHandRing3', 'f_ring.03.R', 0, 0), ('*:RightHandPinky1', 'f_pinky.01.R', 0, 0), ('*:RightHandPinky2', 'f_pinky.02.R', 0, 0), ('*:RightHandPinky3', 'f_pinky.03.R', 0, 0)],
+        "mixamo_native_fbx": {
+            "blist_dup_swap_stitch_torso": [("*:Hips", "root", 0, 0), ("*:Spine", "spine-1", 0, 0), ("*:Spine1", "chest", 0, 0), ("*:Spine2", "chest-1", 0, 0), ("*:Neck", "neck", 0, 0), ("*:Head", "head", 0, 0)],
+            "blist_setparent_torso": [("*:Hips", "master")],
+            "blist_dup_swap_stitch_arm_L_fk": [("*:LeftShoulder", "clavicle.L", 0, 0), ("*:LeftArm", "arm_base.L", 0.06, 0.35), ("*:LeftForeArm", "forearm.fk.L", 0, 0), ("*:LeftHand", "hand.fk.L", 0, 0)],
+            "blist_dup_swap_stitch_arm_R_fk": [("*:RightShoulder", "clavicle.R", 0, 0), ("*:RightArm", "arm_base.R", 0.06, 0.35), ("*:RightForeArm", "forearm.fk.R", 0, 0), ("*:RightHand", "hand.fk.R", 0, 0)],
+            "blist_setparent_arm_L_ik": [("hand.ik.L", "*:LeftHand"), ("elbow.pt.ik.L", "*:LeftForeArm"), ("elbow.link.L", "*:LeftForeArm")],
+            "blist_setparent_arm_R_ik": [("hand.ik.R", "*:RightHand"), ("elbow.pt.ik.R", "*:RightForeArm"), ("elbow.link.R", "*:RightForeArm")],
+            "blist_dup_swap_stitch_leg_L_fk": [("*:LeftUpLeg", "thigh.fk.L", 0, 0), ("*:LeftLeg", "shin.fk.L", 0, 0), ("*:LeftFoot", "foot.fk.L", 0, 0), ("*:LeftToeBase", "toe.fk.L", 0, 0)],
+            "blist_dup_swap_stitch_leg_R_fk": [("*:RightUpLeg", "thigh.fk.R", 0, 0), ("*:RightLeg", "shin.fk.R", 0, 0), ("*:RightFoot", "foot.fk.R", 0, 0), ("*:RightToeBase", "toe.fk.R", 0, 0)],
+            "blist_setparent_leg_L_ik": [("knee.pt.ik.L", "*:LeftLeg"), ("knee.link.L", "*:LeftLeg"), ("foot.ik.L", "*:LeftFoot")],
+            "blist_setparent_leg_R_ik": [("knee.pt.ik.R", "*:RightLeg"), ("knee.link.R", "*:RightLeg"), ("foot.ik.R", "*:RightFoot")],
+            "blist_dup_swap_stitch_fingers_L": [("*:LeftHandThumb1", "thumb.01.L", 0, 0), ("*:LeftHandThumb2", "thumb.02.L", 0, 0), ("*:LeftHandThumb3", "thumb.03.L", 0, 0), ("*:LeftHandIndex1", "f_index.01.L", 0, 0), ("*:LeftHandIndex2", "f_index.02.L", 0, 0), ("*:LeftHandIndex3", "f_index.03.L", 0, 0), ("*:LeftHandMiddle1", "f_middle.01.L", 0, 0), ("*:LeftHandMiddle2", "f_middle.02.L", 0, 0), ("*:LeftHandMiddle3", "f_middle.03.L", 0, 0), ("*:LeftHandRing1", "f_ring.01.L", 0, 0), ("*:LeftHandRing2", "f_ring.02.L", 0, 0), ("*:LeftHandRing3", "f_ring.03.L", 0, 0), ("*:LeftHandPinky1", "f_pinky.01.L", 0, 0), ("*:LeftHandPinky2", "f_pinky.02.L", 0, 0), ("*:LeftHandPinky3", "f_pinky.03.L", 0, 0)],
+            "blist_dup_swap_stitch_fingers_R": [("*:RightHandThumb1", "thumb.01.R", 0, 0), ("*:RightHandThumb2", "thumb.02.R", 0, 0), ("*:RightHandThumb3", "thumb.03.R", 0, 0), ("*:RightHandIndex1", "f_index.01.R", 0, 0), ("*:RightHandIndex2", "f_index.02.R", 0, 0), ("*:RightHandIndex3", "f_index.03.R", 0, 0), ("*:RightHandMiddle1", "f_middle.01.R", 0, 0), ("*:RightHandMiddle2", "f_middle.02.R", 0, 0), ("*:RightHandMiddle3", "f_middle.03.R", 0, 0), ("*:RightHandRing1", "f_ring.01.R", 0, 0), ("*:RightHandRing2", "f_ring.02.R", 0, 0), ("*:RightHandRing3", "f_ring.03.R", 0, 0), ("*:RightHandPinky1", "f_pinky.01.R", 0, 0), ("*:RightHandPinky2", "f_pinky.02.R", 0, 0), ("*:RightHandPinky3", "f_pinky.03.R", 0, 0)],
         }
     }
 }
 
 
-def getTranslationVec(bone_from, bone_to, from_dist, to_dist):
-    deltaX_from = bone_from.tail.x - bone_from.head.x
-    deltaY_from = bone_from.tail.y - bone_from.head.y
-    deltaZ_from = bone_from.tail.z - bone_from.head.z
-    deltaX_to = bone_to.tail.x - bone_to.head.x
-    deltaY_to = bone_to.tail.y - bone_to.head.y
-    deltaZ_to = bone_to.tail.z - bone_to.head.z
+def get_translation_vec(bone_from, bone_to, from_dist, to_dist):
+    delta_x_from = bone_from.tail.x - bone_from.head.x
+    delta_y_from = bone_from.tail.y - bone_from.head.y
+    delta_z_from = bone_from.tail.z - bone_from.head.z
+    delta_x_to = bone_to.tail.x - bone_to.head.x
+    delta_y_to = bone_to.tail.y - bone_to.head.y
+    delta_z_to = bone_to.tail.z - bone_to.head.z
 
     # to
-    tX = bone_to.head.x + deltaX_to * to_dist - bone_from.head.x
-    tY = bone_to.head.y + deltaY_to * to_dist - bone_from.head.y
-    tZ = bone_to.head.z + deltaZ_to * to_dist - bone_from.head.z
+    t_x = bone_to.head.x + delta_x_to * to_dist - bone_from.head.x
+    t_y = bone_to.head.y + delta_y_to * to_dist - bone_from.head.y
+    t_z = bone_to.head.z + delta_z_to * to_dist - bone_from.head.z
     # from
-    tX = tX - deltaX_from * from_dist
-    tY = tY - deltaY_from * from_dist
-    tZ = tZ - deltaZ_from * from_dist
+    t_x = t_x - delta_x_from * from_dist
+    t_y = t_y - delta_y_from * from_dist
+    t_z = t_z - delta_z_from * from_dist
 
     # translation vector
-    return (tX, tY, tZ)
+    return (t_x, t_y, t_z)
 
 
-def stitchDataConcatDbl(stitchData1, stitchData2):
-    if stitchData1 is None:
-        return stitchData2
-    elif stitchData2 is None:
-        return stitchData1
+def stitchdata_concat_dbl(stitch_data1, stitch_data2):
+    if stitch_data1 is None:
+        return stitch_data2
+    elif stitch_data2 is None:
+        return stitch_data1
     else:
-        data_concat = stitchData1.copy()
-        for temp1, temp2 in stitchData2:
+        data_concat = stitch_data1.copy()
+        for temp1, temp2 in stitch_data2:
             data_concat.append((temp1, temp2))
         return data_concat
 
 
-def stitchDataConcatTrpl(stitchData1, stitchData2):
-    if stitchData1 is None:
-        return stitchData2
-    elif stitchData2 is None:
-        return stitchData1
+def stitchdata_concat_trpl(stitch_data1, stitch_data2):
+    if stitch_data1 is None:
+        return stitch_data2
+    elif stitch_data2 is None:
+        return stitch_data1
     else:
-        data_concat = stitchData1.copy()
-        for temp1, temp2, temp3 in stitchData2:
+        data_concat = stitch_data1.copy()
+        for temp1, temp2, temp3 in stitch_data2:
             data_concat.append((temp1, temp2, temp3))
         return data_concat
 
 
-# otherRig is source, mhx2Rig is destination
-def doBridgeRigs(self, mhx2Rig, mhx2RigType, otherRig, otherRigType, boneNameTranslations):
-    dest_stitch = amh2b_rig_stitch_dest_list.get(mhx2RigType).get(otherRigType)
+# other_rig_obj is source, mhx_rig_obj is destination
+def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans):
+    dest_stitch = amh2b_rig_stitch_dest_list.get(mhx_rig_type).get(other_rig_type)
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    # *** Blender 2.7x
-    #bpy.context.scene.objects.active = otherRig
-    # *** Blender 2.8x and higher
-    bpy.context.view_layer.objects.active = otherRig
-    # ***
+    set_active_object(other_rig_obj)
 
     bpy.ops.object.mode_set(mode='EDIT')
     # Rename before join so that animation is attached to correct bones, to prevent mismatches
     # from bones being auto-renamed when rigs are joined.
-    renameBonesBeforeJoin(otherRig, dest_stitch.get('blist_rename'))
+    rename_bones_before_join(other_rig_obj, dest_stitch.get("blist_rename"))
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    # *** Blender 2.7x
-    #bpy.context.scene.objects.active = mhx2Rig
-    # *** Blender 2.8x and higher
-    bpy.context.view_layer.objects.active = mhx2Rig
-    # ***
+    set_active_object(mhx_rig_obj)
 
     bpy.ops.object.join()
     bpy.ops.object.mode_set(mode='EDIT')
-    stitchBones(self, mhx2Rig, dest_stitch, boneNameTranslations)
+    stitch_bones(self, mhx_rig_obj, dest_stitch, bone_name_trans)
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def renameBonesBeforeJoin(rig, bone_rename_tuples):
+def rename_bones_before_join(rig_obj, bone_rename_tuples):
     if bone_rename_tuples is not None:
         for old_bn, new_bn in bone_rename_tuples:
-            rig.data.edit_bones[old_bn].name = new_bn
+            # ignore missing bones
+            if rig_obj.data.edit_bones.get(old_bn) is None:
+                continue
+            # change name of bone
+            rig_obj.data.edit_bones[old_bn].name = new_bn
 
 
-def stitchBones(self, rig, stitch_datapack, boneNameTrans):
-    batchDoDupSwapStitches(self, rig, stitch_datapack, boneNameTrans)
-    batchDoMoveBones(self, rig, stitch_datapack, boneNameTrans)
-    batchDoSetParents(self, rig, stitch_datapack, boneNameTrans)
+def stitch_bones(self, rig_obj, stitch_datapack, bone_name_trans):
+    batch_do_dup_swap_stitches(self, rig_obj, stitch_datapack, bone_name_trans)
+    batch_do_move_bones(self, rig_obj, stitch_datapack, bone_name_trans)
+    batch_do_set_parents(self, rig_obj, stitch_datapack, bone_name_trans)
 
 
-def batchDoDupSwapStitches(self, rig, stitch_datapack, boneNameTrans):
+def batch_do_dup_swap_stitches(self, rig_obj, stitch_datapack, bone_name_trans):
     # TORSO
     if self.torso_stitch_enum == 'YES':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_torso'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_torso"), bone_name_trans)
 
     # ARM LEFT
     if self.arm_left_stitch_enum == 'FORWARDK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_arm_L_fk'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_arm_L_fk"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'INVERSEK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_arm_L_ik'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_arm_L_ik"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'BOTH':
-        innerBatchDupSwapStitches(rig, stitchDataConcatDbl(stitch_datapack.get('blist_dup_swap_stitch_arm_L_fk'), stitch_datapack.get('blist_dup_swap_stitch_arm_L_ik')), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_dup_swap_stitch_arm_L_fk"), stitch_datapack.get("blist_dup_swap_stitch_arm_L_ik")), bone_name_trans)
 
     # ARM RIGHT
     if self.arm_right_stitch_enum == 'FORWARDK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_arm_R_fk'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_arm_R_fk"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'INVERSEK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_arm_R_ik'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_arm_R_ik"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'BOTH':
-        innerBatchDupSwapStitches(rig, stitchDataConcatDbl(stitch_datapack.get('blist_dup_swap_stitch_arm_R_fk'), stitch_datapack.get('blist_dup_swap_stitch_arm_R_ik')), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_dup_swap_stitch_arm_R_fk"), stitch_datapack.get("blist_dup_swap_stitch_arm_R_ik")), bone_name_trans)
 
     # LEG LEFT
     if self.leg_left_stitch_enum == 'FORWARDK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_leg_L_fk'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_leg_L_fk"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'INVERSEK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_leg_L_ik'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_leg_L_ik"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'BOTH':
-        innerBatchDupSwapStitches(rig, stitchDataConcatDbl(stitch_datapack.get('blist_dup_swap_stitch_leg_L_fk'), stitch_datapack.get('blist_dup_swap_stitch_leg_L_ik')), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_dup_swap_stitch_leg_L_fk"), stitch_datapack.get("blist_dup_swap_stitch_leg_L_ik")), bone_name_trans)
 
     # LEG RIGHT
     if self.leg_right_stitch_enum == 'FORWARDK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_leg_R_fk'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_leg_R_fk"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'INVERSEK':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_leg_R_ik'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_leg_R_ik"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'BOTH':
-        innerBatchDupSwapStitches(rig, stitchDataConcatDbl(stitch_datapack.get('blist_dup_swap_stitch_leg_R_fk'), stitch_datapack.get('blist_dup_swap_stitch_leg_R_ik')), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_dup_swap_stitch_leg_R_fk"), stitch_datapack.get("blist_dup_swap_stitch_leg_R_ik")), bone_name_trans)
 
     # FINGERS LEFT
     if self.fingers_left_stitch_enum == 'YES':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_fingers_L'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_fingers_L"), bone_name_trans)
     # FINGERS RIGHT
     if self.fingers_right_stitch_enum == 'YES':
-        innerBatchDupSwapStitches(rig, stitch_datapack.get('blist_dup_swap_stitch_fingers_R'), boneNameTrans)
+        inner_batch_dup_swap_stitches(rig_obj, stitch_datapack.get("blist_dup_swap_stitch_fingers_R"), bone_name_trans)
 
 
-def innerBatchDupSwapStitches(rig, stitchList, boneNameTrans):
-    if stitchList is not None:
-        for bone_to_dup, ref_bone, dist_on_dup, dist_on_ref in stitchList:
-            stitchDupSwap(rig, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, boneNameTrans)
+def inner_batch_dup_swap_stitches(rig_obj, stitch_list, bone_name_trans):
+    if stitch_list is not None:
+        for bone_to_dup, ref_bone, dist_on_dup, dist_on_ref in stitch_list:
+            stitch_dup_swap(rig_obj, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, bone_name_trans)
 
 
-def stitchDupSwap(rig, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, boneNameTrans):
-    bone_to_dup_trans = boneNameTrans.get(bone_to_dup)
-    ref_bone_trans = boneNameTrans.get(ref_bone)
+def stitch_dup_swap(rig_obj, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, bone_name_trans):
+    bone_to_dup_trans = bone_name_trans.get(bone_to_dup)
+    ref_bone_trans = bone_name_trans.get(ref_bone)
     if bone_to_dup_trans is None or ref_bone_trans is None:
         return
 
     # set the parenting type to offset (connect=False), to prevent geometry being warped when re-parented
-    rig.data.edit_bones[bone_to_dup_trans].use_connect = False
-    rig.data.edit_bones[ref_bone_trans].use_connect = False
+    rig_obj.data.edit_bones[bone_to_dup_trans].use_connect = False
+    rig_obj.data.edit_bones[ref_bone_trans].use_connect = False
 
-    tVec = getTranslationVec(rig.data.edit_bones[bone_to_dup_trans], rig.data.edit_bones[ref_bone_trans], dist_on_dup, dist_on_ref)
+    tVec = get_translation_vec(rig_obj.data.edit_bones[bone_to_dup_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_dup, dist_on_ref)
 
     # duplicate bone
-    newBone = rig.data.edit_bones.new(rig.data.edit_bones[bone_to_dup_trans].name)
-    newBone.head.x = rig.data.edit_bones[bone_to_dup_trans].head.x + tVec[0]
-    newBone.head.y = rig.data.edit_bones[bone_to_dup_trans].head.y + tVec[1]
-    newBone.head.z = rig.data.edit_bones[bone_to_dup_trans].head.z + tVec[2]
-    newBone.tail.x = rig.data.edit_bones[bone_to_dup_trans].tail.x + tVec[0]
-    newBone.tail.y = rig.data.edit_bones[bone_to_dup_trans].tail.y + tVec[1]
-    newBone.tail.z = rig.data.edit_bones[bone_to_dup_trans].tail.z + tVec[2]
-    newBone.roll = rig.data.edit_bones[bone_to_dup_trans].roll
+    new_bone = rig_obj.data.edit_bones.new(rig_obj.data.edit_bones[bone_to_dup_trans].name)
+    new_bone.head.x = rig_obj.data.edit_bones[bone_to_dup_trans].head.x + tVec[0]
+    new_bone.head.y = rig_obj.data.edit_bones[bone_to_dup_trans].head.y + tVec[1]
+    new_bone.head.z = rig_obj.data.edit_bones[bone_to_dup_trans].head.z + tVec[2]
+    new_bone.tail.x = rig_obj.data.edit_bones[bone_to_dup_trans].tail.x + tVec[0]
+    new_bone.tail.y = rig_obj.data.edit_bones[bone_to_dup_trans].tail.y + tVec[1]
+    new_bone.tail.z = rig_obj.data.edit_bones[bone_to_dup_trans].tail.z + tVec[2]
+    new_bone.roll = rig_obj.data.edit_bones[bone_to_dup_trans].roll
     # swap new bone for ref_bone
-    newBone.parent = rig.data.edit_bones[ref_bone_trans].parent
-    rig.data.edit_bones[ref_bone_trans].parent = newBone
+    new_bone.parent = rig_obj.data.edit_bones[ref_bone_trans].parent
+    rig_obj.data.edit_bones[ref_bone_trans].parent = new_bone
 
-    # need to make copy of newBone.name because of mode_set change,
-    # somehow cannot access newBone.name in POSE mode
-    newBoneName = newBone.name
+    # need to make copy of new_bone.name because of mode_set change,
+    # somehow cannot access new_bone.name in POSE mode
+    new_bone_name = new_bone.name
 
     bpy.ops.object.mode_set(mode='POSE')
 
     # new bone will copy rotation from bone_to_dup
-    crc = rig.pose.bones[newBoneName].constraints.new('COPY_ROTATION')
-    crc.target = rig
+    crc = rig_obj.pose.bones[new_bone_name].constraints.new('COPY_ROTATION')
+    crc.target = rig_obj
     crc.subtarget = bone_to_dup_trans
     crc.target_space = 'LOCAL'
     crc.owner_space = 'LOCAL'
     crc.use_offset = True
     # new bone will also copy location from bone_to_dup (user can turn off / remove if needed)
-    clc = rig.pose.bones[newBoneName].constraints.new('COPY_LOCATION')
-    clc.target = rig
+    clc = rig_obj.pose.bones[new_bone_name].constraints.new('COPY_LOCATION')
+    clc.target = rig_obj
     clc.subtarget = bone_to_dup_trans
     clc.target_space = 'LOCAL'
     clc.owner_space = 'LOCAL'
@@ -301,161 +312,161 @@ def stitchDupSwap(rig, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, boneName
     bpy.ops.object.mode_set(mode='EDIT')
 
 
-def batchDoMoveBones(self, rig, stitch_datapack, boneNameTrans):
+def batch_do_move_bones(self, rig_obj, stitch_datapack, bone_name_trans):
     # TORSO
     if self.torso_stitch_enum == 'YES':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_torso'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_torso"), bone_name_trans)
 
     # ARM LEFT
     if self.arm_left_stitch_enum == 'FORWARDK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_arm_L_fk'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_arm_L_fk"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'INVERSEK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_arm_L_ik'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_arm_L_ik"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'BOTH':
-        innerBatchDoMove(rig, stitchDataConcatTrpl(stitch_datapack.get('blist_move_arm_L_fk'), stitch_datapack.get('blist_move_arm_L_ik')), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitchdata_concat_trpl(stitch_datapack.get("blist_move_arm_L_fk"), stitch_datapack.get("blist_move_arm_L_ik")), bone_name_trans)
 
     # ARM RIGHT
     if self.arm_right_stitch_enum == 'FORWARDK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_arm_R_fk'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_arm_R_fk"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'INVERSEK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_arm_R_ik'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_arm_R_ik"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'BOTH':
-        innerBatchDoMove(rig, stitchDataConcatTrpl(stitch_datapack.get('blist_move_arm_R_fk'), stitch_datapack.get('blist_move_arm_R_ik')), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitchdata_concat_trpl(stitch_datapack.get("blist_move_arm_R_fk"), stitch_datapack.get("blist_move_arm_R_ik")), bone_name_trans)
 
     # LEG LEFT
     if self.leg_left_stitch_enum == 'FORWARDK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_leg_L_fk'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_leg_L_fk"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'INVERSEK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_leg_L_ik'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_leg_L_ik"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'BOTH':
-        innerBatchDoMove(rig, stitchDataConcatTrpl(stitch_datapack.get('blist_move_leg_L_fk'), stitch_datapack.get('blist_move_leg_L_ik')), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitchdata_concat_trpl(stitch_datapack.get("blist_move_leg_L_fk"), stitch_datapack.get("blist_move_leg_L_ik")), bone_name_trans)
 
     # LEG right
     if self.leg_right_stitch_enum == 'FORWARDK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_leg_R_fk'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_leg_R_fk"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'INVERSEK':
-        innerBatchDoMove(rig, stitch_datapack.get('blist_move_leg_R_ik'), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitch_datapack.get("blist_move_leg_R_ik"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'BOTH':
-        innerBatchDoMove(rig, stitchDataConcatTrpl(stitch_datapack.get('blist_move_leg_R_fk'), stitch_datapack.get('blist_move_leg_R_ik')), boneNameTrans)
+        inner_batch_do_move(rig_obj, stitchdata_concat_trpl(stitch_datapack.get("blist_move_leg_R_fk"), stitch_datapack.get("blist_move_leg_R_ik")), bone_name_trans)
 
 
-def innerBatchDoMove(rig, stitch_list, boneNameTrans):
+def inner_batch_do_move(rig_obj, stitch_list, bone_name_trans):
     if stitch_list is not None:
         for bone_to_move, ref_bone, dist_on_move, dist_on_ref in stitch_list:
-            doMoveBone(rig, bone_to_move, ref_bone, dist_on_move, dist_on_ref, boneNameTrans)
+            do_move_bone(rig_obj, bone_to_move, ref_bone, dist_on_move, dist_on_ref, bone_name_trans)
 
 
-def doMoveBone(rig, bone_to_move, ref_bone, dist_on_move, dist_on_ref, boneNameTrans):
-    bone_to_move_trans = boneNameTrans.get(bone_to_move)
-    ref_bone_trans = boneNameTrans.get(ref_bone)
+def do_move_bone(rig_obj, bone_to_move, ref_bone, dist_on_move, dist_on_ref, bone_name_trans):
+    bone_to_move_trans = bone_name_trans.get(bone_to_move)
+    ref_bone_trans = bone_name_trans.get(ref_bone)
     if bone_to_move_trans is None or ref_bone_trans is None:
         return
 
     # set parenting type to Offset to prevent warping when moving bone
-    rig.data.edit_bones[bone_to_move_trans].use_connect = False
+    rig_obj.data.edit_bones[bone_to_move_trans].use_connect = False
 
-    tVec = getTranslationVec(rig.data.edit_bones[bone_to_move_trans], rig.data.edit_bones[ref_bone_trans], dist_on_move, dist_on_ref)
+    tVec = get_translation_vec(rig_obj.data.edit_bones[bone_to_move_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_move, dist_on_ref)
 
-    rig.data.edit_bones[bone_to_move_trans].head.x += tVec[0]
-    rig.data.edit_bones[bone_to_move_trans].head.y += tVec[1]
-    rig.data.edit_bones[bone_to_move_trans].head.z += tVec[2]
-    rig.data.edit_bones[bone_to_move_trans].tail.x += tVec[0]
-    rig.data.edit_bones[bone_to_move_trans].tail.y += tVec[1]
-    rig.data.edit_bones[bone_to_move_trans].tail.z += tVec[2]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.x += tVec[0]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.y += tVec[1]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.z += tVec[2]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.x += tVec[0]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.y += tVec[1]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.z += tVec[2]
 
 
-def batchDoSetParents(self, rig, stitch_datapack, boneNameTrans):
+def batch_do_set_parents(self, rig_obj, stitch_datapack, bone_name_trans):
     # TORSO
     if self.torso_stitch_enum == 'YES':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_torso'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_torso"), bone_name_trans)
 
     # ARM LEFT
     if self.arm_left_stitch_enum == 'FORWARDK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_arm_L_fk'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_arm_L_fk"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'INVERSEK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_arm_L_ik'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_arm_L_ik"), bone_name_trans)
     elif self.arm_left_stitch_enum == 'BOTH':
-        innerBatchDoSetParent(rig, stitchDataConcatDbl(stitch_datapack.get('blist_setparent_arm_L_fk'), stitch_datapack.get('blist_setparent_arm_L_ik')), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_setparent_arm_L_fk"), stitch_datapack.get("blist_setparent_arm_L_ik")), bone_name_trans)
 
     # ARM RIGHT
     if self.arm_right_stitch_enum == 'FORWARDK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_arm_R_fk'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_arm_R_fk"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'INVERSEK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_arm_R_ik'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_arm_R_ik"), bone_name_trans)
     elif self.arm_right_stitch_enum == 'BOTH':
-        innerBatchDoSetParent(rig, stitchDataConcatDbl(stitch_datapack.get('blist_setparent_arm_R_fk'), stitch_datapack.get('blist_setparent_arm_R_ik')), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_setparent_arm_R_fk"), stitch_datapack.get("blist_setparent_arm_R_ik")), bone_name_trans)
 
     # LEG LEFT
     if self.leg_left_stitch_enum == 'FORWARDK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_leg_L_fk'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_leg_L_fk"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'INVERSEK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_leg_L_ik'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_leg_L_ik"), bone_name_trans)
     elif self.leg_left_stitch_enum == 'BOTH':
-        innerBatchDoSetParent(rig, stitchDataConcatDbl(stitch_datapack.get('blist_setparent_leg_L_fk'), stitch_datapack.get('blist_setparent_leg_L_ik')), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_setparent_leg_L_fk"), stitch_datapack.get("blist_setparent_leg_L_ik")), bone_name_trans)
 
     # LEG RIGHT
     if self.leg_right_stitch_enum == 'FORWARDK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_leg_R_fk'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_leg_R_fk"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'INVERSEK':
-        innerBatchDoSetParent(rig, stitch_datapack.get('blist_setparent_leg_R_ik'), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitch_datapack.get("blist_setparent_leg_R_ik"), bone_name_trans)
     elif self.leg_right_stitch_enum == 'BOTH':
-        innerBatchDoSetParent(rig, stitchDataConcatDbl(stitch_datapack.get('blist_setparent_leg_R_fk'), stitch_datapack.get('blist_setparent_leg_R_ik')), boneNameTrans)
+        inner_batch_do_set_parent(rig_obj, stitchdata_concat_dbl(stitch_datapack.get("blist_setparent_leg_R_fk"), stitch_datapack.get("blist_setparent_leg_R_ik")), bone_name_trans)
 
 
-def innerBatchDoSetParent(rig, stitch_list, boneNameTrans):
+def inner_batch_do_set_parent(rig_obj, stitch_list, bone_name_trans):
     if stitch_list is not None:
         for stitch_from, stitch_to in stitch_list:
-            stitchSetParentBone(rig, stitch_from, stitch_to, boneNameTrans)
+            stitch_set_parent_bone(rig_obj, stitch_from, stitch_to, bone_name_trans)
 
 
-def stitchSetParentBone(rig, stitch_from, stitch_to, boneNameTrans):
-    stitch_from_trans = boneNameTrans.get(stitch_from)
-    stitch_to_trans = boneNameTrans.get(stitch_to)
+def stitch_set_parent_bone(rig_obj, stitch_from, stitch_to, bone_name_trans):
+    stitch_from_trans = bone_name_trans.get(stitch_from)
+    stitch_to_trans = bone_name_trans.get(stitch_to)
     if stitch_from_trans is None or stitch_to_trans is None:
         return
 
     # either bone can be warped by the re-parenting, so set parent type to Offset for both
-    rig.data.edit_bones[stitch_from_trans].use_connect = False
-    rig.data.edit_bones[stitch_to_trans].use_connect = False
+    rig_obj.data.edit_bones[stitch_from_trans].use_connect = False
+    rig_obj.data.edit_bones[stitch_to_trans].use_connect = False
 
-    rig.data.edit_bones[stitch_from_trans].parent = rig.data.edit_bones[stitch_to_trans]
+    rig_obj.data.edit_bones[stitch_from_trans].parent = rig_obj.data.edit_bones[stitch_to_trans]
 
 
-def detectAndbridgeRigs(self, mhx2Rig, otherRig):
-    print('detectAndBridgeRigs function started')
-    print('mhx2Rig.name = ' + mhx2Rig.name)
-    print('otherRig.name = ' + otherRig.name)
+def detect_and_bridge_rigs(self, mhx_rig_obj, other_rig_obj):
+    print("detect_and_bridge_rigs function started")
+    print("mhx_rig_obj.name = " + mhx_rig_obj.name)
+    print("other_rig_obj.name = " + other_rig_obj.name)
 
     # destination rig type
-    mhx2RigType = 'import_mhx'
+    mhx_rig_type = "import_mhx"
 
     # get source rig type, automatically detecting as needed
     if self.src_rig_type_enum == 'I_MIXAMO_NATIVE_FBX':
-        otherRigType = 'mixamo_native_fbx'
+        other_rig_type = "mixamo_native_fbx"
     elif self.src_rig_type_enum == 'I_MAKEHUMAN_CMU_MB':
-        otherRigType = 'makehuman_cmu_mb'
+        other_rig_type = "makehuman_cmu_mb"
     else:
         # auto-detect is last option, if nothing else matched
-        otherRigType = detectRigType(otherRig)
+        other_rig_type = detect_rig_type(other_rig_obj)
 
-    mhx2RigBoneNames = []
-    for bone in mhx2Rig.data.bones:
-        mhx2RigBoneNames.append(bone.name)
-    otherRigBoneNames = []
-    for bone in otherRig.data.bones:
-        otherRigBoneNames.append(bone.name)
-    boneNameTranslations = getBoneNameTranslations(amh2b_rig_type_bone_names.get(mhx2RigType), mhx2RigBoneNames, '')
-    additionalNameTrans = getBoneNameTranslations(amh2b_rig_type_bone_names.get(otherRigType), otherRigBoneNames, '')
-    boneNameTranslations.update(additionalNameTrans)
+    mhx_rig_bone_names = []
+    for bone in mhx_rig_obj.data.bones:
+        mhx_rig_bone_names.append(bone.name)
+    other_rig_bone_names = []
+    for bone in other_rig_obj.data.bones:
+        other_rig_bone_names.append(bone.name)
+    bone_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(mhx_rig_type), mhx_rig_bone_names, "")
+    extra_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(other_rig_type), other_rig_bone_names, "")
+    bone_name_trans.update(extra_name_trans)
 
-    print('mhx2RigType=' + mhx2RigType)
-    print('otherRigType=' + otherRigType)
+    print("mhx_rig_type=" + mhx_rig_type)
+    print("other_rig_type=" + other_rig_type)
 
-    doBridgeRigs(self, mhx2Rig, mhx2RigType, otherRig, otherRigType, boneNameTranslations)
+    do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans)
 
 
 # compare bone names to detect rig type
-def detectRigType(given_rig):
+def detect_rig_type(given_rig):
     # create list of all bone names in given rig
     given_bone_names = []
     for bone in given_rig.data.bones:
@@ -463,94 +474,94 @@ def detectRigType(given_rig):
 
     # find a rig type with matching bone names
     for test_typename, test_bone_names in amh2b_rig_type_bone_names.items():
-        if getBoneNameMatchCount(test_bone_names, given_bone_names) >= amh2b_min_bones_for_rig_match:
+        if get_bone_name_match_count(test_bone_names, given_bone_names) >= amh2b_min_bones_for_rig_match:
             return test_typename
 
-    return ''
+    return ""
 
 
-def getBoneNameTranslations(boneNameListA, boneNameListB, postFix):
+def get_bone_name_translations(bone_name_list_A, bone_name_list_B, postfix):
     trans = {}
-    for bname in boneNameListA:
-        foundNames = fnmatch.filter(boneNameListB, bname)
+    for bname in bone_name_list_A:
+        foundNames = fnmatch.filter(bone_name_list_B, bname)
         if foundNames is not None and len(foundNames) > 0:
-            trans[bname + postFix] = foundNames[0] + postFix
+            trans[bname + postfix] = foundNames[0] + postfix
     return trans
 
 
 # Find number of matches between list A and list B,
 # where we are searching for A (which can include wildcards in the strings) within B.
-def getBoneNameMatchCount(boneNameListA, boneNameListB):
+def get_bone_name_match_count(bone_name_list_A, bone_name_list_B):
     m = 0   # zero matches at start
     # find matching bone names, names with wildcards allowed
-    for bname in boneNameListA:
-        if fnmatch.filter(boneNameListB, bname):
+    for bname in bone_name_list_A:
+        if fnmatch.filter(bone_name_list_B, bname):
             m = m + 1
     return m
 
 
-def doBoneWoven(self):
-    print('boneWoven() begin.')
+def do_bone_woven(self):
+    print("boneWoven() begin.")
     selection_list = bpy.context.selected_objects
     if bpy.context.active_object is None or len(selection_list) < 1:
-        print('No active object or selection is empty, no Bone Woven.')
+        print("No active object or selection is empty, no Bone Woven.")
         return {'FINISHED'}
     if not bpy.context.active_object in selection_list:
-        print('Active object is not in selection list, no Bone Woven.')
+        print("Active object is not in selection list, no Bone Woven.")
         return {'FINISHED'}
 
-    mRig = bpy.context.active_object
-    oRig = None
+    dest_rig_obj = bpy.context.active_object
+    src_rig_obj = None
     # the Active Object must be the imported MHX2 rig (not animated - should not be animated, anyway...)
     # the other selected object must be the rig with the animation
     for i in selection_list:
         if i != bpy.context.active_object:
-            oRig = i
+            src_rig_obj = i
 
     # fail if did not get two ARMATURE type objects
-    if oRig is None:
-        print('Only one object selected, but two are needed. No Bone Woven.')
+    if src_rig_obj is None:
+        print("Only one object selected, but two are needed. No Bone Woven.")
         return {'FINISHED'}
-    if mRig.type != 'ARMATURE':
-        print('Bone Woven failed because active object ' + mRig.name + ' is not ARMATURE type.')
+    if dest_rig_obj.type != 'ARMATURE':
+        print("Bone Woven failed because active object " + dest_rig_obj.name + " is not ARMATURE type.")
         return {'FINISHED'}
-    if oRig.type != 'ARMATURE':
-        print('Bone Woven failed because selected object ' + oRig.name + ' is not ARMATURE type.')
+    if src_rig_obj.type != 'ARMATURE':
+        print("Bone Woven failed because selected object " + src_rig_obj.name + " is not ARMATURE type.")
         return {'FINISHED'}
 
-    detectAndbridgeRigs(self, mRig, oRig)
-    print('boneWoven() end.')
+    detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj)
+    print("boneWoven() end.")
 
 
 class AMH2B_BoneWoven(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Bone Woven"""
     """MHX2 Rig to Rig Animation Bridge"""
-    bl_idname = 'object.amh2b_bone_woven'
-    bl_label = 'AMH2B Bone Woven'
+    bl_idname = "object.amh2b_bone_woven"
+    bl_label = "AMH2B Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    #src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    #torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    #arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    # *** Blender 2.8x and higher
-    src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    #torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    #arm_left_stitch_enum = bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #arm_right_stitch_enum = bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #leg_left_stitch_enum = bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    #fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    # *** Blender 2.8x and 2.9x
+    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
     # ***
 
     def execute(self, context):
-        doBoneWoven(self)
+        do_bone_woven(self)
 
         return {'FINISHED'}            # Lets Blender know the operator finished successfully.
 
@@ -560,27 +571,27 @@ class AMH2B_BoneWoven(bpy.types.Operator):
 #     Swap Materials from Other Blend File
 # Automate materials dictionary material swapping with a simple method:
 #   1) User chooses file with source materials.
-#   2) Materials are appended 'blindly', by trimming names of materials on selected objects
+#   2) Materials are appended "blindly", by trimming names of materials on selected objects
 #      and trying to append trimmed name materials from the blend file chosen by the user.
 class AMH2B_SwapMaterials(Operator, ImportHelper):
     """Automate MakeHuman 2 Blender - Swap Materials"""
     """Swap Materials from Source Blend File"""
-    bl_idname = 'object.amh2b_swap_materials'
-    bl_label = 'AMH2B Swap Materials'
+    bl_idname = "object.amh2b_swap_materials"
+    bl_label = "AMH2B Swap Materials"
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    #filter_glob = StringProperty(default='*.blend', options={'HIDDEN'})
-    # *** Blender 2.8x
-    filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
+    #filter_glob = StringProperty(default="*.blend", options={'HIDDEN'})
+    # *** Blender 2.8x and 2.9x
+    filter_glob : StringProperty(default="*.blend", options={'HIDDEN'})
     # ***
 
     # returns True if material was successfully appended
     # TODO check if the material already exists in this file, if it does exist then rename
     #   the current material, and then append the new material
-    def appendFromFile(self, mat_filepath, mat_name):
-        # path inside of file (i.e. like opening the 'Append' window; see Action, Armature, Brush, Camera, ...)
-        inner_path = 'Material'
+    def append_from_file(self, mat_filepath, mat_name):
+        # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
+        inner_path = "Material"
 
         try:
             bpy.ops.wm.append(
@@ -596,12 +607,12 @@ class AMH2B_SwapMaterials(Operator, ImportHelper):
 
         return True
 
-    # Trim string up to, and including, the first ':' character, and return trimmed string.
-    def getSwatchNameForMH_Name(self, mh_name):
+    # Trim string up to, and including, the first ":" character, and return trimmed string.
+    def get_swatch_name_for_MH_name(self, mh_name):
         # if name is in MH format then return trimmed name
-        # (remove first third, up to the ':', and return the remaining two-thirds)
-        if len(mh_name.split(':', -1)) == 3:
-            return mh_name.split(':', 1)[1]
+        # (remove first third, up to the ":", and return the remaining two-thirds)
+        if len(mh_name.split(":", -1)) == 3:
+            return mh_name.split(":", 1)[1]
         # otherwise return original name
         else:
             return mh_name
@@ -610,7 +621,7 @@ class AMH2B_SwapMaterials(Operator, ImportHelper):
     # TODO swap more than one material (active material), if object has more than one material
     #   for mat in obj.material_slots:
     #       ...
-    def doShaderSwaps(self, shaderswap_blendfile):
+    def do_material_swaps(self, shaderswap_blendfile):
         # get list of objects currently selected and fix materials on all selected objects, swapping to correct materials
         selection_list = bpy.context.selected_objects
 
@@ -618,22 +629,22 @@ class AMH2B_SwapMaterials(Operator, ImportHelper):
         for obj in selection_list:
             # Iterate over the material slots and check/swap the materials
             for mat_slot in obj.material_slots:
-                swatch_mat_name = self.getSwatchNameForMH_Name(mat_slot.material.name)
+                swatch_mat_name = self.get_swatch_name_for_MH_name(mat_slot.material.name)
 
                 # do not append/swap material if material already exists
                 if bpy.data.materials.get(swatch_mat_name) is not None:
                     continue
 
-                if not self.appendFromFile(shaderswap_blendfile, swatch_mat_name):
+                if not self.append_from_file(shaderswap_blendfile, swatch_mat_name):
                     continue
 
-                print('Swapping material on object ' + obj.name + ', oldMat = ' + obj.active_material.name + ', newMat = ' + swatch_mat_name)
+                print("Swapping material on object " + obj.name + ", oldMat = " + obj.active_material.name + ", newMat = " + swatch_mat_name)
                 mat_slot.material = bpy.data.materials[swatch_mat_name]
 
 
     def execute(self, context):
         filename, extension = os.path.splitext(self.filepath)
-        self.doShaderSwaps(self.filepath)
+        self.do_material_swaps(self.filepath)
         return {'FINISHED'}
 
 
@@ -641,12 +652,12 @@ class AMH2B_SwapMaterials(Operator, ImportHelper):
 #     Automate MakeHuman 2 Blender (AMH2B)
 #     Apply Scale
 # Apply scale to armature (this is only needed for armature scale apply),
-# and adjust it's bone location animation f-curve values to match the scaling.
+# and adjust it"s bone location animation f-curve values to match the scaling.
 # If this operation is not done, then the bones that have changing location values
 # will appear to move incorrectly.
-def doApplyScale():
+def do_apply_scale():
     if bpy.context.active_object is None:
-        print('doApplyScale() error: bpy.context.active_object is None, should have an object selected as active object.')
+        print("do_apply_scale() error: bpy.context.active_object is None, should have an object selected as active object.")
         return
 
     # keep copy of old scale values
@@ -654,12 +665,12 @@ def doApplyScale():
 
     # do not apply scale if scale is already 1.0 in all dimensions!
     if old_scale.x == 1 and old_scale.y == 1 and old_scale.z == 1:
-        print('doApplyScale() avoided, active_object scale is already 1 in all dimensions.')
+        print("do_apply_scale() avoided, active_object scale is already 1 in all dimensions.")
         return
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    print('doApplyScale() to rig = ' + bpy.context.active_object.name + '; old scale = ' + str(old_scale))
+    print("do_apply_scale() to rig = " + bpy.context.active_object.name + "; old scale = " + str(old_scale))
     # apply scale to active object
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
@@ -668,7 +679,7 @@ def doApplyScale():
     action = obj.animation_data.action
 
     # get only location f-curves
-    fcurves = [fc for fc in action.fcurves if fc.data_path.endswith('location')]
+    fcurves = [fc for fc in action.fcurves if fc.data_path.endswith("location")]
     # scale only location f-curves
     for fc in fcurves:
         axis = fc.array_index
@@ -689,60 +700,60 @@ def doApplyScale():
 class AMH2B_ApplyScale(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Apply Scale to Rig"""
     """Apply Scale to Rig without corrupting the bone pose data (e.g. location)."""
-    bl_idname = 'object.amh2b_apply_scale'
-    bl_label = 'AMH2B Apply Scale to Rig'
+    bl_idname = "object.amh2b_apply_scale"
+    bl_label = "AMH2B Apply Scale to Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        doApplyScale()
+        do_apply_scale()
         return {'FINISHED'}
 
 
 #####################################################
 #     Automate MakeHuman 2 Blender (AMH2B)
 #     Repose Rig
-# Re-pose rig by way of a duplicate of original that moves mesh to desired pose,
-# then original rig is pose-apply'ed and takes over from duplicate rig.
+# Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original
+# that moves mesh to desired pose, then original rig is pose-apply"ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
 # duplicate selected objects
-def dupSelected():
+def dup_selected():
     obj_to_dup = bpy.context.active_object
     bpy.ops.object.duplicate({"object" : obj_to_dup, "selected_objects" : [obj_to_dup]}, linked=False)
     # return ref to newly duped object
     return bpy.context.active_object
 
 
-def addArmatureToObjects(arm_obj, objs_list):
+def add_armature_to_objects(arm_obj, objs_list):
     for dest_obj in objs_list:
         if dest_obj != arm_obj:
-            addArmatureToObj(arm_obj, dest_obj)
+            add_armature_to_obj(arm_obj, dest_obj)
 
 
-def addArmatureToObj(arm_obj, dest_obj):
+def add_armature_to_obj(arm_obj, dest_obj):
     # create ARMATURE modifier and set refs, etc.
-    mod = dest_obj.modifiers.new('ReposeArmature', 'ARMATURE')
+    mod = dest_obj.modifiers.new("ReposeArmature", 'ARMATURE')
     if mod is None:
-        print('ReposeArmature: Unable to add armature to object' + dest_obj.name)
+        print("ReposeArmature: Unable to add armature to object" + dest_obj.name)
         return
     mod.object = arm_obj
     mod.use_deform_preserve_volume = True
     # Move modifier to top of stack, because this armature needs to move the mesh before
     # any other modifications occur, to match the re-posed main armature.
     while dest_obj.modifiers.find(mod.name) != 0:
-        bpy.ops.object.modifier_move_up({'object': dest_obj}, modifier=mod.name)
+        bpy.ops.object.modifier_move_up({"object": dest_obj}, modifier=mod.name)
 
 
-def doReposeRig():
+def do_repose_rig():
     if bpy.context.active_object is None:
-        print('doReposeRig() error: Active object is None, cannot Re-Pose MHX rig.')
+        print("do_repose_rig() error: Active object is None, cannot Re-Pose MHX rig.")
         return
 
     old_3dview_mode = bpy.context.object.mode
 
     # copy ref to active object
     selection_active_obj = bpy.context.active_object
-    print('doReposeRig() applied to active object ' + bpy.context.active_object.name)
+    print("do_repose_rig() applied to active object " + bpy.context.active_object.name)
 
     # copy list of selected objects, minus the active object
     # (0 selected objects is allowed, because armature can be re-posed independently)
@@ -754,38 +765,27 @@ def doReposeRig():
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
 
-    # Blender 2.7x *** {
     # select the old active_object in the 3D viewport
-    #selection_active_obj.select = True
+    select_object(selection_active_obj)
     # make it the active selected object
-    #bpy.context.scene.objects.active = selection_active_obj
-    # Blender 2.7x *** }
-    # Blender 2.8x *** {
-    # select the old active_object in the 3D viewport
-    selection_active_obj.select_set(True)
-    # make it the active selected object
-    bpy.context.view_layer.objects.active = selection_active_obj
-    # Blender 2.8x *** }
+    set_active_object(selection_active_obj)
 
     # duplicate the original armature
-    new_arm = dupSelected()
-    print('new_arm=')
+    new_arm = dup_selected()
+    print("new_arm=")
     print(new_arm)
-    print('selection_active=')
+    print("selection_active=")
     print(selection_active_obj)
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
     new_arm.parent = selection_active_obj
 
     # add modifiers to the other selected objects, so the other selected objects will use the new armature
-    addArmatureToObjects(new_arm, selection_list)
+    add_armature_to_objects(new_arm, selection_list)
 
-    # select original armature
-    # Blender 2.7x *** {
-    #bpy.context.scene.objects.active = selection_active_obj
-    # Blender 2.7x *** }
-    # Blender 2.8x *** {
-    bpy.context.view_layer.objects.active = selection_active_obj
-    # Blender 2.8x *** }
+    # ensure original armature is selected
+    select_object(selection_active_obj)
+    # make original armature the active object
+    set_active_object(selection_active_obj) # debug 1 (delete this comment, and not the code)
 
     bpy.ops.object.mode_set(mode='POSE')
     # apply pose to original armature
@@ -795,13 +795,13 @@ def doReposeRig():
 
 class AMH2B_ReposeRig(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Repose Rig"""
-    """Use a 'bridge rig' to move a shape-keyed mesh into position with a 'reposed armature' (i.e. where the pose was changed and then applied as rest pose)."""
-    bl_idname = 'object.amh2b_repose_rig'
-    bl_label = 'AMH2B Repose Rig'
+    """Use a "bridge rig" to move a shape-keyed mesh into position with a "reposed armature" (i.e. where the pose was changed and then applied as rest pose)."""
+    bl_idname = "object.amh2b_repose_rig"
+    bl_label = "AMH2B Repose Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        doReposeRig()
+        do_repose_rig()
         return {'FINISHED'}
 
 
@@ -834,9 +834,9 @@ class AMH2B_ReposeRig(bpy.types.Operator):
 # Two keyframes created on object A, such that object B appears motionless over the two frames.
 # Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
-def doRatchet():
+def do_ratchet():
     if len(bpy.context.selected_objects) != 2:
-        print('doRatchet() error: Cannot Ratchet Hold, need to have exactly two objects selected.')
+        print("do_ratchet() error: Cannot Ratchet Hold, need to have exactly two objects selected.")
         return
 
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -844,16 +844,16 @@ def doRatchet():
     # copy ref to active object
     obj_to_ratchet = bpy.context.active_object
     if obj_to_ratchet is None:
-        print('doRatchet() error: Active object is None, but must be the object to re-keyframe.')
+        print("do_ratchet() error: Active object is None, but must be the object to re-keyframe.")
         return
 
-    # get ref to other object (presumably an 'Empty' type object), the not active object
+    # get ref to other object (presumably an "Empty" type object), the not active object
     hold_onto_obj = bpy.context.selected_objects[0]
     if hold_onto_obj.name == obj_to_ratchet.name:
         hold_onto_obj = bpy.context.selected_objects[1]
 
     # insert location keyframes on object to ratchet at old location
-    obj_to_ratchet.keyframe_insert(data_path='location')
+    obj_to_ratchet.keyframe_insert(data_path="location")
 
     # save old location
     hold_obj_old_loc = hold_onto_obj.matrix_world.to_translation()
@@ -867,18 +867,18 @@ def doRatchet():
     # do move in (world coordinate system)
     bpy.ops.transform.translate(value=deltaMove, constraint_orientation='GLOBAL')
     # insert location keyframes on object to ratchet at new location
-    obj_to_ratchet.keyframe_insert(data_path='location')
+    obj_to_ratchet.keyframe_insert(data_path="location")
 
 
 class AMH2B_RatchetHold(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Ratchet Hold"""
-    """Keyframe the movement of a parent object so that a child object appears motionless; the parent object's location is offset to keep the child object's location stationary."""
-    bl_idname = 'object.amh2b_ratchet_hold'
-    bl_label = 'AMH2B Ratchet Hold'
+    """Keyframe the movement of a parent object so that a child object appears motionless; the parent object"s location is offset to keep the child object"s location stationary."""
+    bl_idname = "object.amh2b_ratchet_hold"
+    bl_label = "AMH2B Ratchet Hold"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        doRatchet()
+        do_ratchet()
         return {'FINISHED'}
 
 
@@ -889,7 +889,7 @@ class AMH2B_RatchetHold(bpy.types.Operator):
 #   Idea of script:
 # One button to do all the work, or at least as much as possible, i.e.
 # Automatically apply location/rotation/scale to animated armature,
-# repose MHX armature and it's parented objects (e.g. clothes, hair),
+# repose MHX armature and it"s parented objects (e.g. clothes, hair),
 # apply Bone Woven.
 #
 #   Instructions for use:
@@ -903,76 +903,56 @@ class AMH2B_RatchetHold(bpy.types.Operator):
 #   selected_objects includes all objects parented to the MHX armature, and
 #   selected_objects includes the animated armature.
 
-def doLucky(self):
+def do_lucky(self):
     # copy ref to active object, the MHX armature
     mhx_arm_obj = bpy.context.active_object
     if mhx_arm_obj is None:
-        print('doLucky() error: Active object is None, cannot Re-Pose MHX rig')
+        print("do_lucky() error: Active object is None, cannot Re-Pose MHX rig")
         return
 
-    # get the animated armature (otherArmature) from the list of selected objects
-    # (otherArmature will be joined to the MHX armature)
-    otherArmature = None
+    # get the animated armature (other_armature_obj) from the list of selected objects
+    # (other_armature_obj will be joined to the MHX armature)
+    other_armature_obj = None
     for ob in bpy.context.selected_objects:
         if ob.name != mhx_arm_obj.name:
             if ob.type == 'ARMATURE':
-                otherArmature = ob
+                other_armature_obj = ob
                 break
 
-    if otherArmature == None:
-        print('doLucky() error: : missing other armature to join to MHX armature.')
+    if other_armature_obj == None:
+        print("do_lucky() error: : missing other armature to join to MHX armature.")
         return
 
-    print('doLucky() debug info: +++')
-    print('mhx_arm_obj=')
+    print("do_lucky() debug info: +++")
+    print("mhx_arm_obj=")
     print(mhx_arm_obj)
-    print('otherArmature=')
-    print(otherArmature)
-    print('doLucky() debug info: ---')
+    print("other_armature_obj=")
+    print(other_armature_obj)
+    print("do_lucky() debug info: ---")
 
     # since MHX armature is already the active object, do repose first
     if self.repose_rig_enum == 'YES':
-        doReposeRig()
+        do_repose_rig()
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
 
-    # Blender 2.7x *** {
-    # select the other armature (the imported animated armature) in the 3D viewport
-    #otherArmature.select = True
-    # make it the active selected object
-    #bpy.context.scene.objects.active = otherArmature
-    # Blender 2.7x *** }
-    # Blender 2.8x *** {
-    # select the other armature (the imported animated armature) in the 3D viewport
-    otherArmature.select_set(True)
-    # make it the active selected object
-    bpy.context.view_layer.objects.active = otherArmature
-    # Blender 2.8x *** }
+    select_object(other_armature_obj)
+    set_active_object(other_armature_obj)
 
     # let Blender apply location and rotation to animated armature
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
     # custom apply scale to animated armature
-    doApplyScale()
+    do_apply_scale()
 
-    # otherArmature will still be selected and the active_object, so just add the MHX armature
+    # other_armature_obj will still be selected and the active_object, so just add the MHX armature
     # to the selected list and make it the active object.
 
-    # Blender 2.7x *** {
-    # select the MHX armature (the armature that lacks animation) in the 3D viewport
-    #mhx_arm_obj.select = True
-    # make it the active selected object
-    #bpy.context.scene.objects.active = mhx_arm_obj
-    # Blender 2.7x *** }
-    # Blender 2.8x *** {
-    # select the MHX armature (the armature that lacks animation) in the 3D viewport
-    mhx_arm_obj.select_set(True)
-    # make it the active selected object
-    bpy.context.view_layer.objects.active = mhx_arm_obj
-    # Blender 2.8x *** }
+    select_object(mhx_arm_obj)
+    set_active_object(mhx_arm_obj)
 
     # do bone woven
-    doBoneWoven(self)
+    do_bone_woven(self)
 
 
 # TODO: Use BoneWoven as the base class instead of Operator,
@@ -980,34 +960,34 @@ def doLucky(self):
 class AMH2B_Lucky(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Lucky"""
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then ApplyScale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
-    bl_idname = 'object.amh2b_lucky'
-    bl_label = 'AMH2B Lucky'
+    bl_idname = "object.amh2b_lucky"
+    bl_label = "AMH2B Lucky"
     bl_options = {'REGISTER', 'UNDO'}
 
     # *** Blender 2.7x
-    #repose_rig_enum = bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
-    #src_rig_type_enum = bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    #torso_stitch_enum = bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    #arm_left_stitch_enum = bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #arm_right_stitch_enum = bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_left_stitch_enum = bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #leg_right_stitch_enum = bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    #fingers_left_stitch_enum = bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    #fingers_right_stitch_enum = bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    # *** Blender 2.8x and higher
-    repose_rig_enum : bpy.props.EnumProperty(name='Re-Pose Rig', description='Apply Re-Pose to rig during lucky process yes/no.', items=amh2b_yes_no_items)
-    src_rig_type_enum : bpy.props.EnumProperty(name='Source Rig Type', description='Rig type that will be joined to MHX rig.', items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name='Torso Stitches', description='Set torso stitches to yes/no.', items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name='Left Arm Stitches', description='Set left arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name='Right Arm Stitches', description='Set right arm stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name='Left Leg Stitches', description='Set left leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name='Right Leg Stitches', description='Set right leg stitches to FK, or IK, or both, or none.', items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name='Left Fingers Stitches', description='Set left fingers stitches to yes/no.', items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name='Right Fingers Stitches', description='Set right fingers stitches to yes/no.', items=amh2b_yes_no_items)
+    #repose_rig_enum = bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
+    #src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    #torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    #arm_left_stitch_enum = bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #arm_right_stitch_enum = bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #leg_left_stitch_enum = bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    #fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    #fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    # *** Blender 2.8x and 2.9x
+    repose_rig_enum : bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
+    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
     # ***
 
     def execute(self, context):
-        doLucky(self)
+        do_lucky(self)
         return {'FINISHED'}
 
 
@@ -1060,7 +1040,7 @@ def unregister():
     bpy.types.VIEW3D_MT_object.remove(amh2b_swap_shaders_menu_func)
     bpy.utils.unregister_class(AMH2B_SwapMaterials)
 
-# This allows you to run the script directly from Blender's Text editor
+# This allows you to run the script directly from Blender"s Text editor
 # to test the add-on without having to install it.
-if __name__ == '__main__':
+if __name__ == "__main__":
     register()
