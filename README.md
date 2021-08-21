@@ -163,8 +163,12 @@ e.g.
 ## 0) Lucky
 
 One button press to:
-A) Re-Pose Rig (optional)
-B) Scale incoming rig
+1) Re-Pose Rig (optional)
+2) Scale incoming rig
+3) BoneWoven the two rigs together
+
+Go to the Dope Sheet -> Action Editor and add the original animation to your new rig.
+If all works correctly then the old rig is animating inside your MHX rig, and this controls the original MHX rig's bones.
 
 ### Instructions to use the script:
 
