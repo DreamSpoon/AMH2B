@@ -174,9 +174,7 @@ If all works correctly then the old rig is animating inside your MHX rig, and th
 Before pressing this button, select all of:
 1) Rig with the animation you want transferred to MHX rig
 2) Objects attached to MHX rig with 'Armature' modifier (e.g. clothes, skin, hair, eyebrows)
-3) MHX rig
-
-Select the MHX rig last.
+3) MHX rig (select the MHX rig last)
 
 Press the Lucky button.
 
