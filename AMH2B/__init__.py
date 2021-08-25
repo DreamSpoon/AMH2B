@@ -22,7 +22,7 @@
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
-    "version": (1, 0, 1),
+    "version": (1, 1, 1),
     "blender": (2, 80, 0),
     "location": "3DView > Object menu > AMH2B ...",
     "description": "Automate process of importing MakeHuman models, and animating these models.",
@@ -786,7 +786,7 @@ def do_ratchet():
     # such that hold onto object remains stationary.
     deltaMove = numpy.subtract(hold_obj_old_loc, hold_obj_new_loc)
     # do move in (world coordinate system)
-    bpy.ops.transform.translate(value=deltaMove, constraint_orientation='GLOBAL')
+    doTranslateGlobal(deltaMove)
     # insert location keyframes on object to ratchet at new location
     obj_to_ratchet.keyframe_insert(data_path="location")
 

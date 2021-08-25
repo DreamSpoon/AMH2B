@@ -35,6 +35,9 @@ def set_active_object(ob):
 def select_object(ob):
     ob.select = True
 
+def doTranslateGlobal(tg):
+    bpy.ops.transform.translate(value=tg, constraint_orientation='GLOBAL')
+
 class AMH2B_BoneWovenInner:
     src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
     torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
