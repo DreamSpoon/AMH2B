@@ -2,7 +2,11 @@
 
 Addon for Blender 2.7x through Blender 2.93 (may work with later versions too).
 
-Automate as much as possible of the MakeHuman to Blender workflow, e.g. materials, rig, and animation preparation.
+Automate as much as possible of the MakeHuman to Blender workflow, e.g. materials, rig, animation.
+Currently allows for:
+1) Auto swap materials from materials library file
+2) Re-Pose any rig, even if the attached meshes have shape keys
+3) Quickly re-target MHX rig to CMU rig, or Mixamo (with fingers) rig
 
 To install this addon in Blender:
 1) Start Blender
@@ -28,7 +32,7 @@ Look for 'AMH2B' buttons in the Object menu, in the 3D Viewport view.
 ## 1) Apply Scale to Rig
 Correctly apply scale to animated armature, by adjusting its pose bone location animation f-curve values to match the scaling.
 
-Background: Blender applies scale to non-animated rigs correctly, but the animations attached to the rig (i.e. the f-curves) are not scaled. The result is usually an animation that seems to move violently around the scene, or the animation seems to hover in place and not move when it should move. It seems that Blender applies scale only to the bone lengths and bone locations in the current frame, no scaling applied to animations (f-curves).
+Background: Blender applies scale to non-animated rigs correctly, but the animations attached to the rig (i.e. the f-curves) are not scaled. The result is usually the animated rig moves violently around the scene, or the animation seems to hover in place and not move when it should move. Blender applies scale only to the bone lengths and bone locations in the current frame, but no scaling applied to animations (f-curves).
 
 ### Instructions to use the script:
 
@@ -39,7 +43,7 @@ Press the 'AMH2B Apply Scale to Rig' button in the 3D Viewport -> Object menu.
 ## 2) Bone Woven
 Simplify the MakeHuman rig animation process re: Mixamo et al. via a bridge that connects imported animation rigs to imported MHX2 rigs - leaving face panel and visemes intact, while allowing for great functionality e.g. finger movements.
 
-In a perfect world, Blender and MakeHuman would work seamlessly with any and all motion capture data, and any motion capture sharing website (including body, facial, etc. rig). The real world includes problems with bone names, 'bone roll', vertex groups, etc. This script bridges some real world gaps between different rigs.
+In a perfect world, Blender and MakeHuman would work seamlessly with any and all motion capture data, and any motion capture sharing website (including body, facial, etc. rig). The real world includes problems with bone names, 'bone roll', vertex groups, etc. This script bridges some real world gaps between different rigs, and re-targeting animations.
 
 Basically, bones from Rig B (this could be a downloaded rig from a mocap sharing website, etc.) are mapped to Rig A so that Rig B acts like "marionettist" to the Rig A "marionette". Rig B controls Rig A, allowing the user to tweak the final animation by animating Rig A.
 
@@ -49,15 +53,13 @@ Side-note: Ugly, But Works
 
 ### Instructions to use the script:
 
-Important! Make sure your MHX rig has scale 1 in x/y/z, zero location, zero rotation - basically all transforms equal default. If your MHX rig already has location/rotation/scale, then re-locate/rotate/apply scale (with Apply Scale to Rig (!)) to set everything back to defaults. If the MHX rig has non-default location/rotation/scale then results are undefined.
-
 Select the animated source rig and the MHX destination rig, so that the MHX rig is the active object.
 
 Press the 'AMH2B Bone Woven' button in the 3D Viewport -> Object menu.
 
-## 3) Ratchet Hold
+Important! Make sure your MHX rig has scale 1 in x/y/z, zero location, zero rotation - basically all transforms equal default. If your MHX rig already has location/rotation/scale, then re-locate/rotate/apply scale (with Apply Scale to Rig (!)) to set everything back to defaults. If the MHX rig has non-default location/rotation/scale then results are undefined.
 
-Important: Ensure your 'Empty' objects have their scale applied (i.e. have scale = 1 in x/y/z), or the movements will be calculated incorrectly. Also it's a good idea to ensure the thing you want to move (usually your MHX rig) also has it's transforms applied  (apply rotation, location, and Apply Scale to Rig).
+## 3) Ratchet Hold
 
 Idea of script:
 Easily keyframe movement of a walking/moving rig, by letting user select part of armature that should appear motionless (e.g. left leg stationary) while the rest of the armature moves about that part (e.g. right leg moving).
@@ -75,6 +77,8 @@ Select exactly two objects:
   Object A - the parent object (typically armature that has walking animation)
 
   Object B - the "Empty" type object that we want to appear motionless (the empty is parented to A)
+
+Important: Ensure your 'Empty' objects have their scale applied (i.e. have scale = 1 in x/y/z), or the movements will be calculated incorrectly. Also it's a good idea to ensure the thing you want to move (usually your MHX rig) also has it's transforms applied  (apply rotation, location, and Apply Scale to Rig).
 
 Press the 'AMH2B Ratchet Hold' button in the 3D Viewport -> Object menu.
 
@@ -103,7 +107,7 @@ Select only the armature (the MHX armature, although this script will work with 
 Press the 'AMH2B Repose Rig' button in the 3D Viewport -> Object menu.
 
 ## 5) Swap Materials
-Swap Materials from Other Blend File, so custom materials for clothing can be maintained in one folder/file and easily used. For this to work, the user must already have set up a materials dictionary file. Read on for some hints on doing that.
+Quickly Swap Materials from Other Blend File, so custom materials for clothing can be maintained in one folder/file and easily used. For this to work, the user must already have set up a materials dictionary file. Read on for some hints on doing that.
 
 The script will do:
   1) User chooses file with source materials.
@@ -123,7 +127,7 @@ All selected objects that have materials in their material slots will have their
 
 ### Hints for creating materials dictionary file:
 
-Export your MakeHuman models like you normally would, and change the names of the materials like so:
+Export your MakeHuman models like you normally would, then modify the materials setup (e.g. nodes). Finally, change the names of the materials like so:
 
 'Mass0010:Uniform_jacket:Uniform_jacket'
 
@@ -133,7 +137,8 @@ would become
 
 Just remove the first part of the material name, up to and including the first ':'
 
-Now the material name will be found when the script is run. The script takes the default name of the material (after importing from MakeHuman to Blender), chops off the first part up to the ':', then looks for the result in the materials dictionary file.
+Renaming materials in this way lets the Swap Materials script find the materials in the materials library file that we're creating.
+Now the material name will be found when the script is run.
 
 For reference, the naming convention of the MakeHuman materials seems to be:
 
