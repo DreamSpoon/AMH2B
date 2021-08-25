@@ -71,27 +71,30 @@ Re-calculate location data for an object (typically armature), given:
      type object appear to be motionless.
 
 ### Instructions to use the script:
-
 Select exactly two objects:
 
-  Object A - the parent object (typically armature that has walking animation)
+  Object A - the "Empty" type object that we want to appear motionless (the empty is parented to B)
 
-  Object B - the "Empty" type object that we want to appear motionless (the empty is parented to A)
+  Object B - the parent object (typically armature that has walking animation)
 
-Important: Ensure your 'Empty' objects have their scale applied (i.e. have scale = 1 in x/y/z), or the movements will be calculated incorrectly. Also it's a good idea to ensure the thing you want to move (usually your MHX rig) also has it's transforms applied  (apply rotation, location, and Apply Scale to Rig).
+Object B must be selected last so that it is the active object.
+
+Before using this script, make sure that object A is parented to object B.
 
 Press the 'AMH2B Ratchet Hold' button in the 3D Viewport -> Object menu.
 
+Important: Ensure your that objects A and B have their scale applied (i.e. have scale = 1 in x/y/z) before running the script. If the scale is not 1, then movements will be calculated incorrectly.
+
   The script will do:
-1) Insert a location keyframe on object A.
-2) Get the location of object B in the current frame.
+1) Insert a location keyframe on object B.
+2) Get the location of object A in the current frame.
 3) Change to the next frame (increment frame).
-4) Get the new location of object B, then calculate the offset to keep it motionless.
-5) Apply location offset to object A, then insert location keyframe on A.
+4) Get the new location of object A, then calculate the offset to keep it motionless.
+5) Apply location offset to object B, then insert location keyframe on B.
 
 Result:
 
-Two keyframes created on object A, such that object B appears motionless over the two frames.
+Two keyframes created on object B, such that object A appears motionless over the two frames.
 
 Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
