@@ -20,11 +20,10 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
-
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "version": (1, 0, 1),
-    "blender": (2, 70, 0),
+    "blender": (2, 80, 0),
     "location": "3DView > Object menu > AMH2B ...",
     "description": "Automate process of importing MakeHuman models, and animating these models.",
     "category": "Object",
