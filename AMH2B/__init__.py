@@ -22,7 +22,7 @@
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
-    "version": (1, 1, 1),
+    "version": (1, 1, 2),
     "blender": (2, 80, 0),
     "location": "3DView > Object menu > AMH2B ...",
     "description": "Automate process of importing MakeHuman models, and animating these models.",
@@ -598,6 +598,10 @@ def do_apply_scale():
     # scale only the location f-curves on active object
     obj = bpy.context.active_object
     action = obj.animation_data.action
+
+	# if no f-curves then no exit, because only needed 'apply scale'
+	if action.fcurves is None:
+		return
 
     # get only location f-curves
     fcurves = [fc for fc in action.fcurves if fc.data_path.endswith("location")]
