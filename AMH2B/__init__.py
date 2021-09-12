@@ -22,7 +22,7 @@
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
-    "version": (1, 1, 3),
+    "version": (1, 1, 4),
     "blender": (2, 80, 0),
     "location": "3DView > Object menu > AMH2B ...",
     "description": "Automate process of importing MakeHuman models, and animating these models.",
@@ -38,12 +38,13 @@ from bpy.types import Operator
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
+    Region = "TOOLS"
 else:
     from .imp_v28 import *
+    Region = "UI"
 
 from .imp_items import *
 from .imp_strings import *
-
 
 #####################################################
 #     Bone Woven
@@ -472,8 +473,8 @@ def do_bone_woven(self):
 class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Bone Woven"""
     """MHX2 Rig to Rig Animation Bridge"""
-    bl_idname = "object.amh2b_bone_woven"
-    bl_label = "AMH2B Bone Woven"
+    bl_idname = "amh2b.bone_woven"
+    bl_label = "Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
 
     def draw(self, context):
@@ -503,8 +504,8 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
 class AMH2B_SwapMaterials(AMH2B_SwapMaterialsInner, Operator, ImportHelper):
     """Automate MakeHuman 2 Blender - Swap Materials"""
     """Swap Materials from Source Blend File"""
-    bl_idname = "object.amh2b_swap_materials"
-    bl_label = "AMH2B Swap Materials"
+    bl_idname = "amh2b.swap_materials"
+    bl_label = "Swap Materials"
     bl_options = {'REGISTER', 'UNDO'}
 
     # returns True if material was successfully appended
@@ -629,8 +630,8 @@ def do_apply_scale():
 class AMH2B_ApplyScale(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Apply Scale to Rig"""
     """Apply Scale to Rig without corrupting the bone pose data (e.g. location)."""
-    bl_idname = "object.amh2b_apply_scale"
-    bl_label = "AMH2B Apply Scale to Rig"
+    bl_idname = "amh2b.apply_scale"
+    bl_label = "Apply Scale to Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -725,8 +726,8 @@ def do_repose_rig():
 class AMH2B_ReposeRig(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Repose Rig"""
     """Use a "bridge rig" to move a shape-keyed mesh into position with a "reposed armature" (i.e. where the pose was changed and then applied as rest pose)."""
-    bl_idname = "object.amh2b_repose_rig"
-    bl_label = "AMH2B Repose Rig"
+    bl_idname = "amh2b.repose_rig"
+    bl_label = "Repose Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -802,8 +803,8 @@ def do_ratchet():
 class AMH2B_RatchetHold(bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Ratchet Hold"""
     """Keyframe the movement of a parent object so that a child object appears motionless; the parent object"s location is offset to keep the child object"s location stationary."""
-    bl_idname = "object.amh2b_ratchet_hold"
-    bl_label = "AMH2B Ratchet Hold"
+    bl_idname = "amh2b.ratchet_hold"
+    bl_label = "Ratchet Hold"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -889,8 +890,8 @@ def do_lucky(self):
 class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Lucky"""
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then ApplyScale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
-    bl_idname = "object.amh2b_lucky"
-    bl_label = "AMH2B Lucky"
+    bl_idname = "amh2b.lucky"
+    bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}
 
     def draw(self, context):
@@ -913,51 +914,57 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 #####################################################
 
 
-def amh2b_lucky_menu_func(self, context):
-    self.layout.operator(AMH2B_Lucky.bl_idname)
+class AMH2B_P_Setup(bpy.types.Panel):
+    bl_label = "AMH2B Setup"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
 
-def amh2b_apply_scale_menu_func(self, context):
-    self.layout.operator(AMH2B_ApplyScale.bl_idname)
+    def draw(self, context):
+        layout = self.layout
+        ob = context.object
+        scn = context.scene
 
-def amh2b_bone_woven_menu_func(self, context):
-    self.layout.operator(AMH2B_BoneWoven.bl_idname)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Material")
+        box.operator("amh2b.swap_materials")
 
-def amh2b_ratchet_hold_menu_func(self, context):
-    self.layout.operator(AMH2B_RatchetHold.bl_idname)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Armature")
+        box.operator("amh2b.apply_scale")
+        box.operator("amh2b.repose_rig")
+        box.operator("amh2b.bone_woven")
 
-def amh2b_repose_rig_menu_func(self, context):
-    self.layout.operator(AMH2B_ReposeRig.bl_idname)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Movement")
+        box.operator("amh2b.ratchet_hold")
 
-def amh2b_swap_shaders_menu_func(self, context):
-    self.layout.operator(AMH2B_SwapMaterials.bl_idname)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Multi-Function")
+        box.operator("amh2b.lucky")
+
+
+classes = [
+	AMH2B_BoneWoven,
+	AMH2B_SwapMaterials,
+	AMH2B_ApplyScale,
+	AMH2B_ReposeRig,
+	AMH2B_RatchetHold,
+	AMH2B_Lucky,
+    AMH2B_P_Setup,
+]
 
 def register():
-    bpy.utils.register_class(AMH2B_SwapMaterials)
-    bpy.types.VIEW3D_MT_object.append(amh2b_swap_shaders_menu_func)
-    bpy.utils.register_class(AMH2B_ReposeRig)
-    bpy.types.VIEW3D_MT_object.append(amh2b_repose_rig_menu_func)
-    bpy.utils.register_class(AMH2B_RatchetHold)
-    bpy.types.VIEW3D_MT_object.append(amh2b_ratchet_hold_menu_func)
-    bpy.utils.register_class(AMH2B_BoneWoven)
-    bpy.types.VIEW3D_MT_object.append(amh2b_bone_woven_menu_func)
-    bpy.utils.register_class(AMH2B_ApplyScale)
-    bpy.types.VIEW3D_MT_object.append(amh2b_apply_scale_menu_func)
-    bpy.utils.register_class(AMH2B_Lucky)
-    bpy.types.VIEW3D_MT_object.append(amh2b_lucky_menu_func)
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.types.VIEW3D_MT_object.remove(amh2b_lucky_menu_func)
-    bpy.utils.unregister_class(AMH2B_Lucky)
-    bpy.types.VIEW3D_MT_object.remove(amh2b_apply_scale_menu_func)
-    bpy.utils.unregister_class(AMH2B_ApplyScale)
-    bpy.types.VIEW3D_MT_object.remove(amh2b_bone_woven_menu_func)
-    bpy.utils.unregister_class(AMH2B_BoneWoven)
-    bpy.types.VIEW3D_MT_object.remove(amh2b_ratchet_hold_menu_func)
-    bpy.utils.unregister_class(AMH2B_RatchetHold)
-    bpy.types.VIEW3D_MT_object.remove(amh2b_repose_rig_menu_func)
-    bpy.utils.unregister_class(AMH2B_ReposeRig)
-    bpy.types.VIEW3D_MT_object.remove(amh2b_swap_shaders_menu_func)
-    bpy.utils.unregister_class(AMH2B_SwapMaterials)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
     register()
