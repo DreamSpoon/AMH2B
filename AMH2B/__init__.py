@@ -33,6 +33,8 @@ import bpy
 import os
 import fnmatch
 import numpy
+import math
+import csv
 
 from bpy.types import Operator
 
@@ -572,76 +574,7 @@ class AMH2B_SwapMaterials(AMH2B_SwapMaterialsInner, Operator, ImportHelper):
 
 #####################################################
 #     Automate MakeHuman 2 Blender (AMH2B)
-#     Apply Scale
-# Apply scale to armature (this is only needed for armature scale apply),
-# and adjust it"s bone location animation f-curve values to match the scaling.
-# If this operation is not done, then the bones that have changing location values
-# will appear to move incorrectly.
-def do_apply_scale():
-    if bpy.context.active_object is None:
-        print("do_apply_scale() error: bpy.context.active_object is None, should have an object selected as active object.")
-        return
-
-    # keep copy of old scale values
-    old_scale = bpy.context.active_object.scale.copy()
-
-    # do not apply scale if scale is already 1.0 in all dimensions!
-    if old_scale.x == 1 and old_scale.y == 1 and old_scale.z == 1:
-        print("do_apply_scale() avoided, active_object scale is already 1 in all dimensions.")
-        return
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    print("do_apply_scale() to rig = " + bpy.context.active_object.name + "; old scale = " + str(old_scale))
-    # apply scale to active object
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-
-    # scale only the location f-curves on active object
-    obj = bpy.context.active_object
-    if obj is None:
-        return
-    action = obj.animation_data.action
-    if action is None:
-        return
-
-	# if no f-curves then no exit, because only needed 'apply scale'
-    if action.fcurves is None:
-        return
-
-    # get only location f-curves
-    fcurves = [fc for fc in action.fcurves if fc.data_path.endswith("location")]
-    # scale only location f-curves
-    for fc in fcurves:
-        axis = fc.array_index
-        for p in fc.keyframe_points:
-            if axis == 0:
-                p.co.y *= old_scale.x
-            elif axis == 1:
-                p.co.y *= old_scale.y
-            elif axis == 2:
-                p.co.y *= old_scale.z
-
-    # update the scene by incrementing the frame, then decrementing it again,
-    # because the apply scale will probably move the posed bones to a wrong location
-    bpy.context.scene.frame_set(bpy.context.scene.frame_current+1)
-    bpy.context.scene.frame_set(bpy.context.scene.frame_current-1)
-
-
-class AMH2B_ApplyScale(bpy.types.Operator):
-    """Automate MakeHuman 2 Blender - Apply Scale to Rig"""
-    """Apply Scale to Rig without corrupting the bone pose data (e.g. location)."""
-    bl_idname = "amh2b.apply_scale"
-    bl_label = "Apply Scale to Rig"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_apply_scale()
-        return {'FINISHED'}
-
-
-#####################################################
-#     Automate MakeHuman 2 Blender (AMH2B)
-#     Repose Rig
+#     Bridge Re-Pose Rig
 # Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original
 # that moves mesh to desired pose, then original rig is pose-apply"ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
@@ -723,11 +656,11 @@ def do_repose_rig():
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 
-class AMH2B_ReposeRig(bpy.types.Operator):
-    """Automate MakeHuman 2 Blender - Repose Rig"""
-    """Use a "bridge rig" to move a shape-keyed mesh into position with a "reposed armature" (i.e. where the pose was changed and then applied as rest pose)."""
-    bl_idname = "amh2b.repose_rig"
-    bl_label = "Repose Rig"
+class AMH2B_BridgeRepose(bpy.types.Operator):
+    """Automate MakeHuman 2 Blender - Bridge Re-Pose"""
+    """Use a "bridge rig" to move a shape-keyed mesh into position with a "re-posed armature" (i.e. where the pose was changed and then applied as rest pose)."""
+    bl_idname = "amh2b.bridge_repose"
+    bl_label = "Bridge Re-Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -871,9 +804,10 @@ def do_lucky(self):
     set_active_object(other_armature_obj)
 
     # let Blender apply location and rotation to animated armature
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
+    #bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
     # custom apply scale to animated armature
-    do_apply_scale()
+    #bpy.ops.object.transforms_to_deltas(mode='SCALE')
+    bpy.ops.object.transforms_to_deltas(mode='ALL')
 
     # other_armature_obj will still be selected and the active_object, so just add the MHX armature
     # to the selected list and make it the active object.
@@ -889,7 +823,7 @@ def do_lucky(self):
 # to get rid of doubling of code for user options input.
 class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
     """Automate MakeHuman 2 Blender - Lucky"""
-    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then ApplyScale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
+    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale to Deltas, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
     bl_idname = "amh2b.lucky"
     bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}
@@ -908,6 +842,92 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 
     def execute(self, context):
         do_lucky(self)
+        return {'FINISHED'}
+
+
+#####################################################
+#     Automate MakeHuman 2 Blender (AMH2B)
+#     AddToPose
+#
+#   Idea of script:
+# Script rotations of bones to reduce time waste. Input is from TextBlock named 'Text', in CSV format.
+# Get the rotations correct once, type it up as a CSV file, then use the script repeatedly.
+
+def rotBone(rig_object, bone_name, axis_name, offset_deg):
+    rig_object.pose.bones[bone_name].bone.select = True
+    if axis_name == "x":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(1, 0, 0), constraint_axis=(True, False, False), constraint_orientation='GLOBAL')
+    elif axis_name == "y":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(0, 1, 0), constraint_axis=(False, True, False), constraint_orientation='GLOBAL')
+    elif axis_name == "z":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
+    else:
+        print("AddToPose Error: Unknown rotBone() axis_name = " + axis_name)
+
+    rig_object.pose.bones[bone_name].bone.select = False
+
+
+def runOffsets(rig_obj, offsets, datablock_textname):
+    line_count = 0
+    try:
+        for of_bone_name, of_axis, of_deg in offsets:
+            rotBone(rig_obj, of_bone_name.strip(), of_axis.strip(), float(of_deg))
+            line_count = line_count+1
+
+    except ValueError:
+        print("ValueError while parsing CSV data line #" + str(line_count) + " in text block: " + datablock_textname)
+
+
+def getScriptedOffsets(datablock_textname):
+    bl = bpy.data.texts.get(datablock_textname)
+    if bl is None:
+        return
+
+    bl_str = bl.as_string()
+    if bl_str == '':
+        return
+
+    csv_lines = csv.reader(bl_str.splitlines())
+    return list(csv_lines)
+
+
+def do_addToPose(self):
+    # get CSV user data text block and convert to array of offsets data
+    offsets = getScriptedOffsets(bpy.context.scene.Amh2bPropTextBlockName)
+    if offsets is None:
+        return
+
+    # copy ref to active object, the MHX armature
+    mhx_arm_obj = bpy.context.active_object
+    if mhx_arm_obj is None:
+        print("addToPose error: Active object is None, cannot do something.")
+        return
+    if mhx_arm_obj.type != 'ARMATURE':
+        print("addToPose error: Active object is not Armature type, cannot do something.")
+        return
+
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='POSE')
+
+    bpy.ops.pose.select_all(action='DESELECT')
+    runOffsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropTextBlockName)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+
+class AMH2B_AddToPose(AMH2B_AddToPoseInner, bpy.types.Operator):
+    """Automate MakeHuman 2 Blender - Add to Pose"""
+    """Add to rotations of pose by way of CSV script."""
+    bl_idname = "amh2b.add_to_pose"
+    bl_label = "AddToPose"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def draw(self, context):
+        layout = self.layout
+        #layout.prop(self, "text_block_name_enum")
+
+    def execute(self, context):
+        do_addToPose(self)
         return {'FINISHED'}
 
 
@@ -933,8 +953,9 @@ class AMH2B_P_Setup(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         box.label(text="Armature")
-        box.operator("amh2b.apply_scale")
-        box.operator("amh2b.repose_rig")
+        box.operator("amh2b.add_to_pose")
+        box.prop(scn, "Amh2bPropTextBlockName")
+        box.operator("amh2b.bridge_repose")
         box.operator("amh2b.bone_woven")
 
         layout.separator()
@@ -949,18 +970,20 @@ class AMH2B_P_Setup(bpy.types.Panel):
 
 
 classes = [
-	AMH2B_BoneWoven,
-	AMH2B_SwapMaterials,
-	AMH2B_ApplyScale,
-	AMH2B_ReposeRig,
-	AMH2B_RatchetHold,
-	AMH2B_Lucky,
+    AMH2B_BoneWoven,
+    AMH2B_SwapMaterials,
+    AMH2B_BridgeRepose,
+    AMH2B_RatchetHold,
+    AMH2B_Lucky,
+    AMH2B_AddToPose,
     AMH2B_P_Setup,
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    bpy.types.Scene.Amh2bPropTextBlockName = StringProperty(name="Script TextBlock Name", description="TextBlock Name", default="Text")
 
 def unregister():
     for cls in classes:
