@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 1, 4),
+    "version": (1, 1, 5),
     "blender": (2, 80, 0),
     "location": "View 3D &gt; Tools &gt; AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
