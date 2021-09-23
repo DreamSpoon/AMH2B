@@ -16,8 +16,10 @@ To install this addon in Blender:
 To use this addon in Blender:
 
 Look for 'AMH2B' button in View 3D:
-	Blender 2.7x: Tools menu (left-side of View 3D)
-	Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
+
+Blender 2.7x: Tools menu (left-side of View 3D)
+
+Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
 
 ## 6+1 functions:
 1) Adjust Pose
@@ -49,7 +51,7 @@ upper_arm.fk.L, y, -34
 
 See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created.
 
-Select the armature that needs it's pose-bones adjusted
+Select the armature that needs it's pose-bones adjusted.
 
 Press button AMH2B -> AdjustPose
 

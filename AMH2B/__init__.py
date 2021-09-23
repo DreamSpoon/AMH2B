@@ -35,7 +35,6 @@ import bpy
 import os
 import fnmatch
 import numpy
-import math
 import csv
 
 from bpy.types import Operator
@@ -919,15 +918,7 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 
 def rotBone(rig_object, bone_name, axis_name, offset_deg):
     rig_object.pose.bones[bone_name].bone.select = True
-    if axis_name == "x":
-        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(1, 0, 0), constraint_axis=(True, False, False), constraint_orientation='GLOBAL')
-    elif axis_name == "y":
-        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(0, 1, 0), constraint_axis=(False, True, False), constraint_orientation='GLOBAL')
-    elif axis_name == "z":
-        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
-    else:
-        print("AdjustPose Error: Unknown rotBone() axis_name = " + axis_name)
-
+    doRotationGlobal(axis_name, offset_deg)
     rig_object.pose.bones[bone_name].bone.select = False
 
 

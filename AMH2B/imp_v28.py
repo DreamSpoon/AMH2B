@@ -22,6 +22,7 @@
 
 
 import bpy
+import math
 
 from bpy.props import StringProperty
 from bpy_extras.io_utils import ImportHelper
@@ -37,6 +38,16 @@ def select_object(ob):
 
 def doTranslateGlobal(tg):
     bpy.ops.transform.translate(value=tg, orient_type='GLOBAL')
+
+def doRotationGlobal(axis_name, rg):
+    if axis_name == "x" or axis_name == "X":
+        bpy.ops.transform.rotate(value=(math.pi * rg / 180), orient_axis='X', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0 1)), orient_matrix_type='GLOBAL', constraint_axis=(True, False, False))
+    elif axis_name == "y" or axis_name == "Y":
+        bpy.ops.transform.rotate(value=(math.pi * rg / 180), orient_axis='Y', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, True, False))
+    elif axis_name == "z" or axis_name == "Z":
+        bpy.ops.transform.rotate(value=(math.pi * rg / 180), orient_axis='Z', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, False, True))
+    else:
+        print("doRotationGlobal Error: Unknown axis name = " + axis_name)
 
 class AMH2B_BoneWovenInner:
     src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
