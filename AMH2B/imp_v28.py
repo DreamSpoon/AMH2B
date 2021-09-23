@@ -62,5 +62,5 @@ class AMH2B_LuckyInner:
     fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
     fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
 
-class AMH2B_AddToPoseInner:
+class AMH2B_AdjustPoseInner:
     text_block_name_enum : bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")

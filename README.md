@@ -15,21 +15,44 @@ To install this addon in Blender:
 
 To use this addon in Blender:
 
-Look for 'AMH2B' buttons in the Object menu, in the 3D Viewport view.
+Look for 'AMH2B' button in View 3D:
+	Blender 2.7x: Tools menu (left-side of View 3D)
+	Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
 
-3D Viewport -> Object -> AMH2B ...
-
-## 5+1 menu options:
-0) Lucky
-1) Apply Scale to Rig
-2) Bone Woven
-3) Ratchet Hold
-4) Repose Rig
-5) Swap Materials
+## 6+1 functions:
+1) Adjust Pose
+2) Apply Scale to Rig
+3) Bone Woven
+4) Ratchet Hold
+5) Repose Rig
+6) Swap Materials
+7) Lucky
 
 'Lucky' needs to be explained last because it is a compilation of the other functions.
 
-## 1) Apply Scale to Rig
+## 1) Adjust Pose
+Background: Time is wasted doing repetitive rotations of pose-bones to match imported animated rigs, in preparation for the AMH2B 'Lucky' function.
+
+This script takes a user-created Comma Separated Variable (CSV) script and rotates pose-bones automatically.
+
+In other words, script a series of pose-bone rotations so that an imported MakeHuman MHX rig aligns to an imported animated rig (Mixamo or CMU, only Mixamo supported presently) to simplify the process of animating mass amounts of MakeHuman MHX rigs.
+
+### Instructions to use the script:
+
+Open the Text Editor and create a text. The default name is "Text". In the text, type rotations in Comma Separated Variable (CSV) format like this:
+clavicle.L, y, -15
+clavicle.L, z, 5
+upper_arm.fk.L, y, -34
+
+See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created.
+
+Select the armature that needs it's pose-bones adjusted
+
+Press button AMH2B -> Adjust Pose
+
+Result: The pose bones in the selected armature will be rotated according to the script.
+
+## 2) Apply Scale to Rig
 Correctly apply scale to animated armature, by adjusting its pose bone location animation f-curve values to match the scaling.
 
 Background: Blender applies scale to non-animated rigs correctly, but the animations attached to the rig (i.e. the f-curves) are not scaled. The result is usually the animated rig moves violently around the scene, or the animation seems to hover in place and not move when it should move. Blender applies scale only to the bone lengths and bone locations in the current frame, but no scaling applied to animations (f-curves).
@@ -38,9 +61,11 @@ Background: Blender applies scale to non-animated rigs correctly, but the animat
 
 Select the armature that needs 'apply scale'.
 
-Press the 'AMH2B Apply Scale to Rig' button in the 3D Viewport -> Object menu.
+Press button AMH2B -> Apply Scale to Rig
 
-## 2) Bone Woven
+Result: The scale of the selected armature is 1.0 in X/Y/Z axes. Also, the keyframed animation on the rig is scaled correctly.
+
+## 3) Bone Woven
 Simplify the MakeHuman rig animation process re: Mixamo et al. via a bridge that connects imported animation rigs to imported MHX2 rigs - leaving face panel and visemes intact, while allowing for great functionality e.g. finger movements.
 
 In a perfect world, Blender and MakeHuman would work seamlessly with any and all motion capture data, and any motion capture sharing website (including body, facial, etc. rig). The real world includes problems with bone names, 'bone roll', vertex groups, etc. This script bridges some real world gaps between different rigs, and re-targeting animations.
@@ -55,11 +80,13 @@ Side-note: Ugly, But Works
 
 Select the animated source rig and the MHX destination rig, so that the MHX rig is the active object.
 
-Press the 'AMH2B Bone Woven' button in the 3D Viewport -> Object menu.
+Press the 'AMH2B Bone Woven' button in the Tools -> AMH2B.
+
+Result: Animated rig is joined to MHX rig, and a 'stitching' process will copy-swap-and-parent animated bones into the MHX rig's bone setup.
 
 Important! Make sure your MHX rig has scale 1 in x/y/z, zero location, zero rotation - basically all transforms equal default. If your MHX rig already has location/rotation/scale, then re-locate/rotate/apply scale (with Apply Scale to Rig (!)) to set everything back to defaults. If the MHX rig has non-default location/rotation/scale then results are undefined.
 
-## 3) Ratchet Hold
+## 4) Ratchet Hold
 
 Idea of script:
 Easily keyframe movement of a walking/moving rig, by letting user select part of armature that should appear motionless (e.g. left leg stationary) while the rest of the armature moves about that part (e.g. right leg moving).
@@ -85,6 +112,8 @@ Press the 'AMH2B Ratchet Hold' button in the 3D Viewport -> Object menu.
 
 Important: Ensure your that objects A and B have their scale applied (i.e. have scale = 1 in x/y/z) before running the script. If the scale is not 1, then movements will be calculated incorrectly.
 
+Also important: This function does not work if Object A (the "Empty") is animated - the result is undefined if the Empty is animated.
+
   The script will do:
 1) Insert a location keyframe on object B.
 2) Get the location of object A in the current frame.
@@ -92,13 +121,11 @@ Important: Ensure your that objects A and B have their scale applied (i.e. have 
 4) Get the new location of object A, then calculate the offset to keep it motionless.
 5) Apply location offset to object B, then insert location keyframe on B.
 
-Result:
-
-Two keyframes created on object B, such that object A appears motionless over the two frames.
+Result: Two keyframes created on object B, such that object A appears motionless over the two frames.
 
 Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
-## 4) Repose Rig
+## 5) Repose Rig
 Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original that moves mesh to desired pose, then original rig is pose-apply'ed and takes over from duplicate rig.
 
 Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
@@ -107,9 +134,11 @@ Basically, a duplicate rig moves the underlying mesh to the place where the repo
 
 Select only the armature (the MHX armature, although this script will work with any armature) that needs its current pose to be set as the 'rest pose'.
 
-Press the 'AMH2B Repose Rig' button in the 3D Viewport -> Object menu.
+Press the 'AMH2B Repose Rig' button in the View 3D -> Object menu.
 
-## 5) Swap Materials
+Result: Extra armature is created, and selected meshes will have an Armature modifier applied which uses this extra armature.
+
+## 6) Swap Materials
 Quickly Swap Materials from Other Blend File, so custom materials for clothing can be maintained in one folder/file and easily used. For this to work, the user must already have set up a materials dictionary file. Read on for some hints on doing that.
 
 The script will do:
@@ -124,9 +153,7 @@ Press the 'AMH2B Swap Materials' button in the 3D Viewport -> Object menu.
 
 A file selection window will show, and you can select one file that has your preferred materials in it. You can run this command multiple times if your materials are located across many files: e.g. run this command and choose the file with clothes materials, next run the command and choose the file with hair materials, etc.
 
-Result:
-
-All selected objects that have materials in their material slots will have their material slots swapped, if possible, with the materials in the user selected file.
+Result: All selected objects that have materials in their material slots will have their material slots swapped, if possible, with the materials in the user selected file.
 
 ### Hints for creating materials dictionary file:
 
@@ -157,7 +184,7 @@ e.g.
 
 'Floopy:High-poly:Eye_brown'
 
-## 0) Lucky
+## 7) Lucky
 
 One button press to:
 1) Re-Pose Rig (optional)
@@ -175,6 +202,6 @@ Before pressing this button, select all of:
 
 Press the Lucky button.
 
-This will Re-Pose the MHX rig, apply location/rotation and Apply Scale to the animated rig, and finish with Bone Woven joining the two rigs.
+Result: This will Re-Pose the MHX rig, apply location/rotation and Apply Scale to the animated rig, and finish with Bone Woven joining the two rigs.
 
 One click success, if lucky.

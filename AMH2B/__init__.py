@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 1, 5),
+    "version": (1, 1, 6),
     "blender": (2, 80, 0),
     "location": "View 3D &gt; Tools &gt; AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -911,7 +911,7 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 
 #####################################################
 #     Automate MakeHuman 2 Blender (AMH2B)
-#     AddToPose
+#     Adjust Pose
 #
 #   Idea of script:
 # Script rotations of bones to reduce time waste. Input is from TextBlock named 'Text', in CSV format.
@@ -926,7 +926,7 @@ def rotBone(rig_object, bone_name, axis_name, offset_deg):
     elif axis_name == "z":
         bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
     else:
-        print("AddToPose Error: Unknown rotBone() axis_name = " + axis_name)
+        print("AdjustPose Error: Unknown rotBone() axis_name = " + axis_name)
 
     rig_object.pose.bones[bone_name].bone.select = False
 
@@ -955,7 +955,7 @@ def getScriptedOffsets(datablock_textname):
     return list(csv_lines)
 
 
-def do_addToPose(self):
+def do_adjustPose(self):
     # get CSV user data text block and convert to array of offsets data
     offsets = getScriptedOffsets(bpy.context.scene.Amh2bPropTextBlockName)
     if offsets is None:
@@ -964,10 +964,10 @@ def do_addToPose(self):
     # copy ref to active object, the MHX armature
     mhx_arm_obj = bpy.context.active_object
     if mhx_arm_obj is None:
-        print("addToPose error: Active object is None, cannot do something.")
+        print("AdjustPose error: Active object is None, cannot adjust pose.")
         return
     if mhx_arm_obj.type != 'ARMATURE':
-        print("addToPose error: Active object is not Armature type, cannot do something.")
+        print("AdjustPose error: Active object is not Armature type, cannot adjust pose.")
         return
 
     old_3dview_mode = bpy.context.object.mode
@@ -979,10 +979,10 @@ def do_addToPose(self):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 
-class AMH2B_AddToPose(AMH2B_AddToPoseInner, bpy.types.Operator):
+class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     """Add to rotations of pose by way of CSV script in Blender's Text Editor. Default script name is Text"""
-    bl_idname = "amh2b.add_to_pose"
-    bl_label = "AddToPose"
+    bl_idname = "amh2b.adjust_pose"
+    bl_label = "AdjustPose"
     bl_options = {'REGISTER', 'UNDO'}
 
     def draw(self, context):
@@ -990,7 +990,7 @@ class AMH2B_AddToPose(AMH2B_AddToPoseInner, bpy.types.Operator):
         #layout.prop(self, "text_block_name_enum")
 
     def execute(self, context):
-        do_addToPose(self)
+        do_adjustPose(self)
         return {'FINISHED'}
 
 
@@ -1016,7 +1016,7 @@ class AMH2B_P_Setup(bpy.types.Panel):
         layout.separator()
         box = layout.box()
         box.label(text="Armature")
-        box.operator("amh2b.add_to_pose")
+        box.operator("amh2b.adjust_pose")
         box.prop(scn, "Amh2bPropTextBlockName")
         box.operator("amh2b.apply_scale")
         box.operator("amh2b.bridge_repose")
@@ -1040,7 +1040,7 @@ classes = [
     AMH2B_BridgeRepose,
     AMH2B_RatchetHold,
     AMH2B_Lucky,
-    AMH2B_AddToPose,
+    AMH2B_AdjustPose,
     AMH2B_P_Setup,
 ]
 
