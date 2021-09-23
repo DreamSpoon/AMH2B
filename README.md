@@ -40,8 +40,11 @@ In other words, script a series of pose-bone rotations so that an imported MakeH
 ### Instructions to use the script:
 
 Open the Text Editor and create a text. The default name is "Text". In the text, type rotations in Comma Separated Variable (CSV) format like this:
+
 clavicle.L, y, -15
+
 clavicle.L, z, 5
+
 upper_arm.fk.L, y, -34
 
 See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created.
