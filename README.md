@@ -24,7 +24,7 @@ Look for 'AMH2B' button in View 3D:
 2) Apply Scale to Rig
 3) Bone Woven
 4) Ratchet Hold
-5) Repose Rig
+5) Bridge Re-Pose Rig
 6) Swap Materials
 7) Lucky
 
@@ -51,7 +51,7 @@ See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where 
 
 Select the armature that needs it's pose-bones adjusted
 
-Press button AMH2B -> Adjust Pose
+Press button AMH2B -> AdjustPose
 
 Result: The pose bones in the selected armature will be rotated according to the script.
 
@@ -83,7 +83,7 @@ Side-note: Ugly, But Works
 
 Select the animated source rig and the MHX destination rig, so that the MHX rig is the active object.
 
-Press the 'AMH2B Bone Woven' button in the Tools -> AMH2B.
+Press button AMH2B -> Bone Woven
 
 Result: Animated rig is joined to MHX rig, and a 'stitching' process will copy-swap-and-parent animated bones into the MHX rig's bone setup.
 
@@ -111,7 +111,7 @@ Object B must be selected last so that it is the active object.
 
 Before using this script, make sure that object A is parented to object B.
 
-Press the 'AMH2B Ratchet Hold' button in the 3D Viewport -> Object menu.
+Press button AMH2B -> Ratchet Hold
 
 Important: Ensure your that objects A and B have their scale applied (i.e. have scale = 1 in x/y/z) before running the script. If the scale is not 1, then movements will be calculated incorrectly.
 
@@ -128,16 +128,16 @@ Result: Two keyframes created on object B, such that object A appears motionless
 
 Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
-## 5) Repose Rig
+## 5) Bridge Re-Pose Rig
 Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original that moves mesh to desired pose, then original rig is pose-apply'ed and takes over from duplicate rig.
 
-Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
+Basically, a duplicate rig moves the underlying mesh to the place where the re-posed original rig will be.
 
 ### Instructions to use the script:
 
 Select only the armature (the MHX armature, although this script will work with any armature) that needs its current pose to be set as the 'rest pose'.
 
-Press the 'AMH2B Repose Rig' button in the View 3D -> Object menu.
+Press button AMH2B -> Bridge Re-Pose
 
 Result: Extra armature is created, and selected meshes will have an Armature modifier applied which uses this extra armature.
 
@@ -152,7 +152,7 @@ The script will do:
 
 Select all objects with materials that need to be swapped. It's okay to select armature objects, curves, etc. - these objects without materials will be ignored.
 
-Press the 'AMH2B Swap Materials' button in the 3D Viewport -> Object menu.
+Press button AMH2B -> Swap Materials
 
 A file selection window will show, and you can select one file that has your preferred materials in it. You can run this command multiple times if your materials are located across many files: e.g. run this command and choose the file with clothes materials, next run the command and choose the file with hair materials, etc.
 
@@ -203,7 +203,7 @@ Before pressing this button, select all of:
 2) Objects attached to MHX rig with 'Armature' modifier (e.g. clothes, skin, hair, eyebrows)
 3) MHX rig (select the MHX rig last)
 
-Press the Lucky button.
+Press button AMH2B -> Lucky
 
 Result: This will Re-Pose the MHX rig, apply location/rotation and Apply Scale to the animated rig, and finish with Bone Woven joining the two rigs.
 
