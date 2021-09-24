@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 1, 7),
+    "version": (1, 1, 8),
     "blender": (2, 80, 0),
     "location": "View 3D &gt; Tools &gt; AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -917,9 +917,12 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 # Get the rotations correct once, type it up as a CSV file, then use the script repeatedly.
 
 def rotBone(rig_object, bone_name, axis_name, offset_deg):
-    rig_object.pose.bones[bone_name].bone.select = True
+    the_bone = rig_object.pose.bones.get(bone_name)
+    if the_bone is None:
+        return
+    the_bone.bone.select = True
     doRotationGlobal(axis_name, offset_deg)
-    rig_object.pose.bones[bone_name].bone.select = False
+    the_bone.bone.select = False
 
 
 def runOffsets(rig_obj, offsets, datablock_textname):
@@ -931,6 +934,7 @@ def runOffsets(rig_obj, offsets, datablock_textname):
 
     except ValueError:
         print("ValueError while parsing CSV data line #" + str(line_count) + " in text block: " + datablock_textname)
+
 
 
 def getScriptedOffsets(datablock_textname):
