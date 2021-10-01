@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 1, 8),
+    "version": (1, 1, 9),
     "blender": (2, 80, 0),
     "location": "View 3D &gt; Tools &gt; AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -373,10 +373,6 @@ def stitch_set_parent_bone(rig_obj, stitch_from, stitch_to, bone_name_trans):
 
 
 def detect_and_bridge_rigs(self, mhx_rig_obj, other_rig_obj):
-    print("detect_and_bridge_rigs function started")
-    print("mhx_rig_obj.name = " + mhx_rig_obj.name)
-    print("other_rig_obj.name = " + other_rig_obj.name)
-
     # destination rig type
     mhx_rig_type = "import_mhx"
 
@@ -398,9 +394,6 @@ def detect_and_bridge_rigs(self, mhx_rig_obj, other_rig_obj):
     bone_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(mhx_rig_type), mhx_rig_bone_names, "")
     extra_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(other_rig_type), other_rig_bone_names, "")
     bone_name_trans.update(extra_name_trans)
-
-    print("mhx_rig_type=" + mhx_rig_type)
-    print("other_rig_type=" + other_rig_type)
 
     do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans)
 
@@ -503,72 +496,93 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
 #   1) User chooses file with source materials.
 #   2) Materials are appended "blindly", by trimming names of materials on selected objects
 #      and trying to append trimmed name materials from the blend file chosen by the user.
+
+# Returns True if material was successfully appended.
+# Checks if the material already exists in this file, if it does exist then rename the
+# current material, and then append the new material.
+def swapmat_append_from_file(mat_filepath, mat_name):
+    # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
+    inner_path = "Material"
+
+    try:
+        bpy.ops.wm.append(
+            filepath=os.path.join(mat_filepath, inner_path, mat_name),
+            directory=os.path.join(mat_filepath, inner_path),
+            filename=mat_name
+            )
+    except:
+        return False
+
+    if bpy.data.materials.get(mat_name) is None:
+        return False
+
+    return True
+
+
+# trim string up to, and including, the first ":" character, and return trimmed string
+def get_swatch_name_for_MH_name(mh_name):
+    # if name is in MH format then return trimmed name
+    # (remove first third, up to the ":", and return the remaining two-thirds)
+    if len(mh_name.split(":", -1)) == 3:
+        return mh_name.split(":", 1)[1]
+    # otherwise return original name
+    else:
+        return mh_name
+
+
+def do_material_swaps(shaderswap_blendfile):
+    mats_loaded_from_file = []
+
+    # get list of objects currently selected and fix materials on all selected objects,
+    # swapping to correct materials
+    selection_list = bpy.context.selected_objects
+
+    # do the material swaps for each selected object
+    for obj in selection_list:
+        # iterate over the material slots and check/swap the materials
+        for mat_slot in obj.material_slots:
+            swatch_mat_name = get_swatch_name_for_MH_name(mat_slot.material.name)
+
+            # if material has already been loaded from file...
+            if swatch_mat_name in mats_loaded_from_file:
+                # swap material
+                print("Swapping material on object " + obj.name + ", oldMat = " + obj.active_material.name + ", newMat = " + swatch_mat_name)
+                mat_slot.material = bpy.data.materials[swatch_mat_name]
+                continue
+
+            # if "swap material" already exists, then rename it so that a
+            # newer version can be loaded from library file
+            test_swap_mat = bpy.data.materials.get(swatch_mat_name)
+            if test_swap_mat is not None:
+                old_name = test_swap_mat.name
+                test_swap_mat.name = "A1:" + old_name
+
+            # if cannot load material from file...
+            if not swapmat_append_from_file(shaderswap_blendfile, swatch_mat_name):
+                # if rename occurred, then undo rename
+                if test_swap_mat is not None:
+                    test_swap_mat.name = old_name
+                continue
+
+            # include the newly loaded material in the list of loaded materials
+            mats_loaded_from_file.append(swatch_mat_name)
+
+            # swap material
+            print("Swapping material on object " + obj.name + ", oldMat = " + obj.active_material.name + ", newMat = " + swatch_mat_name)
+            mat_slot.material = bpy.data.materials[swatch_mat_name]
+
+
 class AMH2B_SwapMaterials(AMH2B_SwapMaterialsInner, Operator, ImportHelper):
     """Swap Materials from Source Blend File"""
     bl_idname = "amh2b.swap_materials"
     bl_label = "Swap Materials"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # returns True if material was successfully appended
-    # TODO check if the material already exists in this file, if it does exist then rename
-    #   the current material, and then append the new material
-    def append_from_file(self, mat_filepath, mat_name):
-        # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
-        inner_path = "Material"
-
-        try:
-            bpy.ops.wm.append(
-                filepath=os.path.join(mat_filepath, inner_path, mat_name),
-                directory=os.path.join(mat_filepath, inner_path),
-                filename=mat_name
-                )
-        except:
-            return False
-
-        if bpy.data.materials.get(mat_name) is None:
-            return False
-
-        return True
-
-    # Trim string up to, and including, the first ":" character, and return trimmed string.
-    def get_swatch_name_for_MH_name(self, mh_name):
-        # if name is in MH format then return trimmed name
-        # (remove first third, up to the ":", and return the remaining two-thirds)
-        if len(mh_name.split(":", -1)) == 3:
-            return mh_name.split(":", 1)[1]
-        # otherwise return original name
-        else:
-            return mh_name
-
-
-    # TODO swap more than one material (active material), if object has more than one material
-    #   for mat in obj.material_slots:
-    #       ...
-    def do_material_swaps(self, shaderswap_blendfile):
-        # get list of objects currently selected and fix materials on all selected objects, swapping to correct materials
-        selection_list = bpy.context.selected_objects
-
-        # do the material swapping
-        for obj in selection_list:
-            # Iterate over the material slots and check/swap the materials
-            for mat_slot in obj.material_slots:
-                swatch_mat_name = self.get_swatch_name_for_MH_name(mat_slot.material.name)
-
-                # do not append/swap material if material already exists
-                if bpy.data.materials.get(swatch_mat_name) is not None:
-                    continue
-
-                if not self.append_from_file(shaderswap_blendfile, swatch_mat_name):
-                    continue
-
-                print("Swapping material on object " + obj.name + ", oldMat = " + obj.active_material.name + ", newMat = " + swatch_mat_name)
-                mat_slot.material = bpy.data.materials[swatch_mat_name]
-
-
     def execute(self, context):
         filename, extension = os.path.splitext(self.filepath)
-        self.do_material_swaps(self.filepath)
+        do_material_swaps(self.filepath)
         return {'FINISHED'}
+
 
 #####################################################
 #     Automate MakeHuman 2 Blender (AMH2B)
@@ -579,7 +593,10 @@ class AMH2B_SwapMaterials(AMH2B_SwapMaterialsInner, Operator, ImportHelper):
 # will appear to move incorrectly.
 def do_apply_scale():
     if bpy.context.active_object is None:
-        print("do_apply_scale() error: bpy.context.active_object is None, should have an object selected as active object.")
+        print("do_apply_scale() error: Active Object is None, should have an object selected as Active Object.")
+        return
+    if bpy.context.active_object.type != 'ARMATURE':
+        print("do_apply_scale() error: Active Object is not ARMATURE type.")
         return
 
     # keep copy of old scale values
@@ -655,7 +672,7 @@ def dup_selected():
 
 def add_armature_to_objects(arm_obj, objs_list):
     for dest_obj in objs_list:
-        if dest_obj != arm_obj:
+        if dest_obj != arm_obj and dest_obj.type != 'ARMATURE':
             add_armature_to_obj(arm_obj, dest_obj)
 
 
@@ -663,7 +680,7 @@ def add_armature_to_obj(arm_obj, dest_obj):
     # create ARMATURE modifier and set refs, etc.
     mod = dest_obj.modifiers.new("ReposeArmature", 'ARMATURE')
     if mod is None:
-        print("ReposeArmature: Unable to add armature to object" + dest_obj.name)
+        print("do_repose_rig() error: Unable to add armature to object" + dest_obj.name)
         return
     mod.object = arm_obj
     mod.use_deform_preserve_volume = True
@@ -682,7 +699,6 @@ def do_repose_rig():
 
     # copy ref to active object
     selection_active_obj = bpy.context.active_object
-    print("do_repose_rig() applied to active object " + bpy.context.active_object.name)
 
     # copy list of selected objects, minus the active object
     # (0 selected objects is allowed, because armature can be re-posed independently)
@@ -701,10 +717,6 @@ def do_repose_rig():
 
     # duplicate the original armature
     new_arm = dup_selected()
-    print("new_arm=")
-    print(new_arm)
-    print("selection_active=")
-    print(selection_active_obj)
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
     new_arm.parent = selection_active_obj
 
@@ -833,8 +845,10 @@ class AMH2B_RatchetHold(bpy.types.Operator):
 def do_lucky(self):
     # copy ref to active object, the MHX armature
     mhx_arm_obj = bpy.context.active_object
-    if mhx_arm_obj is None:
-        print("do_lucky() error: Active object is None, cannot Re-Pose MHX rig")
+
+    # quit if no MHX rig selected or active object is wrong type
+    if mhx_arm_obj is None or mhx_arm_obj.type != 'ARMATURE':
+        print("do_lucky() error: Active object is None or is not ARMATURE type, cannot Re-Pose MHX rig")
         return
 
     # get the animated armature (other_armature_obj) from the list of selected objects
@@ -846,16 +860,10 @@ def do_lucky(self):
                 other_armature_obj = ob
                 break
 
+    # quit if no secondary armature is selected
     if other_armature_obj == None:
         print("do_lucky() error: : missing other armature to join to MHX armature.")
         return
-
-    print("do_lucky() debug info: +++")
-    print("mhx_arm_obj=")
-    print(mhx_arm_obj)
-    print("other_armature_obj=")
-    print(other_armature_obj)
-    print("do_lucky() debug info: ---")
 
     # since MHX armature is already the active object, do repose first
     if self.repose_rig_enum == 'YES':
@@ -864,18 +872,17 @@ def do_lucky(self):
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
 
+    # select secondary armature (the animated armature), and make it the active object
     select_object(other_armature_obj)
     set_active_object(other_armature_obj)
 
-
-    # let Blender apply location and rotation to animated armature
+    # use Blender to apply location and rotation to animated armature
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
-    # custom apply scale to animated armature
+    # use custom apply scale to animated armature
     do_apply_scale()
 
     # other_armature_obj will still be selected and the active_object, so just add the MHX armature
-    # to the selected list and make it the active object.
-
+    # to the selected list and make it the active object
     select_object(mhx_arm_obj)
     set_active_object(mhx_arm_obj)
 
@@ -926,14 +933,14 @@ def rotBone(rig_object, bone_name, axis_name, offset_deg):
 
 
 def runOffsets(rig_obj, offsets, datablock_textname):
-    line_count = 0
+    rec_count = 0
     try:
         for of_bone_name, of_axis, of_deg in offsets:
             rotBone(rig_obj, of_bone_name.strip(), of_axis.strip(), float(of_deg))
-            line_count = line_count+1
+            rec_count = rec_count+1
 
     except ValueError:
-        print("ValueError while parsing CSV data line #" + str(line_count) + " in text block: " + datablock_textname)
+        print("adjust_pose() error: ValueError while parsing CSV record #" + str(rec_count) + " in text block: " + datablock_textname)
 
 
 
@@ -958,11 +965,12 @@ def do_adjustPose(self):
 
     # copy ref to active object, the MHX armature
     mhx_arm_obj = bpy.context.active_object
+    # quit if Active Object is None or not an armature
     if mhx_arm_obj is None:
-        print("AdjustPose error: Active object is None, cannot adjust pose.")
+        print("adjust_pose() error: Active object is None, cannot adjust pose.")
         return
     if mhx_arm_obj.type != 'ARMATURE':
-        print("AdjustPose error: Active object is not Armature type, cannot adjust pose.")
+        print("adjust_pose() error: Active object is not Armature type, cannot adjust pose.")
         return
 
     old_3dview_mode = bpy.context.object.mode
@@ -982,7 +990,6 @@ class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
-        #layout.prop(self, "text_block_name_enum")
 
     def execute(self, context):
         do_adjustPose(self)
