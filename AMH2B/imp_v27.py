@@ -24,17 +24,26 @@
 import bpy
 import math
 
-from bpy.props import StringProperty
-from bpy_extras.io_utils import ImportHelper
-from bpy.types import Operator
+#from bpy.props import StringProperty
+#from bpy_extras.io_utils import ImportHelper
+#from bpy.types import Operator
 
 from .imp_items import *
+
+def matrix_vector_mult(m, v):
+    return m * v
 
 def set_active_object(ob):
     bpy.context.scene.objects.active = ob
 
 def select_object(ob):
     ob.select = True
+
+def deselect_object(ob):
+    ob.select = False
+
+def link_object(ob):
+    bpy.context.scene.objects.link(ob)
 
 def doTranslateGlobal(tg):
     bpy.ops.transform.translate(value=tg, constraint_orientation='GLOBAL')
@@ -60,7 +69,7 @@ class AMH2B_BoneWovenInner:
     fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
 
 class AMH2B_SwapMaterialsInner:
-    filter_glob = StringProperty(default="*.blend", options={'HIDDEN'})
+    filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
 class AMH2B_LuckyInner:
     repose_rig_enum = bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
