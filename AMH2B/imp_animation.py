@@ -92,7 +92,7 @@ def do_ratchet():
     obj_to_ratchet.keyframe_insert(data_path="location")
 
 class AMH2B_RatchetHold(bpy.types.Operator):
-    """Keyframe the movement of a parent object so that a child object appears motionless; the parent object"s location is offset to keep the child object"s location stationary."""
+    """Keyframe the movement of a parent object so that a child object appears motionless; the parent object"s location is offset to keep the child object"s location stationary"""
     bl_idname = "amh2b.ratchet_hold"
     bl_label = "Ratchet Hold"
     bl_options = {'REGISTER', 'UNDO'}

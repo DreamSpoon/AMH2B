@@ -33,18 +33,16 @@ bl_info = {
 
 import bpy
 
+from .imp_mesh import *
+from .imp_armature import *
+from .imp_animation import *
+
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
     Region = "TOOLS"
 else:
     from .imp_v28 import *
     Region = "UI"
-
-from .imp_items import *
-from .imp_strings import *
-from .imp_mesh import *
-from .imp_armature import *
-from .imp_animation import *
 
 #####################################################
 

@@ -24,7 +24,7 @@ import bpy
 import csv
 import fnmatch
 
-from .imp_strings import *
+from .imp_bone_strings import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -164,7 +164,7 @@ def do_apply_scale():
     bpy.context.scene.frame_set(bpy.context.scene.frame_current-1)
 
 class AMH2B_ApplyScale(bpy.types.Operator):
-    """Apply Scale to Rig without corrupting the bone pose data (e.g. location)."""
+    """Apply Scale to Rig without corrupting the bone pose data (e.g. location)"""
     bl_idname = "amh2b.apply_scale"
     bl_label = "Apply Scale to Rig"
     bl_options = {'REGISTER', 'UNDO'}
@@ -248,7 +248,7 @@ def do_repose_rig():
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_BridgeRepose(bpy.types.Operator):
-    """Use a "bridge rig" to move a shape-keyed mesh into position with a "re-posed armature" (i.e. where the pose was changed and then applied as rest pose)."""
+    """Use a "bridge rig" to move a shape-keyed mesh into position with a "re-posed armature" (i.e. where the pose was changed and then applied as rest pose)"""
     bl_idname = "amh2b.bridge_repose"
     bl_label = "Bridge Re-Pose"
     bl_options = {'REGISTER', 'UNDO'}
@@ -737,7 +737,7 @@ def do_lucky(self):
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.
 class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
-    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale to Deltas, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc."""
+    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale to Deltas, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
     bl_idname = "amh2b.lucky"
     bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}

@@ -24,10 +24,6 @@
 import bpy
 import math
 
-#from bpy.props import StringProperty
-#from bpy_extras.io_utils import ImportHelper
-#from bpy.types import Operator
-
 from .imp_items import *
 
 def matrix_vector_mult(m, v):

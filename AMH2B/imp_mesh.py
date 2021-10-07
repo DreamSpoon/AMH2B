@@ -21,7 +21,6 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
-from bpy_extras.io_utils import ImportHelper
 import bmesh
 import re
 import os
@@ -115,8 +114,8 @@ def do_swap_mats_with_file(shaderswap_blendfile):
             print("Swapping material on object " + obj.name + ", oldMat = " + mat_slot.material.name + ", newMat = " + swatch_mat_name)
             mat_slot.material = bpy.data.materials[swatch_mat_name]
 
-class AMH2B_SwapMatWithFile(AMH2B_SwapMaterialsInner, bpy.types.Operator, ImportHelper):
-    """Swap all materials on selected objects with swap materials from Source Blend File."""
+class AMH2B_SwapMatWithFile(AMH2B_SwapMaterialsInner, bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    """Swap all materials on selected objects with swap materials from Source Blend File"""
     bl_idname = "amh2b.swap_mat_from_file"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
@@ -179,7 +178,7 @@ def do_mat_swaps_internal_single():
     mat_slot.material = sm
 
 class AMH2B_SwapMatIntSingle(bpy.types.Operator):
-    """Swap material in object's active material slot with appropriate swap material in this Blend file."""
+    """Swap material in object's active material slot with appropriate swap material in this Blend file"""
     bl_idname = "amh2b.swap_mat_int_single"
     bl_label = "Internal Single"
     bl_options = {'REGISTER', 'UNDO'}
@@ -207,7 +206,7 @@ def do_mat_swaps_internal_multi():
             mat_slot.material = sm
 
 class AMH2B_SwapMatIntMulti(bpy.types.Operator):
-    """Swap all materials of selected objects with appropriate swap materials in this Blend file."""
+    """Swap all materials of selected objects with appropriate swap materials in this Blend file"""
     bl_idname = "amh2b.swap_mat_int_multi"
     bl_label = "Internal Multi"
     bl_options = {'REGISTER', 'UNDO'}
@@ -242,7 +241,7 @@ def do_setup_mat_swap_single():
         print("Renamed material " + active_mat_name + " to " + new_mat_name)
 
 class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
-    """Swap material in object's active material slot with appropriate swap material in this Blend file."""
+    """Swap material in object's active material slot with appropriate swap material in this Blend file"""
     bl_idname = "amh2b.setup_mat_swap_single"
     bl_label = "Rename Single"
     bl_options = {'REGISTER', 'UNDO'}
@@ -265,7 +264,7 @@ def do_setup_mat_swap_multi():
                 print("Renamed material " + mat_name + " to " + new_mat_name)
 
 class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
-    """Swap all materials of selected objects with appropriate swap materials in this Blend file."""
+    """Swap all materials of selected objects with appropriate swap materials in this Blend file"""
     bl_idname = "amh2b.setup_mat_swap_multi"
     bl_label = "Rename Multi"
     bl_options = {'REGISTER', 'UNDO'}
@@ -341,7 +340,7 @@ def do_draw_cloth_stitch():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternAddStitch(bpy.types.Operator):
-    """Add a pattern stitch to the current mesh with exactly two selected vertexes."""
+    """Add a pattern stitch to the current mesh with exactly two selected vertexes"""
     bl_idname = "amh2b.pattern_add_stitch"
     bl_label = "Add Stitch"
     bl_options = {'REGISTER', 'UNDO'}
@@ -397,7 +396,7 @@ def do_copy_sew_pattern():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternCopy(bpy.types.Operator):
-    """Copy pattern from the active object to all other selected mesh objects."""
+    """Copy pattern from the active object to all other selected mesh objects"""
     bl_idname = "amh2b.pattern_copy"
     bl_label = "Copy Stitches"
     bl_options = {'REGISTER', 'UNDO'}
@@ -454,7 +453,7 @@ def do_make_sew_pattern():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternSew(bpy.types.Operator):
-    """Sew the pattern on the active object."""
+    """Sew the pattern on the active object"""
     bl_idname = "amh2b.pattern_sew"
     bl_label = "Sew Stitches"
     bl_options = {'REGISTER', 'UNDO'}
