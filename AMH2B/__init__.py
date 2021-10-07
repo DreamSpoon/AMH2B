@@ -88,6 +88,8 @@ class AMH2B_MeshSew(bpy.types.Panel):
         box.label(text="Cuts and Pins Groups")
         box.operator("amh2b.copy_tailor_groups")
         box.operator("amh2b.make_tailor_groups")
+        box.label(text="Clothing Size")
+        box.operator("amh2b.create_size_rig")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -128,6 +130,9 @@ classes = [
     AMH2B_PatternAddStitch,
     AMH2B_PatternCopy,
     AMH2B_PatternSew,
+    AMH2B_CopyTailorGroups,
+    AMH2B_MakeTailorGroups,
+    AMH2B_CreateSizeRig,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
     AMH2B_BridgeRepose,
@@ -136,8 +141,6 @@ classes = [
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSew,
-    AMH2B_CopyTailorGroups,
-    AMH2B_MakeTailorGroups,
     AMH2B_Armature,
     AMH2B_Animation,
 ]

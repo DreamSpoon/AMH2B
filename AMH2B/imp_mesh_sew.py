@@ -24,6 +24,8 @@ import bpy
 import bmesh
 import re
 
+from .imp_all import *
+
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
     Region = "TOOLS"
@@ -102,7 +104,7 @@ def do_draw_cloth_stitch():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternAddStitch(bpy.types.Operator):
-    """Add a pattern stitch to the current mesh with exactly two selected vertexes"""
+    """Add AStitch vertex group to the current mesh from exactly two selected vertexes.\nSelect exactly two vertexes before using this function"""
     bl_idname = "amh2b.pattern_add_stitch"
     bl_label = "Add Stitch"
     bl_options = {'REGISTER', 'UNDO'}
@@ -117,6 +119,7 @@ def get_vert_group_indexes(mesh_obj, vert_group_index):
 def make_vertex_group(mesh_obj, group_name, vert_indexes):
     # create new vertex group
     new_vert_grp = mesh_obj.vertex_groups.new(name=group_name)
+    # add vertex indexes at weight = 1.0
     new_vert_grp.add(vert_indexes, 1.0, 'ADD')
 
 def make_vertex_group_weighted(mesh_obj, group_name, vert_index_weights):
@@ -172,7 +175,7 @@ def do_copy_sew_pattern():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternCopy(bpy.types.Operator):
-    """Copy pattern from the active object to all other selected mesh objects"""
+    """Copy AStitch vertex groups from the active mesh object (last selected object) to all other selected mesh objects"""
     bl_idname = "amh2b.pattern_copy"
     bl_label = "Copy Stitches"
     bl_options = {'REGISTER', 'UNDO'}
@@ -258,17 +261,16 @@ def copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name
 
 def do_make_tailor_vgroups():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_make_tailor_vgroups() error: ")
+        print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
 
     active_mesh_obj = bpy.context.active_object
     make_replace_vertex_grp(active_mesh_obj, SC_VGRP_CUTS)
     make_replace_vertex_grp(active_mesh_obj, SC_VGRP_PINS)
 
-# BIG TODO!!!!! copy weight paint of pins vertex group
 def do_copy_tailor_vgroups():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_copy_tailor_vgroups() error: ")
+        print("do_copy_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
     active_mesh_obj = bpy.context.active_object
 
@@ -283,7 +285,7 @@ def do_copy_tailor_vgroups():
         copy_replace_vertex_group_weighted(active_mesh_obj, to_mesh_obj, SC_VGRP_PINS)
 
 class AMH2B_CopyTailorGroups(bpy.types.Operator):
-    """Copy vertex groups for cutting and pinning.\nSecond Line"""
+    """Copy vertex groups TotalCuts and TotalPins from the active object (selected last) to all other selected mesh objects"""
     bl_idname = "amh2b.copy_tailor_groups"
     bl_label = "Copy Tailor VGroups"
     bl_options = {'REGISTER', 'UNDO'}
@@ -293,11 +295,70 @@ class AMH2B_CopyTailorGroups(bpy.types.Operator):
         return {'FINISHED'}
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
-    """Make vertex groups for cutting and pinning.\nSecond Line"""
+    """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
     bl_idname = "amh2b.make_tailor_groups"
     bl_label = "Make Tailor VGroups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         do_make_tailor_vgroups()
+        return {'FINISHED'}
+
+def do_create_size_rig(unlock_y):
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'ARMATURE':
+        print("do_create_size_rig() error: no active object. Select exactly one ARMATURE and select meshes attached to the armature, and try again.")
+        return
+
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    # copy ref to active object
+    selection_active_obj = bpy.context.active_object
+    # copy list of selected objects, minus the active object
+    selection_list = []
+    for ob in bpy.context.selected_objects:
+        if ob.name != selection_active_obj.name and ob.type == 'MESH':
+            selection_list.append(bpy.data.objects[ob.name])
+
+    # de-select all objects
+    bpy.ops.object.select_all(action='DESELECT')
+
+    # select the old active_object in the 3D viewport
+    select_object(selection_active_obj)
+    # make it the active selected object
+    set_active_object(selection_active_obj)
+
+    # duplicate the original armature
+    new_arm = dup_selected()
+    # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
+    new_arm.parent = selection_active_obj
+
+    # add modifiers to the other selected objects (meshes), so the meshes will use the new armature
+    if len(selection_list) > 0:
+        add_armature_to_objects(new_arm, selection_list)
+
+    # ensure new armature is selected
+    select_object(new_arm)
+    # make new armature is the active object
+    set_active_object(new_arm)
+
+    # unlock scale values for all pose bones - except for Y axis, unless allowed
+    bpy.ops.object.mode_set(mode='POSE')
+    for b in new_arm.pose.bones:
+        b.lock_scale[0] = False
+        if unlock_y:
+            b.lock_scale[1] = False
+        b.lock_scale[2] = False
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+
+class AMH2B_CreateSizeRig(bpy.types.Operator):
+    """Create a new armature with unlocked pose scale values for resizing selected clothing meshes.\nSelect mesh objects first and select armature object last"""
+    bl_idname = "amh2b.create_size_rig"
+    bl_label = "Create Size Rig"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_create_size_rig(False)
         return {'FINISHED'}

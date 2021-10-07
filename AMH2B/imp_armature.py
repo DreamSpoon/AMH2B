@@ -25,6 +25,7 @@ import csv
 import fnmatch
 
 from .imp_bone_strings import *
+from .imp_all import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -179,31 +180,6 @@ class AMH2B_ApplyScale(bpy.types.Operator):
 # that moves mesh to desired pose, then original rig is pose-apply"ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
-# duplicate selected objects
-def dup_selected():
-    obj_to_dup = bpy.context.active_object
-    bpy.ops.object.duplicate({"object" : obj_to_dup, "selected_objects" : [obj_to_dup]}, linked=False)
-    # return ref to newly duped object
-    return bpy.context.active_object
-
-def add_armature_to_objects(arm_obj, objs_list):
-    for dest_obj in objs_list:
-        if dest_obj != arm_obj and dest_obj.type != 'ARMATURE':
-            add_armature_to_obj(arm_obj, dest_obj)
-
-def add_armature_to_obj(arm_obj, dest_obj):
-    # create ARMATURE modifier and set refs, etc.
-    mod = dest_obj.modifiers.new("ReposeArmature", 'ARMATURE')
-    if mod is None:
-        print("do_repose_rig() error: Unable to add armature to object" + dest_obj.name)
-        return
-    mod.object = arm_obj
-    mod.use_deform_preserve_volume = True
-    # Move modifier to top of stack, because this armature needs to move the mesh before
-    # any other modifications occur, to match the re-posed main armature.
-    while dest_obj.modifiers.find(mod.name) != 0:
-        bpy.ops.object.modifier_move_up({"object": dest_obj}, modifier=mod.name)
-
 def do_repose_rig():
     if bpy.context.active_object is None:
         print("do_repose_rig() error: Active object is None, cannot Re-Pose MHX rig.")
@@ -240,7 +216,7 @@ def do_repose_rig():
     # ensure original armature is selected
     select_object(selection_active_obj)
     # make original armature the active object
-    set_active_object(selection_active_obj) # debug 1 (delete this comment, and not the code)
+    set_active_object(selection_active_obj)
 
     bpy.ops.object.mode_set(mode='POSE')
     # apply pose to original armature
@@ -273,7 +249,7 @@ class AMH2B_BridgeRepose(bpy.types.Operator):
 # Side-note: Ugly, But Works
 
 # minimum number of bones matching by string to justify matching rig found = true
-amh2b_min_bones_for_rig_match = 10  # 10 is estimate, todo: check estimate
+amh2b_min_bones_for_rig_match = 10  # 10 is estimate, TODO: check estimate
 
 def get_translation_vec(bone_from, bone_to, from_dist, to_dist):
     delta_x_from = bone_from.tail.x - bone_from.head.x
