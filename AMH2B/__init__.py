@@ -33,7 +33,8 @@ bl_info = {
 
 import bpy
 
-from .imp_mesh import *
+from .imp_mesh_mat import *
+from .imp_mesh_sew import *
 from .imp_armature import *
 from .imp_animation import *
 
@@ -46,8 +47,8 @@ else:
 
 #####################################################
 
-class AMH2B_Mesh(bpy.types.Panel):
-    bl_label = "Mesh"
+class AMH2B_MeshMat(bpy.types.Panel):
+    bl_label = "Mesh Material"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
@@ -65,6 +66,17 @@ class AMH2B_Mesh(bpy.types.Panel):
         box.label(text="Setup Material Swap")
         box.operator("amh2b.setup_mat_swap_single")
         box.operator("amh2b.setup_mat_swap_multi")
+
+class AMH2B_MeshSew(bpy.types.Panel):
+    bl_label = "Mesh Sew"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+
         box = layout.box()
         box.label(text="Pattern Utility")
         box.operator("amh2b.pattern_copy")
@@ -72,6 +84,10 @@ class AMH2B_Mesh(bpy.types.Panel):
         box = layout.box()
         box.label(text="Pattern Layout")
         box.operator("amh2b.pattern_add_stitch")
+        box = layout.box()
+        box.label(text="Cuts and Pins Groups")
+        box.operator("amh2b.copy_tailor_groups")
+        box.operator("amh2b.make_tailor_groups")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -118,7 +134,10 @@ classes = [
     AMH2B_BoneWoven,
     AMH2B_Lucky,
     AMH2B_RatchetHold,
-    AMH2B_Mesh,
+    AMH2B_MeshMat,
+    AMH2B_MeshSew,
+    AMH2B_CopyTailorGroups,
+    AMH2B_MakeTailorGroups,
     AMH2B_Armature,
     AMH2B_Animation,
 ]
