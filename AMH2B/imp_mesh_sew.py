@@ -353,12 +353,12 @@ def do_create_size_rig(unlock_y):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 
-class AMH2B_CreateSizeRig(bpy.types.Operator):
+class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
     """Create a new armature with unlocked pose scale values for resizing selected clothing meshes.\nSelect mesh objects first and select armature object last"""
     bl_idname = "amh2b.create_size_rig"
     bl_label = "Create Size Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_create_size_rig(False)
+        do_create_size_rig(self.unlock_y_scale)
         return {'FINISHED'}

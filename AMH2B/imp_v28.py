@@ -80,3 +80,6 @@ class AMH2B_LuckyInner:
 
 class AMH2B_AdjustPoseInner:
     text_block_name_enum : bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")
+
+class AMH2B_CreateSizeRigInner:
+    unlock_y_scale : bpy.props.BoolProperty(name="Unlock Y Scale", description="Unlock Y scale, in addition onlocking X and Z axis scaling, on clothing size rig.", default=False)

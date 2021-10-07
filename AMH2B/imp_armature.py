@@ -69,7 +69,7 @@ def getScriptedOffsets(datablock_textname):
     csv_lines = csv.reader(bl_str.splitlines())
     return list(csv_lines)
 
-def do_adjustPose(self):
+def do_adjustPose():
     # get CSV user data text block and convert to array of offsets data
     offsets = getScriptedOffsets(bpy.context.scene.Amh2bPropTextBlockName)
     if offsets is None:
@@ -99,11 +99,8 @@ class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     bl_label = "AdjustPose"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def draw(self, context):
-        layout = self.layout
-
     def execute(self, context):
-        do_adjustPose(self)
+        do_adjustPose()
         return {'FINISHED'}
 
 #####################################################
