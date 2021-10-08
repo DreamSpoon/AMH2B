@@ -289,7 +289,7 @@ def do_copy_tailor_vgroups():
 class AMH2B_CopyTailorGroups(bpy.types.Operator):
     """Copy vertex groups TotalCuts and TotalPins from the active object (selected last) to all other selected mesh objects"""
     bl_idname = "amh2b.copy_tailor_groups"
-    bl_label = "Copy Tailor VGroups"
+    bl_label = "Copy Cuts & Pins"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -299,7 +299,7 @@ class AMH2B_CopyTailorGroups(bpy.types.Operator):
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
     bl_idname = "amh2b.make_tailor_groups"
-    bl_label = "Make Tailor VGroups"
+    bl_label = "Make Cuts & Pins"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
