@@ -23,6 +23,8 @@
 import bpy
 import bmesh
 import re
+import os
+from bpy_extras.io_utils import ImportHelper
 
 from .imp_all import *
 
@@ -148,22 +150,10 @@ def copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, from_vert_grp):
 def is_vert_grp_sew(group_name):
     return group_name.lower() == SC_VGRP_ASTITCH.lower() or re.match(SC_VGRP_ASTITCH + "\.\w*", group_name, re.IGNORECASE)
 
-# takes two selected meshes as input, the active_object must be the mesh that is copied from
-def do_copy_sew_pattern():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_copy_sew_pattern() error: Active Object was not a mesh. Select exactly two meshes and try again.")
-        return
-
-    selection_list = bpy.context.selected_objects
-    if len(selection_list) < 2:
-        print("do_copy_sew_pattern() error: less then 2 objects selected. Select another mesh and try again.")
-        return
-
+def do_inner_copy_sew_pattern(from_mesh_obj, selection_list):
     original_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    from_mesh_obj = bpy.context.active_object
-    to_mesh_obj = None
     for sel in selection_list:
         if sel == from_mesh_obj or sel.type != 'MESH':
             continue
@@ -173,6 +163,18 @@ def do_copy_sew_pattern():
                 copy_vertex_group(from_mesh_obj, sel, vert_grp)
 
     bpy.ops.object.mode_set(mode=original_mode)
+
+# takes two selected meshes as input, the active_object must be the mesh that is copied from
+def do_copy_sew_pattern():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_copy_sew_pattern() error: Active Object was not a mesh. Select exactly two meshes and try again.")
+        return
+    if len(bpy.context.selected_objects) < 2:
+        print("do_copy_sew_pattern() error: less then 2 objects selected. Select another mesh and try again.")
+        return
+
+    do_inner_copy_sew_pattern(bpy.context.active_object, bpy.context.selected_objects)
+
 
 class AMH2B_PatternCopy(bpy.types.Operator):
     """Copy AStitch vertex groups from the active mesh object (last selected object) to all other selected mesh objects"""
@@ -268,21 +270,21 @@ def do_make_tailor_vgroups():
     make_replace_vertex_grp(active_mesh_obj, SC_VGRP_CUTS)
     make_replace_vertex_grp(active_mesh_obj, SC_VGRP_PINS)
 
+def do_inner_copy_tailor_vgroups(from_mesh_obj, selection_list):
+    # iterate over selected 'MESH' type objects that are not the active object
+    for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
+        copy_replace_vertex_group(from_mesh_obj, to_mesh_obj, SC_VGRP_CUTS)
+        copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, SC_VGRP_PINS)
+
 def do_copy_tailor_vgroups():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_copy_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
-    active_mesh_obj = bpy.context.active_object
-
-    selection_list = bpy.context.selected_objects
-    if len(selection_list) < 2:
+    if len(bpy.context.selected_objects) < 2:
         print("() error: less then 2 objects selected. Select another mesh and try again.")
         return
 
-    # iterate over selected 'MESH' type objects that are not the active object
-    for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != active_mesh_obj):
-        copy_replace_vertex_group(active_mesh_obj, to_mesh_obj, SC_VGRP_CUTS)
-        copy_replace_vertex_group_weighted(active_mesh_obj, to_mesh_obj, SC_VGRP_PINS)
+    do_inner_copy_tailor_vgroups(bpy.context.active_object, bpy.context.selected_objects)
 
 class AMH2B_CopyTailorGroups(bpy.types.Operator):
     """Copy vertex groups TotalCuts and TotalPins from the active object (selected last) to all other selected mesh objects"""
@@ -352,7 +354,6 @@ def do_create_size_rig(unlock_y):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-
 class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
     """Create a new armature with unlocked pose scale values for resizing selected clothing meshes.\nSelect mesh objects first and select armature object last"""
     bl_idname = "amh2b.create_size_rig"
@@ -361,4 +362,95 @@ class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
 
     def execute(self, context):
         do_create_size_rig(self.unlock_y_scale)
+        return {'FINISHED'}
+
+def get_tailor_object_name(object_name):
+    if object_name.rfind(":") != -1:
+        return object_name[object_name.rfind(":")+1 : len(object_name)]
+    else:
+        object_name
+
+def do_rename_tailor_object_to_searchable():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_rename_tailor_object_to_searchable() error: Active Object is not MESH type. Select only one MESH object and try again.")
+        return
+    bpy.context.active_object.name = get_tailor_object_name(bpy.context.active_object.name)
+
+class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
+    """Rename active object, if needed, to make it searchable re: copying vertex groups AStitch, TotalCuts, TotalPins"""
+    bl_idname = "amh2b.make_tailor_object_searchable"
+    bl_label = "Make Object Searchable"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_rename_tailor_object_to_searchable()
+        return {'FINISHED'}
+
+# Returns True if material was successfully appended.
+# Checks if the material already exists in this file, if it does exist then rename the
+# current material, and then append the new material.
+def append_object_from_blend_file(mat_filepath, obj_name):
+    # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
+    inner_path = "Object"
+
+    try:
+        bpy.ops.wm.append(
+            filepath=os.path.join(mat_filepath, inner_path, obj_name),
+            directory=os.path.join(mat_filepath, inner_path),
+            filename=obj_name
+            )
+    except:
+        return False
+
+    if bpy.data.objects.get(obj_name) is None:
+        return False
+
+    return True
+
+def do_search_file_for_tailor_vgroups(chosen_blend_file):
+    # copy list of selected objects, minus the active object
+    selection_list = []
+    for ob in bpy.context.selected_objects:
+        if ob.type == 'MESH':
+            selection_list.append(bpy.data.objects[ob.name])
+
+    for sel in selection_list:
+        search_name = get_tailor_object_name(sel.name)
+        # if the desired VGroups mesh object name is already used then rename it before appending from file,
+        # and rename later after the appended object is deleted
+        test_obj = bpy.data.objects.get(search_name)
+        if test_obj is not None:
+            test_obj.name = "TempRenameName"
+
+        # if cannot load mesh object from file...
+        append_object_from_blend_file(chosen_blend_file, search_name)
+        appended_obj = bpy.data.objects.get(search_name)
+        if appended_obj is None:
+            # if rename occurred, then undo rename
+            if test_obj is not None:
+                test_obj.name = search_name
+
+            continue
+
+        do_inner_copy_sew_pattern(appended_obj, [sel])
+        do_inner_copy_tailor_vgroups(appended_obj, [sel])
+
+        # select only the appended object and delete it
+        bpy.ops.object.select_all(action='DESELECT')
+        select_object(appended_obj)
+        bpy.ops.object.delete()
+
+        # if an object was named in order to do appending then fix name
+        if test_obj is not None:
+            test_obj.name = search_name
+
+class AMH2B_SearchFileForTailorVGroups(AMH2B_SearchFileForTailorVGroupsInner, bpy.types.Operator, ImportHelper):
+    """"""
+    bl_idname = "amh2b.search_file_for_tailor_vgroups"
+    bl_label = "Search in File"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        filename, extension = os.path.splitext(self.filepath)
+        do_search_file_for_tailor_vgroups(self.filepath)
         return {'FINISHED'}

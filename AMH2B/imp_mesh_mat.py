@@ -42,7 +42,7 @@ else:
 # Returns True if material was successfully appended.
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
-def swapmat_append_from_file(mat_filepath, mat_name):
+def append_material_from_blend_file(mat_filepath, mat_name):
     # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
     inner_path = "Material"
 
@@ -101,7 +101,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
                 test_swap_mat.name = "A1:" + swatch_mat_name
 
             # if cannot load material from file...
-            if not swapmat_append_from_file(shaderswap_blendfile, swatch_mat_name):
+            if not append_material_from_blend_file(shaderswap_blendfile, swatch_mat_name):
                 # if rename occurred, then undo rename
                 if test_swap_mat is not None:
                     test_swap_mat.name = old_name

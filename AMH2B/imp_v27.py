@@ -24,10 +24,6 @@
 import bpy
 import math
 
-#from bpy.props import StringProperty
-#from bpy_extras.io_utils import ImportHelper
-#from bpy.types import Operator
-
 from .imp_items import *
 
 def matrix_vector_mult(m, v):
@@ -58,6 +54,18 @@ def doRotationGlobal(axis_name, rg):
     else:
         print("doRotationGlobal Error: Unknown axis name = " + axis_name)
 
+class AMH2B_SwapMaterialsInner:
+    filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
+class AMH2B_SearchFileForTailorVGroupsInner:
+    filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
+class AMH2B_CreateSizeRigInner:
+    unlock_y_scale = bpy.props.BoolProperty(name="Unlock Y Scale", description="Unlock Y scale, in addition onlocking X and Z axis scaling, on clothing size rig.", default=False)
+
+class AMH2B_AdjustPoseInner:
+    text_block_name_enum = bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")
+
 class AMH2B_BoneWovenInner:
     src_rig_type_enum = bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
     torso_stitch_enum = bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
@@ -67,9 +75,6 @@ class AMH2B_BoneWovenInner:
     leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
     fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
     fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-
-class AMH2B_SwapMaterialsInner:
-    filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
 class AMH2B_LuckyInner:
     repose_rig_enum = bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
@@ -81,9 +86,3 @@ class AMH2B_LuckyInner:
     leg_right_stitch_enum = bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
     fingers_left_stitch_enum = bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
     fingers_right_stitch_enum = bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-
-class AMH2B_AdjustPoseInner:
-    text_block_name_enum = bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")
-
-class AMH2B_CreateSizeRigInner:
-    unlock_y_scale = bpy.props.BoolProperty(name="Unlock Y Scale", description="Unlock Y scale, in addition onlocking X and Z axis scaling, on clothing size rig.", default=False)

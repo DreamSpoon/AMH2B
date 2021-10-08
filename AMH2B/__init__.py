@@ -88,6 +88,10 @@ class AMH2B_MeshSew(bpy.types.Panel):
         box.label(text="Cuts and Pins Groups")
         box.operator("amh2b.copy_tailor_groups")
         box.operator("amh2b.make_tailor_groups")
+        box = layout.box()
+        box.label(text="Cuts and Pins File")
+        box.operator("amh2b.search_file_for_tailor_vgroups")
+        box.operator("amh2b.make_tailor_object_searchable")
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
 
@@ -132,6 +136,8 @@ classes = [
     AMH2B_PatternSew,
     AMH2B_CopyTailorGroups,
     AMH2B_MakeTailorGroups,
+    AMH2B_MakeTailorObjectSearchable,
+    AMH2B_SearchFileForTailorVGroups,
     AMH2B_CreateSizeRig,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
