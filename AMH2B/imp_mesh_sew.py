@@ -27,6 +27,7 @@ import os
 from bpy_extras.io_utils import ImportHelper
 
 from .imp_all import *
+from .imp_string_const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -37,13 +38,6 @@ else:
 
 ###############################################
 # Sewing and Patterning, Cutting and Sizing
-
-SC_VGRP_ASTITCH = "AStitch"
-SC_VGRP_TSEWN = "TotalSewn"
-SC_MN_ASTITCH = "AutoStitch"
-
-SC_VGRP_CUTS = "TotalCuts"
-SC_VGRP_PINS = "TotalPins"
 
 def make_mesh_line(mesh_name, vert_pos_a, vert_pos_b):
     mesh_m = bpy.data.meshes.new("mesh")

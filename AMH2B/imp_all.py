@@ -22,11 +22,10 @@
 
 import bpy
 
-# duplicate selected object
+# duplicate selected objects, return active object afterwards
 def dup_selected():
     obj_to_dup = bpy.context.active_object
-    bpy.ops.object.duplicate({"object" : obj_to_dup, "selected_objects" : [obj_to_dup]}, linked=False)
-    # return ref to newly duped object
+    bpy.ops.object.duplicate(linked=False)
     return bpy.context.active_object
 
 def add_armature_to_objects(arm_obj, objs_list):

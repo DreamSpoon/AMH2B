@@ -35,6 +35,7 @@ import bpy
 
 from .imp_mesh_mat import *
 from .imp_mesh_sew import *
+from .imp_cloth_sim import *
 from .imp_armature import *
 from .imp_animation import *
 
@@ -97,6 +98,20 @@ class AMH2B_MeshSew(bpy.types.Panel):
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
 
+class AMH2B_ClothSim(bpy.types.Panel):
+    bl_label = "Cloth Sim"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+
+        layout.label(text="Cloth Sim")
+        layout.operator("amh2b.copy_with_mesh_deform")
+        layout.operator("amh2b.add_cloth_sim")
+
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
     bl_space_type = "VIEW_3D"
@@ -142,6 +157,8 @@ classes = [
     AMH2B_MakeTailorObjectSearchable,
     AMH2B_SearchFileForTailorVGroups,
     AMH2B_CreateSizeRig,
+    AMH2B_CopyWithMeshDeform,
+    AMH2B_AddClothSim,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
     AMH2B_BridgeRepose,
@@ -150,6 +167,7 @@ classes = [
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSew,
+    AMH2B_ClothSim,
     AMH2B_Armature,
     AMH2B_Animation,
 ]
