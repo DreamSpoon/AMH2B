@@ -118,37 +118,69 @@ class AMH2B_PatternAddStitch(bpy.types.Operator):
 def get_vert_group_indexes(mesh_obj, vert_group_index):
     return [ v.index for v in mesh_obj.data.vertices if vert_group_index in [ vg.group for vg in v.groups ] ]
 
-def make_vertex_group(mesh_obj, group_name, vert_indexes):
+def add_vertex_group(mesh_obj, grp_name, vert_indexes):
     # create new vertex group
-    new_vert_grp = mesh_obj.vertex_groups.new(name=group_name)
+    new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
     # add vertex indexes at weight = 1.0
     new_vert_grp.add(vert_indexes, 1.0, 'ADD')
 
-def make_vertex_group_weighted(mesh_obj, group_name, vert_index_weights):
+#def add_replace_vertex_grp(mesh_obj, vert_grp_name):
+#    delete_vertex_group(mesh_obj, vert_grp_name)
+#    add_vertex_group(mesh_obj, vert_grp_name, [])
+def add_ifnot_vertex_grp(mesh_obj, vert_grp_name):
+    if mesh_obj.vertex_groups.get(vert_grp_name) is None:
+        add_vertex_group(mesh_obj, vert_grp_name, [])
+
+def add_vertex_group_weighted(mesh_obj, grp_name, vert_index_weights):
     # create new vertex group
-    new_vert_grp = mesh_obj.vertex_groups.new(name=group_name)
+    new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
     # transfer vertex group, with weights
     for viw in vert_index_weights:
         new_vert_grp.add([viw[0]], viw[1], 'REPLACE')
 
-def copy_vertex_group(from_mesh_obj, to_mesh_obj, from_vert_grp):
+def copy_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name):
+    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
+    if from_vert_grp is None:
+        return
     # get vertex indexes in group given by from_vert_grp.index
     vi_list = get_vert_group_indexes(from_mesh_obj, from_vert_grp.index)
     # create new vertex group
-    make_vertex_group(to_mesh_obj, from_vert_grp.name, vi_list)
+    add_vertex_group(to_mesh_obj, from_vert_grp.name, vi_list)
 
-def copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, from_vert_grp):
+def copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name):
+    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
+    if from_vert_grp is None:
+        return
     # get vertex indexes in group given by from_vert_grp.index
     vi_list = get_vert_group_indexes(from_mesh_obj, from_vert_grp.index)
+    # create list with weights
     viw_list = []
     for vi in vi_list:
         viw_list.append([vi, from_vert_grp.weight(vi)])
-
     # create new vertex group
-    make_vertex_group_weighted(to_mesh_obj, from_vert_grp.name, viw_list)
+    add_vertex_group_weighted(to_mesh_obj, from_vert_grp.name, viw_list)
 
-def is_vert_grp_sew(group_name):
-    return group_name.lower() == SC_VGRP_ASTITCH.lower() or re.match(SC_VGRP_ASTITCH + "\.\w*", group_name, re.IGNORECASE)
+def copy_replace_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name):
+    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
+    if from_vert_grp is None:
+        return
+    delete_vertex_group(to_mesh_obj, vert_grp_name)
+    copy_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name)
+
+def copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name):
+    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
+    if from_vert_grp is None:
+        return
+    delete_vertex_group(to_mesh_obj, vert_grp_name)
+    copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name)
+
+def delete_vertex_group(mesh_obj, vert_grp_name):
+    vg = mesh_obj.vertex_groups.get(vert_grp_name)
+    if vg is not None:
+        mesh_obj.vertex_groups.remove(vg)
+
+def is_vert_grp_sew(grp_name):
+    return grp_name.lower() == SC_VGRP_ASTITCH.lower() or re.match(SC_VGRP_ASTITCH + "\.\w*", grp_name, re.IGNORECASE)
 
 def do_inner_copy_sew_pattern(from_mesh_obj, selection_list):
     original_mode = bpy.context.object.mode
@@ -160,7 +192,7 @@ def do_inner_copy_sew_pattern(from_mesh_obj, selection_list):
         # find vertex groups with names that match the sew group pattern, and copy the groups
         for vert_grp in from_mesh_obj.vertex_groups:
             if is_vert_grp_sew(vert_grp.name):
-                copy_vertex_group(from_mesh_obj, sel, vert_grp)
+                copy_replace_vertex_group(from_mesh_obj, sel, vert_grp.name)
 
     bpy.ops.object.mode_set(mode=original_mode)
 
@@ -197,11 +229,6 @@ def make_mesh_edge(mesh_obj, vert_indexes):
 
     bm.edges.new((bm.verts[vert_indexes[0]], bm.verts[vert_indexes[1]]))
 
-def delete_vertex_group(mesh_obj, group_name):
-    vg = mesh_obj.vertex_groups.get(group_name)
-    if vg is not None:
-        mesh_obj.vertex_groups.remove(vg)
-
 def do_make_sew_pattern():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_make_sew_pattern() error: Active Object was not a mesh. Select a mesh as the Active Object and try again.")
@@ -224,7 +251,7 @@ def do_make_sew_pattern():
     if len(v_all_group_indexes) > 0:
         bpy.ops.object.mode_set(mode='OBJECT')
         # create total vertex group
-        make_vertex_group(active_mesh_obj, SC_VGRP_TSEWN, v_all_group_indexes)
+        add_vertex_group(active_mesh_obj, SC_VGRP_TSEWN, v_all_group_indexes)
 
         # delete the individual stitch vertex groups
         for vert_grp in active_mesh_obj.vertex_groups:
@@ -274,33 +301,6 @@ class AMH2B_AddCutsMask(bpy.types.Operator):
         do_add_cuts_mask()
         return {'FINISHED'}
 
-def make_replace_vertex_grp(mesh_obj, vert_grp_name):
-    delete_vertex_group(mesh_obj, vert_grp_name)
-    make_vertex_group(mesh_obj, vert_grp_name, [])
-
-def copy_replace_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    delete_vertex_group(to_mesh_obj, vert_grp_name)
-    copy_vertex_group(from_mesh_obj, to_mesh_obj, from_vert_grp)
-
-def copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    delete_vertex_group(to_mesh_obj, vert_grp_name)
-    copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, from_vert_grp)
-
-def do_make_tailor_vgroups():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
-        return
-
-    active_mesh_obj = bpy.context.active_object
-    make_replace_vertex_grp(active_mesh_obj, SC_VGRP_CUTS)
-    make_replace_vertex_grp(active_mesh_obj, SC_VGRP_PINS)
-
 def do_inner_copy_tailor_vgroups(from_mesh_obj, selection_list):
     # iterate over selected 'MESH' type objects that are not the active object
     for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
@@ -312,7 +312,7 @@ def do_copy_tailor_vgroups():
         print("do_copy_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
     if len(bpy.context.selected_objects) < 2:
-        print("() error: less then 2 objects selected. Select another mesh and try again.")
+        print("do_copy_tailor_vgroups() error: less then 2 objects selected. Select another mesh and try again.")
         return
 
     do_inner_copy_tailor_vgroups(bpy.context.active_object, bpy.context.selected_objects)
@@ -326,6 +326,15 @@ class AMH2B_CopyTailorGroups(bpy.types.Operator):
     def execute(self, context):
         do_copy_tailor_vgroups()
         return {'FINISHED'}
+
+def do_make_tailor_vgroups():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
+        return
+
+    active_mesh_obj = bpy.context.active_object
+    add_ifnot_vertex_grp(active_mesh_obj, SC_VGRP_CUTS)
+    add_ifnot_vertex_grp(active_mesh_obj, SC_VGRP_PINS)
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
