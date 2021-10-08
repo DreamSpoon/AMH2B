@@ -243,6 +243,37 @@ class AMH2B_PatternSew(bpy.types.Operator):
         do_make_sew_pattern()
         return {'FINISHED'}
 
+def do_add_cuts_mask():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_add_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
+        return
+
+    active_obj = bpy.context.active_object
+    v_grp = active_obj.vertex_groups.get(SC_VGRP_CUTS)
+    if v_grp is None:
+        print("do_add_cuts_mask() error: Active Object does not have a " + SC_VGRP_CUTS + " vertex group.")
+        return
+
+    mod = active_obj.modifiers.new("TotalCuts Mask", 'MASK')
+    if mod is None:
+        print("do_add_cuts_mask() error: Unable to add MASK modifier to object" + active_obj.name)
+        return
+    mod.vertex_group = v_grp.name
+    mod.invert_vertex_group = True
+    # move modifier to top of stack
+    while active_obj.modifiers.find(mod.name) != 0:
+        bpy.ops.object.modifier_move_up({"object": active_obj}, modifier=mod.name)
+
+class AMH2B_AddCutsMask(bpy.types.Operator):
+    """Add Mask modifier to implement TotalCuts, if TotalCuts vertex group exists on active object"""
+    bl_idname = "amh2b.add_cuts_mask"
+    bl_label = "Add Cuts Mask"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_add_cuts_mask()
+        return {'FINISHED'}
+
 def make_replace_vertex_grp(mesh_obj, vert_grp_name):
     delete_vertex_group(mesh_obj, vert_grp_name)
     make_vertex_group(mesh_obj, vert_grp_name, [])

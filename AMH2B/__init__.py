@@ -81,6 +81,7 @@ class AMH2B_MeshSew(bpy.types.Panel):
         box.label(text="Pattern Utility")
         box.operator("amh2b.pattern_copy")
         box.operator("amh2b.pattern_sew")
+        box.operator("amh2b.add_cuts_mask")
         box = layout.box()
         box.label(text="Pattern Layout")
         box.operator("amh2b.pattern_add_stitch")
@@ -135,6 +136,7 @@ classes = [
     AMH2B_PatternAddStitch,
     AMH2B_PatternCopy,
     AMH2B_PatternSew,
+    AMH2B_AddCutsMask,
     AMH2B_CopyTailorGroups,
     AMH2B_MakeTailorGroups,
     AMH2B_MakeTailorObjectSearchable,
