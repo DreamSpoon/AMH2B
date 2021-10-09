@@ -115,7 +115,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
             mat_slot.material = bpy.data.materials[swatch_mat_name]
 
 class AMH2B_SwapMatWithFile(AMH2B_SwapMaterialsInner, bpy.types.Operator, ImportHelper):
-    """Swap all materials on selected objects with swap materials from Source Blend File"""
+    """Try to swap all materials (based on material name) on all selected objects with replacement materials from another Blend File"""
     bl_idname = "amh2b.swap_mat_from_file"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
@@ -178,7 +178,7 @@ def do_mat_swaps_internal_single():
     mat_slot.material = sm
 
 class AMH2B_SwapMatIntSingle(bpy.types.Operator):
-    """Swap material in object's active material slot with appropriate swap material in this Blend file"""
+    """Try to swap material in object's active material slot with replacement material within this Blend file"""
     bl_idname = "amh2b.swap_mat_int_single"
     bl_label = "Internal Single"
     bl_options = {'REGISTER', 'UNDO'}
@@ -206,7 +206,7 @@ def do_mat_swaps_internal_multi():
             mat_slot.material = sm
 
 class AMH2B_SwapMatIntMulti(bpy.types.Operator):
-    """Swap all materials of selected objects with appropriate swap materials in this Blend file"""
+    """Try to swap all materials of selected objects with replacement materials within this Blend file"""
     bl_idname = "amh2b.swap_mat_int_multi"
     bl_label = "Internal Multi"
     bl_options = {'REGISTER', 'UNDO'}
@@ -241,7 +241,7 @@ def do_setup_mat_swap_single():
         print("Renamed material " + active_mat_name + " to " + new_mat_name)
 
 class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
-    """Swap material in object's active material slot with appropriate swap material in this Blend file"""
+    """Rename active material slot of active object to make the material searchable re: swap material from file"""
     bl_idname = "amh2b.setup_mat_swap_single"
     bl_label = "Rename Single"
     bl_options = {'REGISTER', 'UNDO'}
@@ -264,7 +264,7 @@ def do_setup_mat_swap_multi():
                 print("Renamed material " + mat_name + " to " + new_mat_name)
 
 class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
-    """Swap all materials of selected objects with appropriate swap materials in this Blend file"""
+    """Rename all materials on all selected objects to make them searchable re: swap material from file"""
     bl_idname = "amh2b.setup_mat_swap_multi"
     bl_label = "Rename Multi"
     bl_options = {'REGISTER', 'UNDO'}

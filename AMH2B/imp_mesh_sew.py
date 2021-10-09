@@ -255,7 +255,7 @@ def do_make_sew_pattern():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_PatternSew(bpy.types.Operator):
-    """Sew the pattern on the active object"""
+    """Sew the stitch pattern on the active object.\nThis will delete all AStitch vertex groups on active object"""
     bl_idname = "amh2b.pattern_sew"
     bl_label = "Sew Stitches"
     bl_options = {'REGISTER', 'UNDO'}
@@ -286,7 +286,7 @@ def do_add_cuts_mask():
         bpy.ops.object.modifier_move_up({"object": active_obj}, modifier=mod.name)
 
 class AMH2B_AddCutsMask(bpy.types.Operator):
-    """Add Mask modifier to implement TotalCuts, if TotalCuts vertex group exists on active object"""
+    """Add Mask modifier to implement TotalCuts, if active object has TotalCuts vertex group"""
     bl_idname = "amh2b.add_cuts_mask"
     bl_label = "Add Cuts Mask"
     bl_options = {'REGISTER', 'UNDO'}
@@ -411,7 +411,7 @@ def do_rename_tailor_object_to_searchable():
     bpy.context.active_object.name = get_tailor_object_name(bpy.context.active_object.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
-    """Rename active object, if needed, to make it searchable re: copying vertex groups AStitch, TotalCuts, TotalPins"""
+    """Rename active object, if needed, to make it searchable re: search in file for Stitch, Cut, and Pin VGroups"""
     bl_idname = "amh2b.make_tailor_object_searchable"
     bl_label = "Make Object Searchable"
     bl_options = {'REGISTER', 'UNDO'}
@@ -479,7 +479,7 @@ def do_search_file_for_tailor_vgroups(chosen_blend_file):
             test_obj.name = search_name
 
 class AMH2B_SearchFileForTailorVGroups(AMH2B_SearchFileForTailorVGroupsInner, bpy.types.Operator, ImportHelper):
-    """Add Sew, Cut, and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX is used to search for the correct object in the user selected file"""
+    """Try to add Stitch, Cut, and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX process is used to search for the correct object in the user selected file"""
     bl_idname = "amh2b.search_file_for_tailor_vgroups"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}

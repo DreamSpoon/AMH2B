@@ -94,7 +94,7 @@ def do_adjustPose():
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
-    """Add to rotations of pose by way of CSV script in Blender's Text Editor. Default script name is Text"""
+    """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
     bl_idname = "amh2b.adjust_pose"
     bl_label = "AdjustPose"
     bl_options = {'REGISTER', 'UNDO'}
@@ -162,7 +162,7 @@ def do_apply_scale():
     bpy.context.scene.frame_set(bpy.context.scene.frame_current-1)
 
 class AMH2B_ApplyScale(bpy.types.Operator):
-    """Apply Scale to Rig without corrupting the bone pose data (e.g. location)"""
+    """Apply Scale to active object (ARMATURE type) without corrupting the armature pose data (i.e. location)"""
     bl_idname = "amh2b.apply_scale"
     bl_label = "Apply Scale to Rig"
     bl_options = {'REGISTER', 'UNDO'}
@@ -221,7 +221,7 @@ def do_repose_rig():
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_BridgeRepose(bpy.types.Operator):
-    """Use a "bridge rig" to move a shape-keyed mesh into position with a "re-posed armature" (i.e. where the pose was changed and then applied as rest pose)"""
+    """Use a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
     bl_idname = "amh2b.bridge_repose"
     bl_label = "Bridge Re-Pose"
     bl_options = {'REGISTER', 'UNDO'}
@@ -628,7 +628,7 @@ def do_bone_woven(self):
     print("boneWoven() end.")
 
 class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
-    """MHX2 Rig to Rig Animation Bridge"""
+    """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
     bl_idname = "amh2b.bone_woven"
     bl_label = "Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
@@ -710,7 +710,7 @@ def do_lucky(self):
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.
 class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
-    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale to Deltas, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
+    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
     bl_idname = "amh2b.lucky"
     bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}
