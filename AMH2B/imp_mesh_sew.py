@@ -333,7 +333,7 @@ def do_make_tailor_vgroups():
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
     bl_idname = "amh2b.make_tailor_groups"
-    bl_label = "Make Cuts & Pins"
+    bl_label = "Make Cut & Pin Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -479,9 +479,9 @@ def do_search_file_for_tailor_vgroups(chosen_blend_file):
             test_obj.name = search_name
 
 class AMH2B_SearchFileForTailorVGroups(AMH2B_SearchFileForTailorVGroupsInner, bpy.types.Operator, ImportHelper):
-    """"""
+    """Add Sew, Cut, and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX is used to search for the correct object in the user selected file"""
     bl_idname = "amh2b.search_file_for_tailor_vgroups"
-    bl_label = "Search in File"
+    bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

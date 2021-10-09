@@ -56,7 +56,6 @@ class AMH2B_MeshMat(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = context.scene
 
         box = layout.box()
         box.label(text="Swap Material")
@@ -76,22 +75,21 @@ class AMH2B_MeshSew(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = context.scene
 
         box = layout.box()
         box.label(text="Pattern Utility")
         box.operator("amh2b.pattern_copy")
         box.operator("amh2b.pattern_sew")
-        box.operator("amh2b.add_cuts_mask")
         box = layout.box()
         box.label(text="Pattern Layout")
         box.operator("amh2b.pattern_add_stitch")
         box = layout.box()
-        box.label(text="Cuts and Pins VGroups")
+        box.label(text="Cut and Pin VGroups")
         box.operator("amh2b.copy_tailor_groups")
+        box.operator("amh2b.add_cuts_mask")
         box.operator("amh2b.make_tailor_groups")
         box = layout.box()
-        box.label(text="Patterns, Cuts, and Pins File")
+        box.label(text="Stitch, Cut, and Pin Search")
         box.operator("amh2b.search_file_for_tailor_vgroups")
         box.operator("amh2b.make_tailor_object_searchable")
         box = layout.box()
@@ -106,11 +104,33 @@ class AMH2B_ClothSim(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = context.scene
 
         layout.label(text="Cloth Sim")
         layout.operator("amh2b.copy_with_mesh_deform")
         layout.operator("amh2b.add_cloth_sim")
+
+class AMH2B_AutoCloth(bpy.types.Panel):
+    bl_label = "Auto Cloth"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+
+        box = layout.box()
+        box.label(text="Swap Materials")
+        box.operator("amh2b.swap_mat_from_file")
+        box = layout.box()
+        box.label(text="Stitch, Cut, and Pin VGroups")
+        box.operator("amh2b.search_file_for_tailor_vgroups")
+        box = layout.box()
+        box.label(text="Other")
+        box.operator("amh2b.pattern_sew")
+        box.operator("amh2b.add_cuts_mask")
+        box.operator("amh2b.create_size_rig")
+        box.operator("amh2b.copy_with_mesh_deform")
+        box.operator("amh2b.add_cloth_sim")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -168,6 +188,7 @@ classes = [
     AMH2B_MeshMat,
     AMH2B_MeshSew,
     AMH2B_ClothSim,
+    AMH2B_AutoCloth,
     AMH2B_Armature,
     AMH2B_Animation,
 ]

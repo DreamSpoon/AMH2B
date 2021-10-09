@@ -60,7 +60,7 @@ def do_copy_with_mesh_deform():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_CopyWithMeshDeform(bpy.types.Operator):
-    """Copy active object (must be MESH type), adding Mesh Deform Modifier to active object, deform from copied object"""
+    """Copy active object (must be MESH type), adding Mesh Deform Modifier to active object, and deform target set to copied object"""
     bl_idname = "amh2b.copy_with_mesh_deform"
     bl_label = "Copy with Deform"
     bl_options = {'REGISTER', 'UNDO'}
@@ -83,20 +83,19 @@ def do_add_cloth_sim():
         return
 
     mod.settings.use_pin_cloth = True
-    mod.settings.use_dynamic_mesh = True
     vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_PINS)
     if vert_grp is not None:
         mod.settings.vertex_group_mass = vert_grp.name
 
-    mod.settings.use_sewing_springs = True
     vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_TSEWN)
     if vert_grp is not None:
+        mod.settings.use_sewing_springs = True
         mod.settings.vertex_group_shrink = vert_grp.name
 
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_AddClothSim(bpy.types.Operator):
-    """"""
+    """Add CLOTH modifer to active object with settings auto-filled for Pinning and Sewing Springs"""
     bl_idname = "amh2b.add_cloth_sim"
     bl_label = "Add Cloth Sim"
     bl_options = {'REGISTER', 'UNDO'}
