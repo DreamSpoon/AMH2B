@@ -118,7 +118,7 @@ def get_mod_verts_edges(obj):
 
 def get_mod_verts(obj):
     obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_data.vertices]
+    verts = [Vector(matrix_vector_mult(obj.matrix_world, v.co)) for v in obj_data.vertices]
     bpy.data.meshes.remove(obj_data)
     return verts
 
