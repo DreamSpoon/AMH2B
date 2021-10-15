@@ -21,6 +21,8 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
+import mathutils
+from mathutils import Vector
 
 from .imp_all import *
 from .imp_string_const import *
@@ -31,6 +33,9 @@ if bpy.app.version < (2,80,0):
 else:
     from .imp_v28 import *
     Region = "UI"
+
+# Deform Shape Keys match distance
+FC_MATCH_DIST = 0.00001
 
 def do_copy_with_mesh_deform():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
@@ -102,4 +107,90 @@ class AMH2B_AddClothSim(bpy.types.Operator):
 
     def execute(self, context):
         do_add_cloth_sim()
+        return {'FINISHED'}
+
+def get_mod_verts_edges(obj):
+    obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
+    verts = [v.co for v in obj_data.vertices]
+    edges = obj_data.edge_keys
+    bpy.data.meshes.remove(obj_data)
+    return verts, edges
+
+def get_mod_verts(obj):
+    obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
+    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_data.vertices]
+    bpy.data.meshes.remove(obj_data)
+    return verts
+
+def get_vert_matches(obj):
+    # create a KDTree of the base vertices, to efficiently search for overlapping verts
+    base_verts = obj.data.vertices
+    kd = mathutils.kdtree.KDTree(len(base_verts))
+    for v in base_verts:
+        kd.insert((v.co.x, v.co.y, v.co.z), v.index)
+    kd.balance()
+
+    # search the modified vertices for overlapping verts and build the "matches" list
+    mod_verts = get_mod_verts(obj)
+    matches = []
+    i = -1
+    for vco in mod_verts:
+        i = i + 1
+        found_list = kd.find_range(vco, FC_MATCH_DIST)
+        # if none found within match distance then goto next iteration
+        if len(found_list) < 1:
+            continue
+
+        # append match tuple [base_mesh_vert_index, modified_mesh_vert_index]
+        matches.append([found_list[0][1], i])
+
+    return matches
+
+def check_create_basis_shape_key(obj):
+    if obj.data.shape_keys is None:
+        sk_basis = obj.shape_key_add('Basis')
+        sk_basis.interpolation = 'KEY_LINEAR'
+
+def create_single_deform_shape_key(obj, vert_matches, mod_verts):
+    check_create_basis_shape_key(obj)
+
+    # create a shape key
+    sk = obj.shape_key_add('DSKey')
+    sk.interpolation = 'KEY_LINEAR'
+    # modify shape key vertex positions to match modified (deformed) mesh
+    for base_v_index, mod_v_index in vert_matches:
+        sk.data[base_v_index].co.x = mod_verts[mod_v_index].x
+        sk.data[base_v_index].co.y = mod_verts[mod_v_index].y
+        sk.data[base_v_index].co.z = mod_verts[mod_v_index].z
+
+def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num):
+    old_current_frame = bpy.context.scene.frame_current
+
+    # get "bind" vert matches in the bind frame
+    bpy.context.scene.frame_set(bind_frame_num)
+    vert_matches = get_vert_matches(obj)
+
+    # create shape keys in the "deform" frames
+    for f in range(start_frame_num, end_frame_num+1):
+        bpy.context.scene.frame_set(f)
+        mod_verts = get_mod_verts(obj)
+        create_single_deform_shape_key(obj, vert_matches, mod_verts)
+
+    bpy.context.scene.frame_set(old_current_frame)
+
+def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num):
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
+        return
+
+    create_deform_shapekeys(bpy.context.active_object, bind_frame_num, start_frame_num, end_frame_num)
+
+class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
+    """Bake active object's mesh deformations to shape keys"""
+    bl_idname = "amh2b.bake_deform_shape_keys"
+    bl_label = "Bake Deform Shape Keys"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame)
         return {'FINISHED'}

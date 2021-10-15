@@ -104,10 +104,16 @@ class AMH2B_ClothSim(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scn = context.scene
 
         layout.label(text="Cloth Sim")
         layout.operator("amh2b.copy_with_mesh_deform")
         layout.operator("amh2b.add_cloth_sim")
+        box = layout.box()
+        box.operator("amh2b.bake_deform_shape_keys")
+        box.prop(scn, "Amh2bPropDSK_BindFrame")
+        box.prop(scn, "Amh2bPropDSK_StartFrame")
+        box.prop(scn, "Amh2bPropDSK_EndFrame")
 
 class AMH2B_AutoCloth(bpy.types.Panel):
     bl_label = "Auto Cloth"
@@ -179,6 +185,7 @@ classes = [
     AMH2B_CreateSizeRig,
     AMH2B_CopyWithMeshDeform,
     AMH2B_AddClothSim,
+    AMH2B_BakeDeformShapeKeys,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
     AMH2B_BridgeRepose,
@@ -198,6 +205,9 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.types.Scene.Amh2bPropTextBlockName = bpy.props.StringProperty(name="Text Editor Script Name", description="Script data-block name in text editor", default="Text")
+    bpy.types.Scene.Amh2bPropDSK_BindFrame = bpy.props.IntProperty(name="Bind frame", description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations", default=1)
+    bpy.types.Scene.Amh2bPropDSK_StartFrame = bpy.props.IntProperty(name="Start frame", description="Choose first frame of mesh animation to convert to Shape Key", default=2)
+    bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=3)
 
 def unregister():
     for cls in classes:

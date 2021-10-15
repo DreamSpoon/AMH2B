@@ -104,7 +104,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
             if not append_material_from_blend_file(shaderswap_blendfile, swatch_mat_name):
                 # if rename occurred, then undo rename
                 if test_swap_mat is not None:
-                    test_swap_mat.name = old_name
+                    test_swap_mat.name = swatch_mat_name
                 continue
 
             # include the newly loaded material in the list of loaded materials
