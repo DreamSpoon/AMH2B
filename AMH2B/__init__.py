@@ -107,14 +107,17 @@ class AMH2B_ClothSim(bpy.types.Panel):
         scn = context.scene
 
         layout.label(text="Cloth Sim")
-        layout.operator("amh2b.copy_with_mesh_deform")
-        layout.operator("amh2b.add_cloth_sim")
+        box = layout.box()
+        box.operator("amh2b.copy_with_mesh_deform")
+        box.operator("amh2b.add_cloth_sim")
         box = layout.box()
         box.operator("amh2b.bake_deform_shape_keys")
         box.prop(scn, "Amh2bPropDSK_BindFrame")
         box.prop(scn, "Amh2bPropDSK_StartFrame")
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
+        box = layout.box()
+        box.operator("amh2b.delete_deform_shape_keys")
 
 class AMH2B_AutoCloth(bpy.types.Panel):
     bl_label = "Auto Cloth"
@@ -187,6 +190,7 @@ classes = [
     AMH2B_CopyWithMeshDeform,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
+    AMH2B_DeleteDeformShapeKeys,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
     AMH2B_BridgeRepose,

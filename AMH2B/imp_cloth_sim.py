@@ -23,6 +23,7 @@
 import bpy
 import mathutils
 from mathutils import Vector
+import re
 
 from .imp_all import *
 from .imp_string_const import *
@@ -36,6 +37,7 @@ else:
 
 # Deform Shape Keys match distance
 FC_MATCH_DIST = 0.00001
+SC_DSKEY = "DSKey"
 
 def do_copy_with_mesh_deform():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
@@ -158,7 +160,7 @@ def create_single_deform_shape_key(obj, vert_matches, mod_verts):
     check_create_basis_shape_key(obj)
 
     # create a shape key
-    sk = obj.shape_key_add('DSKey')
+    sk = obj.shape_key_add(SC_DSKEY)
     sk.interpolation = 'KEY_LINEAR'
     # modify shape key vertex positions to match modified (deformed) mesh
     for base_v_index, mod_v_index in vert_matches:
@@ -204,4 +206,32 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
 
     def execute(self, context):
         do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
+        return {'FINISHED'}
+
+def is_dsk_name(name):
+    if name == SC_DSKEY or re.match(SC_DSKEY + "\.\w*", name):
+        return True
+    else:
+        return False
+
+def delete_deform_shapekeys(obj):
+    for sk in obj.data.shape_keys.key_blocks:
+        if is_dsk_name(sk.name):
+            obj.shape_key_remove(sk)
+
+def do_delete_deform_shape_keys():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_delete_deform_shape_keys() error: Active Object must be a mesh.")
+        return
+
+    delete_deform_shapekeys(bpy.context.active_object)
+
+class AMH2B_DeleteDeformShapeKeys(bpy.types.Operator):
+    """Delete mesh deformations shape keys from active object"""
+    bl_idname = "amh2b.delete_deform_shape_keys"
+    bl_label = "Delete Deform Shape Keys"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_delete_deform_shape_keys()
         return {'FINISHED'}
