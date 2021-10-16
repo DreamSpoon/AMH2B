@@ -117,13 +117,14 @@ def add_vertex_group(mesh_obj, grp_name, vert_indexes):
     new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
     # add vertex indexes at weight = 1.0
     new_vert_grp.add(vert_indexes, 1.0, 'ADD')
+    return new_vert_grp
 
 #def add_replace_vertex_grp(mesh_obj, vert_grp_name):
 #    delete_vertex_group(mesh_obj, vert_grp_name)
 #    add_vertex_group(mesh_obj, vert_grp_name, [])
 def add_ifnot_vertex_grp(mesh_obj, vert_grp_name):
     if mesh_obj.vertex_groups.get(vert_grp_name) is None:
-        add_vertex_group(mesh_obj, vert_grp_name, [])
+        return add_vertex_group(mesh_obj, vert_grp_name, [])
 
 def add_vertex_group_weighted(mesh_obj, grp_name, vert_index_weights):
     # create new vertex group
@@ -228,29 +229,29 @@ def do_make_sew_pattern():
         print("do_make_sew_pattern() error: Active Object was not a mesh. Select a mesh as the Active Object and try again.")
         return
 
-    active_mesh_obj = bpy.context.active_object
+    active_obj = bpy.context.active_object
 
     original_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='EDIT')
 
     v_all_group_indexes = []
     # combine all Sew vertex groups and add edges in one pass
-    for vert_grp in active_mesh_obj.vertex_groups:
+    for vert_grp in active_obj.vertex_groups:
         if is_vert_grp_sew(vert_grp.name):
-            vi_list = get_vert_group_indexes(active_mesh_obj, vert_grp.index)
+            vi_list = get_vert_group_indexes(active_obj, vert_grp.index)
             v_all_group_indexes.extend(vi_list)    # add to total indexes
-            make_mesh_edge(active_mesh_obj, vi_list)
+            make_mesh_edge(active_obj, vi_list)
 
     # if any stitch vertex groups were found then...
     if len(v_all_group_indexes) > 0:
         bpy.ops.object.mode_set(mode='OBJECT')
         # create total vertex group
-        add_vertex_group(active_mesh_obj, SC_VGRP_TSEWN, v_all_group_indexes)
+        add_vertex_group(active_obj, SC_VGRP_TSEWN, v_all_group_indexes)
 
         # delete the individual stitch vertex groups
-        for vert_grp in active_mesh_obj.vertex_groups:
+        for vert_grp in active_obj.vertex_groups:
             if is_vert_grp_sew(vert_grp.name):
-                delete_vertex_group(active_mesh_obj, vert_grp.name)
+                delete_vertex_group(active_obj, vert_grp.name)
 
     bpy.ops.object.mode_set(mode=original_mode)
 
@@ -270,11 +271,17 @@ def do_add_cuts_mask():
         return
 
     active_obj = bpy.context.active_object
-    v_grp = active_obj.vertex_groups.get(SC_VGRP_CUTS)
-    if v_grp is None:
-        print("do_add_cuts_mask() error: Active Object does not have a " + SC_VGRP_CUTS + " vertex group.")
-        return
 
+    # add the TotalCuts vertex group if it does not exist
+    add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
+    v_grp = active_obj.vertex_groups.get(SC_VGRP_CUTS)
+
+    # prevent duplicate masks: check for cuts mask in modifiers stack and quit if found
+    for mod in active_obj.modifiers:
+        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
+            return
+
+    # add mask modifier and set it
     mod = active_obj.modifiers.new("TotalCuts Mask", 'MASK')
     if mod is None:
         print("do_add_cuts_mask() error: Unable to add MASK modifier to object" + active_obj.name)
@@ -293,6 +300,31 @@ class AMH2B_AddCutsMask(bpy.types.Operator):
 
     def execute(self, context):
         do_add_cuts_mask()
+        return {'FINISHED'}
+
+def do_toggle_view_cuts_mask():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
+        return
+
+    active_obj = bpy.context.active_object
+
+    # find the cuts mask in the stack
+    for mod in active_obj.modifiers:
+        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
+            # toggle and ensure that viewport and render visibility are the same
+            mod.show_viewport = not mod.show_viewport
+            mod.show_render = mod.show_viewport
+            return
+
+class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
+    """Toggle the visibility of the Cuts mask modifier, in viewport and render"""
+    bl_idname = "amh2b.toggle_view_cuts_mask"
+    bl_label = "Toggle View Cuts Mask"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_toggle_view_cuts_mask()
         return {'FINISHED'}
 
 def do_inner_copy_tailor_vgroups(from_mesh_obj, selection_list):
@@ -314,7 +346,7 @@ def do_copy_tailor_vgroups():
 class AMH2B_CopyTailorGroups(bpy.types.Operator):
     """Copy vertex groups TotalCuts and TotalPins from the active object (selected last) to all other selected mesh objects"""
     bl_idname = "amh2b.copy_tailor_groups"
-    bl_label = "Copy Cuts & Pins"
+    bl_label = "Copy Cut & Pin Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -326,9 +358,9 @@ def do_make_tailor_vgroups():
         print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
 
-    active_mesh_obj = bpy.context.active_object
-    add_ifnot_vertex_grp(active_mesh_obj, SC_VGRP_CUTS)
-    add_ifnot_vertex_grp(active_mesh_obj, SC_VGRP_PINS)
+    active_obj = bpy.context.active_object
+    add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
+    add_ifnot_vertex_grp(active_obj, SC_VGRP_PINS)
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
@@ -389,7 +421,7 @@ def do_create_size_rig(unlock_y):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
-    """Create a new armature with unlocked pose scale values for resizing selected clothing meshes.\nSelect mesh objects first and select armature object last"""
+    """Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature.\nSelect mesh objects first and select armature object last"""
     bl_idname = "amh2b.create_size_rig"
     bl_label = "Create Size Rig"
     bl_options = {'REGISTER', 'UNDO'}
@@ -411,7 +443,7 @@ def do_rename_tailor_object_to_searchable():
     bpy.context.active_object.name = get_tailor_object_name(bpy.context.active_object.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
-    """Rename active object, if needed, to make it searchable re: search in file for Stitch, Cut, and Pin VGroups"""
+    """Rename active object, if needed, to make it searchable re: search file for Stitch, Cut, and Pin VGroups"""
     bl_idname = "amh2b.make_tailor_object_searchable"
     bl_label = "Make Object Searchable"
     bl_options = {'REGISTER', 'UNDO'}
@@ -479,7 +511,7 @@ def do_search_file_for_tailor_vgroups(chosen_blend_file):
             test_obj.name = search_name
 
 class AMH2B_SearchFileForTailorVGroups(AMH2B_SearchFileForTailorVGroupsInner, bpy.types.Operator, ImportHelper):
-    """Try to add Stitch, Cut, and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX process is used to search for the correct object in the user selected file"""
+    """Try to add Cut and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX process is used to search for the correct object in the user selected file"""
     bl_idname = "amh2b.search_file_for_tailor_vgroups"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}

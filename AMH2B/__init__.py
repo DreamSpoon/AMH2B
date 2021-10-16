@@ -68,7 +68,7 @@ class AMH2B_MeshMat(bpy.types.Panel):
         box.operator("amh2b.setup_mat_swap_multi")
 
 class AMH2B_MeshSew(bpy.types.Panel):
-    bl_label = "Mesh Sew"
+    bl_label = "Mesh Size"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
@@ -76,22 +76,13 @@ class AMH2B_MeshSew(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        box = layout.box()
-        box.label(text="Pattern Utility")
-        box.operator("amh2b.pattern_copy")
-        box.operator("amh2b.pattern_sew")
-        box = layout.box()
-        box.label(text="Pattern Layout")
-        box.operator("amh2b.pattern_add_stitch")
-        box = layout.box()
-        box.label(text="Cut and Pin VGroups")
-        box.operator("amh2b.copy_tailor_groups")
-        box.operator("amh2b.add_cuts_mask")
-        box.operator("amh2b.make_tailor_groups")
-        box = layout.box()
-        box.label(text="Stitch, Cut, and Pin Search")
-        box.operator("amh2b.search_file_for_tailor_vgroups")
-        box.operator("amh2b.make_tailor_object_searchable")
+        #box = layout.box()
+        #box.label(text="Pattern Utility")
+        #box.operator("amh2b.pattern_copy")
+        #box.operator("amh2b.pattern_sew")
+        #box = layout.box()
+        #box.label(text="Pattern Layout")
+        #box.operator("amh2b.pattern_add_stitch")
         box = layout.box()
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
@@ -106,9 +97,19 @@ class AMH2B_ClothSim(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
 
+        box = layout.box()
+        box.label(text="Cut and Pin VGroups")
+        box.operator("amh2b.copy_tailor_groups")
+        box.operator("amh2b.make_tailor_groups")
+        box.operator("amh2b.add_cuts_mask")
+        box.operator("amh2b.toggle_view_cuts_mask")
+        box = layout.box()
+        box.label(text="Cut, and Pin Search")
+        box.operator("amh2b.search_file_for_tailor_vgroups")
+        box.operator("amh2b.make_tailor_object_searchable")
         layout.label(text="Cloth Sim")
         box = layout.box()
-        box.operator("amh2b.copy_with_mesh_deform")
+        #box.operator("amh2b.copy_with_mesh_deform")
         box.operator("amh2b.add_cloth_sim")
         box = layout.box()
         box.operator("amh2b.bake_deform_shape_keys")
@@ -117,6 +118,7 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
         box = layout.box()
+        box.operator("amh2b.deform_sk_view_toggle")
         box.operator("amh2b.delete_deform_shape_keys")
 
 class AMH2B_AutoCloth(bpy.types.Panel):
@@ -132,7 +134,7 @@ class AMH2B_AutoCloth(bpy.types.Panel):
         box.label(text="Swap Materials")
         box.operator("amh2b.swap_mat_from_file")
         box = layout.box()
-        box.label(text="Stitch, Cut, and Pin VGroups")
+        box.label(text="Cut, and Pin VGroups")
         box.operator("amh2b.search_file_for_tailor_vgroups")
         box = layout.box()
         box.label(text="Other")
@@ -178,19 +180,21 @@ classes = [
     AMH2B_SwapMatIntMulti,
     AMH2B_SetupMatSwapSingle,
     AMH2B_SetupMatSwapMulti,
-    AMH2B_PatternAddStitch,
-    AMH2B_PatternCopy,
-    AMH2B_PatternSew,
+    #AMH2B_PatternAddStitch,
+    #AMH2B_PatternCopy,
+    #AMH2B_PatternSew,
     AMH2B_AddCutsMask,
+    AMH2B_ToggleViewCutsMask,
     AMH2B_CopyTailorGroups,
     AMH2B_MakeTailorGroups,
     AMH2B_MakeTailorObjectSearchable,
     AMH2B_SearchFileForTailorVGroups,
     AMH2B_CreateSizeRig,
-    AMH2B_CopyWithMeshDeform,
+    #AMH2B_CopyWithMeshDeform,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
     AMH2B_DeleteDeformShapeKeys,
+    AMH2B_DeformSK_ViewToggle,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
     AMH2B_BridgeRepose,
@@ -200,7 +204,7 @@ classes = [
     AMH2B_MeshMat,
     AMH2B_MeshSew,
     AMH2B_ClothSim,
-    AMH2B_AutoCloth,
+    #AMH2B_AutoCloth,
     AMH2B_Armature,
     AMH2B_Animation,
 ]
@@ -210,9 +214,9 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.types.Scene.Amh2bPropTextBlockName = bpy.props.StringProperty(name="Text Editor Script Name", description="Script data-block name in text editor", default="Text")
-    bpy.types.Scene.Amh2bPropDSK_BindFrame = bpy.props.IntProperty(name="Bind frame", description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations", default=1)
-    bpy.types.Scene.Amh2bPropDSK_StartFrame = bpy.props.IntProperty(name="Start frame", description="Choose first frame of mesh animation to convert to Shape Key", default=2)
-    bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=3)
+    bpy.types.Scene.Amh2bPropDSK_BindFrame = bpy.props.IntProperty(name="Bind frame", description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations", default=0, min=0)
+    bpy.types.Scene.Amh2bPropDSK_StartFrame = bpy.props.IntProperty(name="Start frame", description="Choose first frame of mesh animation to convert to Shape Key", default=1, min=0)
+    bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to match frames when Shape Keys were created", default=True)
 
 def unregister():

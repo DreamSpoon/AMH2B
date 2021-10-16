@@ -102,7 +102,7 @@ def do_add_cloth_sim():
     bpy.ops.object.mode_set(mode=original_mode)
 
 class AMH2B_AddClothSim(bpy.types.Operator):
-    """Add CLOTH modifer to active object with settings auto-filled for Pinning and Sewing Springs"""
+    """Add CLOTH modifer to active object with settings auto-filled for Pinning"""
     bl_idname = "amh2b.add_cloth_sim"
     bl_label = "Add Cloth Sim"
     bl_options = {'REGISTER', 'UNDO'}
@@ -215,6 +215,8 @@ def is_dsk_name(name):
         return False
 
 def delete_deform_shapekeys(obj):
+    if obj.data.shape_keys is None or obj.data.shape_keys.key_blocks is None:
+        return
     for sk in obj.data.shape_keys.key_blocks:
         if is_dsk_name(sk.name):
             obj.shape_key_remove(sk)
@@ -234,4 +236,50 @@ class AMH2B_DeleteDeformShapeKeys(bpy.types.Operator):
 
     def execute(self, context):
         do_delete_deform_shape_keys()
+        return {'FINISHED'}
+
+def do_deform_sk_view_toggle():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
+        return
+
+    active_obj = bpy.context.active_object
+
+    # save original sk_view_active state by checking all modifiers for an armature with
+    # TotalCuts vertex group; if any found then the view state is "on";
+    # also the view state is "on" if any cloth or soft body sims have their viewport view set to visible
+    sk_view_active = False
+    for mod in active_obj.modifiers:
+        if mod.type == 'ARMATURE' and mod.vertex_group == SC_VGRP_CUTS:
+            sk_view_active = True
+        elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
+            sk_view_active = True
+
+    print("sk_view_active=")
+    print(sk_view_active)
+    if active_obj.vertex_groups.get(SC_VGRP_CUTS) is None:
+        obj_has_cuts_grp = False
+    else:
+        obj_has_cuts_grp = True
+
+    # based on original view state, do toggle
+    for mod in active_obj.modifiers:
+        if mod.type == 'ARMATURE' and (mod.vertex_group == SC_VGRP_CUTS or mod.vertex_group == ""):
+            if sk_view_active:
+                mod.vertex_group = ""
+            else:
+                mod.vertex_group = SC_VGRP_CUTS
+                mod.invert_vertex_group = False
+        elif mod.type == 'CLOTH' or mod.type == 'SOFT_BODY':
+            mod.show_viewport = sk_view_active
+            mod.show_render = sk_view_active
+
+class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
+    """Toggle visibility between shape keys and cloth/soft body sims on active object"""
+    bl_idname = "amh2b.deform_sk_view_toggle"
+    bl_label = "Deform SK View Toggle"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_deform_sk_view_toggle()
         return {'FINISHED'}
