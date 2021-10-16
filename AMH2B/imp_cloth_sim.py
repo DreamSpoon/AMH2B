@@ -118,7 +118,8 @@ def get_mod_verts_edges(obj):
 
 def get_mod_verts(obj):
     obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-    verts = [Vector(matrix_vector_mult(obj.matrix_world, v.co)) for v in obj_data.vertices]
+    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_data.vertices]
+    #verts = [Vector(matrix_vector_mult(obj.matrix_world, v.co)) for v in obj_data.vertices]
     bpy.data.meshes.remove(obj_data)
     return verts
 
@@ -128,6 +129,8 @@ def get_vert_matches(obj):
     kd = mathutils.kdtree.KDTree(len(base_verts))
     for v in base_verts:
         kd.insert((v.co.x, v.co.y, v.co.z), v.index)
+        #kd.insert(matrix_vector_mult(obj.matrix_world, v.co), v.index)
+
     kd.balance()
 
     # search the modified vertices for overlapping verts and build the "matches" list
@@ -163,7 +166,9 @@ def create_single_deform_shape_key(obj, vert_matches, mod_verts):
         sk.data[base_v_index].co.y = mod_verts[mod_v_index].y
         sk.data[base_v_index].co.z = mod_verts[mod_v_index].z
 
-def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num):
+    return sk
+
+def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
     old_current_frame = bpy.context.scene.frame_current
 
     # get "bind" vert matches in the bind frame
@@ -174,16 +179,22 @@ def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num)
     for f in range(start_frame_num, end_frame_num+1):
         bpy.context.scene.frame_set(f)
         mod_verts = get_mod_verts(obj)
-        create_single_deform_shape_key(obj, vert_matches, mod_verts)
+        sk = create_single_deform_shape_key(obj, vert_matches, mod_verts)
+        if animate_keys:
+            sk.value = 0
+            sk.keyframe_insert(data_path='value', frame=f-1)
+            sk.keyframe_insert(data_path='value', frame=f+1)
+            sk.value = 1
+            sk.keyframe_insert(data_path='value', frame=f)
 
     bpy.context.scene.frame_set(old_current_frame)
 
-def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num):
+def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num, animate_keys):
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
         return
 
-    create_deform_shapekeys(bpy.context.active_object, bind_frame_num, start_frame_num, end_frame_num)
+    create_deform_shapekeys(bpy.context.active_object, bind_frame_num, start_frame_num, end_frame_num, animate_keys)
 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
@@ -192,5 +203,5 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame)
+        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
         return {'FINISHED'}

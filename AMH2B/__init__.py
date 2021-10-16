@@ -114,6 +114,7 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_BindFrame")
         box.prop(scn, "Amh2bPropDSK_StartFrame")
         box.prop(scn, "Amh2bPropDSK_EndFrame")
+        box.prop(scn, "Amh2bPropDSK_AnimateSK")
 
 class AMH2B_AutoCloth(bpy.types.Panel):
     bl_label = "Auto Cloth"
@@ -208,6 +209,7 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_BindFrame = bpy.props.IntProperty(name="Bind frame", description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations", default=1)
     bpy.types.Scene.Amh2bPropDSK_StartFrame = bpy.props.IntProperty(name="Start frame", description="Choose first frame of mesh animation to convert to Shape Key", default=2)
     bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=3)
+    bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to match frames when Shape Keys were created", default=True)
 
 def unregister():
     for cls in classes:
