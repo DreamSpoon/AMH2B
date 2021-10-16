@@ -176,6 +176,7 @@ def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num,
     # get "bind" vert matches in the bind frame
     bpy.context.scene.frame_set(bind_frame_num)
     vert_matches = get_vert_matches(obj)
+    print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
 
     # create shape keys in the "deform" frames
     for f in range(start_frame_num, end_frame_num+1):
@@ -192,6 +193,9 @@ def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num,
     bpy.context.scene.frame_set(old_current_frame)
 
 def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+    if start_frame_num > end_frame_num:
+        print("do_bake_deform_shape_keys() error: Start Frame number is higher than End Frame number.")
+        return
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
         return
@@ -255,8 +259,6 @@ def do_deform_sk_view_toggle():
         elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
             sk_view_active = True
 
-    print("sk_view_active=")
-    print(sk_view_active)
     if active_obj.vertex_groups.get(SC_VGRP_CUTS) is None:
         obj_has_cuts_grp = False
     else:

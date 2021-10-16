@@ -117,15 +117,16 @@ def do_apply_scale():
         print("do_apply_scale() error: Active Object is not ARMATURE type.")
         return
 
+    old_3dview_mode = bpy.context.object.mode
+
     # keep copy of old scale values
     old_scale = bpy.context.active_object.scale.copy()
+    bpy.ops.object.mode_set(mode='OBJECT')
 
     # do not apply scale if scale is already 1.0 in all dimensions!
     if old_scale.x == 1 and old_scale.y == 1 and old_scale.z == 1:
         print("do_apply_scale() avoided, active_object scale is already 1 in all dimensions.")
         return
-
-    bpy.ops.object.mode_set(mode='OBJECT')
 
     print("do_apply_scale() to rig = " + bpy.context.active_object.name + "; old scale = " + str(old_scale))
     # apply scale to active object
@@ -161,6 +162,8 @@ def do_apply_scale():
     bpy.context.scene.frame_set(bpy.context.scene.frame_current+1)
     bpy.context.scene.frame_set(bpy.context.scene.frame_current-1)
 
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
 class AMH2B_ApplyScale(bpy.types.Operator):
     """Apply Scale to active object (ARMATURE type) without corrupting the armature pose data (i.e. location)"""
     bl_idname = "amh2b.apply_scale"
@@ -177,12 +180,13 @@ class AMH2B_ApplyScale(bpy.types.Operator):
 # that moves mesh to desired pose, then original rig is pose-apply"ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
-def do_repose_rig():
-    if bpy.context.active_object is None:
-        print("do_repose_rig() error: Active object is None, cannot Re-Pose MHX rig.")
+def do_bridge_repose_rig():
+    if bpy.context.active_object is None or bpy.context.active_object.type != 'ARMATURE':
+        print("do_bridge_repose_rig() error: Active object is None, cannot Re-Pose MHX rig.")
         return
 
     old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
 
     # copy ref to active object
     selection_active_obj = bpy.context.active_object
@@ -218,6 +222,7 @@ def do_repose_rig():
     bpy.ops.object.mode_set(mode='POSE')
     # apply pose to original armature
     bpy.ops.pose.armature_apply()
+
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_BridgeRepose(bpy.types.Operator):
@@ -227,7 +232,7 @@ class AMH2B_BridgeRepose(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_repose_rig()
+        do_bridge_repose_rig()
         return {'FINISHED'}
 
 #####################################################
@@ -605,6 +610,9 @@ def do_bone_woven(self):
         print("Active object is not in selection list, no Bone Woven.")
         return {'FINISHED'}
 
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     dest_rig_obj = bpy.context.active_object
     src_rig_obj = None
     # the Active Object must be the imported MHX2 rig (not animated - should not be animated, anyway...)
@@ -626,6 +634,8 @@ def do_bone_woven(self):
 
     detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj)
     print("boneWoven() end.")
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
     """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
@@ -683,9 +693,12 @@ def do_lucky(self):
         print("do_lucky() error: : missing other armature to join to MHX armature.")
         return
 
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     # since MHX armature is already the active object, do repose first
     if self.repose_rig_enum == 'YES':
-        do_repose_rig()
+        do_bridge_repose_rig()
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
@@ -706,6 +719,8 @@ def do_lucky(self):
 
     # do bone woven
     do_bone_woven(self)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.

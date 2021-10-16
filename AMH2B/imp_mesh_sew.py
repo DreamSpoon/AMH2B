@@ -434,7 +434,7 @@ def get_tailor_object_name(object_name):
     if object_name.rfind(":") != -1:
         return object_name[object_name.rfind(":")+1 : len(object_name)]
     else:
-        object_name
+        return object_name
 
 def do_rename_tailor_object_to_searchable():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
