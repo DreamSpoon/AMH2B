@@ -38,6 +38,7 @@ from .imp_mesh_sew import *
 from .imp_cloth_sim import *
 from .imp_armature import *
 from .imp_animation import *
+from .imp_const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -113,13 +114,16 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.operator("amh2b.add_cloth_sim")
         box = layout.box()
         box.operator("amh2b.bake_deform_shape_keys")
+        box.prop(scn, "Amh2bPropDeformShapeKeyAddPrefix")
         box.prop(scn, "Amh2bPropDSK_BindFrame")
         box.prop(scn, "Amh2bPropDSK_StartFrame")
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
         box = layout.box()
         box.operator("amh2b.deform_sk_view_toggle")
+        box = layout.box()
         box.operator("amh2b.delete_deform_shape_keys")
+        box.prop(scn, "Amh2bPropDeformShapeKeyDeletePrefix")
 
 class AMH2B_AutoCloth(bpy.types.Panel):
     bl_label = "Auto Cloth"
@@ -218,6 +222,8 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_StartFrame = bpy.props.IntProperty(name="Start frame", description="Choose first frame of mesh animation to convert to Shape Key", default=1, min=0)
     bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to match frames when Shape Keys were created", default=True)
+    bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bpy.types.Scene.Amh2bPropDeformShapeKeyDeletePrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for searching mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
 
 def unregister():
     for cls in classes:

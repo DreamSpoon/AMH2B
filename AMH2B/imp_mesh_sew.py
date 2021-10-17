@@ -27,7 +27,7 @@ import os
 from bpy_extras.io_utils import ImportHelper
 
 from .imp_all import *
-from .imp_string_const import *
+from .imp_const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *

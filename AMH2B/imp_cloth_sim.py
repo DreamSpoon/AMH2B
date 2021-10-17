@@ -26,7 +26,7 @@ from mathutils import Vector
 import re
 
 from .imp_all import *
-from .imp_string_const import *
+from .imp_const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -34,10 +34,6 @@ if bpy.app.version < (2,80,0):
 else:
     from .imp_v28 import *
     Region = "UI"
-
-# Deform Shape Keys match distance
-FC_MATCH_DIST = 0.00001
-SC_DSKEY = "DSKey"
 
 def do_copy_with_mesh_deform():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
@@ -156,11 +152,11 @@ def check_create_basis_shape_key(obj):
         sk_basis = obj.shape_key_add('Basis')
         sk_basis.interpolation = 'KEY_LINEAR'
 
-def create_single_deform_shape_key(obj, vert_matches, mod_verts):
+def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
     check_create_basis_shape_key(obj)
 
     # create a shape key
-    sk = obj.shape_key_add(SC_DSKEY)
+    sk = obj.shape_key_add(add_prefix)
     sk.interpolation = 'KEY_LINEAR'
     # modify shape key vertex positions to match modified (deformed) mesh
     for base_v_index, mod_v_index in vert_matches:
@@ -170,7 +166,7 @@ def create_single_deform_shape_key(obj, vert_matches, mod_verts):
 
     return sk
 
-def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
     old_current_frame = bpy.context.scene.frame_current
 
     # get "bind" vert matches in the bind frame
@@ -182,7 +178,7 @@ def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num,
     for f in range(start_frame_num, end_frame_num+1):
         bpy.context.scene.frame_set(f)
         mod_verts = get_mod_verts(obj)
-        sk = create_single_deform_shape_key(obj, vert_matches, mod_verts)
+        sk = create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts)
         if animate_keys:
             sk.value = 0
             sk.keyframe_insert(data_path='value', frame=f-1)
@@ -192,7 +188,7 @@ def create_deform_shapekeys(obj, bind_frame_num, start_frame_num, end_frame_num,
 
     bpy.context.scene.frame_set(old_current_frame)
 
-def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
     if start_frame_num > end_frame_num:
         print("do_bake_deform_shape_keys() error: Start Frame number is higher than End Frame number.")
         return
@@ -200,7 +196,7 @@ def do_bake_deform_shape_keys(bind_frame_num, start_frame_num, end_frame_num, an
         print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
         return
 
-    create_deform_shapekeys(bpy.context.active_object, bind_frame_num, start_frame_num, end_frame_num, animate_keys)
+    create_deform_shapekeys(bpy.context.active_object, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys)
 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
@@ -209,28 +205,28 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
+        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDeformShapeKeyAddPrefix, bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
         return {'FINISHED'}
 
-def is_dsk_name(name):
-    if name == SC_DSKEY or re.match(SC_DSKEY + "\.\w*", name):
+def is_dsk_name(name, delete_prefix):
+    if name == delete_prefix or re.match(delete_prefix + "\.\w*", name):
         return True
     else:
         return False
 
-def delete_deform_shapekeys(obj):
+def delete_deform_shapekeys(obj, delete_prefix):
     if obj.data.shape_keys is None or obj.data.shape_keys.key_blocks is None:
         return
     for sk in obj.data.shape_keys.key_blocks:
-        if is_dsk_name(sk.name):
+        if is_dsk_name(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
 
-def do_delete_deform_shape_keys():
+def do_delete_deform_shape_keys(delete_prefix):
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_delete_deform_shape_keys() error: Active Object must be a mesh.")
         return
 
-    delete_deform_shapekeys(bpy.context.active_object)
+    delete_deform_shapekeys(bpy.context.active_object, delete_prefix)
 
 class AMH2B_DeleteDeformShapeKeys(bpy.types.Operator):
     """Delete mesh deformations shape keys from active object"""
@@ -239,7 +235,7 @@ class AMH2B_DeleteDeformShapeKeys(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_delete_deform_shape_keys()
+        do_delete_deform_shape_keys(bpy.context.scene.Amh2bPropDeformShapeKeyDeletePrefix)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle():

@@ -20,9 +20,16 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
+# tailor Stitch
 SC_VGRP_ASTITCH = "AStitch"
 SC_VGRP_TSEWN = "TotalSewn"
 SC_MN_ASTITCH = "AutoStitch"
 
+# tailor Cuts and Pins
 SC_VGRP_CUTS = "TotalCuts"
 SC_VGRP_PINS = "TotalPins"
+
+# Deform Shape Keys match distance
+FC_MATCH_DIST = 0.00001
+# Deform Shape Key default name prefix
+SC_DSKEY = "DSKey"
