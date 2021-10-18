@@ -25,7 +25,7 @@ import csv
 import fnmatch
 
 from .imp_bone_strings import *
-from .imp_all import *
+from .imp_object_func import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *

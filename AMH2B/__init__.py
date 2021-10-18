@@ -26,7 +26,7 @@ bl_info = {
     "author": "Dave",
     "version": (1, 1, 9),
     "blender": (2, 80, 0),
-    "location": "View 3D &gt; Tools &gt; AMH2B",
+    "location": "View 3D -> Tools -> AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
     "category": "Import MakeHuman Automation",
 }
@@ -58,17 +58,17 @@ class AMH2B_MeshMat(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
+        layout.label(text="Swap Material")
         box = layout.box()
-        box.label(text="Swap Material")
         box.operator("amh2b.swap_mat_from_file")
         box.operator("amh2b.swap_mat_int_single")
         box.operator("amh2b.swap_mat_int_multi")
+        layout.label(text="Setup Material Swap")
         box = layout.box()
-        box.label(text="Setup Material Swap")
         box.operator("amh2b.setup_mat_swap_single")
         box.operator("amh2b.setup_mat_swap_multi")
 
-class AMH2B_MeshSew(bpy.types.Panel):
+class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -84,8 +84,8 @@ class AMH2B_MeshSew(bpy.types.Panel):
         #box = layout.box()
         #box.label(text="Pattern Layout")
         #box.operator("amh2b.pattern_add_stitch")
+        layout.label(text="Clothing Size")
         box = layout.box()
-        box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
 
 class AMH2B_ClothSim(bpy.types.Panel):
@@ -98,15 +98,16 @@ class AMH2B_ClothSim(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
 
+        layout.label(text="Vertex Group Copy")
         box = layout.box()
-        box.label(text="Cut and Pin VGroup Make")
+        box.operator("amh2b.search_file_for_auto_vgroups")
+        box.operator("amh2b.make_tailor_object_searchable")
+        box.operator("amh2b.copy_vertex_groups_by_prefix")
+        box.prop(scn, "Amh2bPropVGCopyNamePrefix")
+        layout.label(text="Cut and Pin VGroup Make")
+        box = layout.box()
         box.operator("amh2b.make_tailor_groups")
         box.operator("amh2b.add_cuts_mask")
-        box = layout.box()
-        box.label(text="Cut, and Pin VGroup Copy")
-        box.operator("amh2b.search_file_for_tailor_vgroups")
-        box.operator("amh2b.make_tailor_object_searchable")
-        box.operator("amh2b.copy_tailor_groups")
         layout.label(text="Cloth Sim")
         box = layout.box()
         box.operator("amh2b.toggle_view_cuts_mask")
@@ -141,7 +142,8 @@ class AMH2B_Armature(bpy.types.Panel):
         box.operator("amh2b.apply_scale")
         box.operator("amh2b.bridge_repose")
         box.operator("amh2b.bone_woven")
-        box.label(text="Multi-Function")
+        layout.label(text="Multi-Function")
+        box = layout.box()
         box.operator("amh2b.lucky")
 
 class AMH2B_Animation(bpy.types.Panel):
@@ -165,10 +167,10 @@ classes = [
     #AMH2B_PatternSew,
     AMH2B_AddCutsMask,
     AMH2B_ToggleViewCutsMask,
-    AMH2B_CopyTailorGroups,
+    AMH2B_CopyVertexGroupsByPrefix,
     AMH2B_MakeTailorGroups,
     AMH2B_MakeTailorObjectSearchable,
-    AMH2B_SearchFileForTailorVGroups,
+    AMH2B_SearchFileForAutoVGroups,
     AMH2B_CreateSizeRig,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
@@ -181,7 +183,7 @@ classes = [
     AMH2B_Lucky,
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
-    AMH2B_MeshSew,
+    AMH2B_MeshSize,
     AMH2B_ClothSim,
     AMH2B_Armature,
     AMH2B_Animation,
@@ -198,6 +200,7 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to match frames when Shape Keys were created", default=True)
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropDeformShapeKeyDeletePrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for searching mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
 
 def unregister():
     for cls in classes:

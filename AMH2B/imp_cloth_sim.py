@@ -21,13 +21,15 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
+import os
 import re
 import mathutils
 from mathutils import Vector
 from bpy_extras.io_utils import ImportHelper
 
-from .imp_all import *
 from .imp_const import *
+from .imp_object_func import *
+from .imp_vgroup_func import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -98,30 +100,28 @@ class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
         do_toggle_view_cuts_mask()
         return {'FINISHED'}
 
-def do_inner_copy_tailor_vgroups(from_mesh_obj, selection_list):
-    # iterate over selected 'MESH' type objects that are not the active object
-    for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
-        copy_replace_vertex_group(from_mesh_obj, to_mesh_obj, SC_VGRP_CUTS)
-        copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, SC_VGRP_PINS)
-
-def do_copy_tailor_vgroups():
+def do_copy_vertex_groups_by_prefix(vg_name_prefix):
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_copy_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
+        print("do_copy_vertex_groups_by_prefix() error: active object was not a MESH. Select a MESH and try again.")
         return
     if len(bpy.context.selected_objects) < 2:
-        print("do_copy_tailor_vgroups() error: less then 2 objects selected. Select another mesh and try again.")
+        print("do_copy_vertex_groups_by_prefix() error: less then 2 objects selected. Select another mesh and try again.")
         return
 
-    do_inner_copy_tailor_vgroups(bpy.context.active_object, bpy.context.selected_objects)
+    from_mesh_obj = bpy.context.active_object
+    selection_list = bpy.context.selected_objects
+    # iterate over selected 'MESH' type objects that are not the active object
+    for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
+        copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
 
-class AMH2B_CopyTailorGroups(bpy.types.Operator):
-    """Copy vertex groups TotalCuts and TotalPins from the active object (selected last) to all other selected mesh objects"""
-    bl_idname = "amh2b.copy_tailor_groups"
-    bl_label = "Copy Cut & Pin Groups"
+class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
+    """Copy vertex groups by name prefix from the active object (selected last) to all other selected mesh objects"""
+    bl_idname = "amh2b.copy_vertex_groups_by_prefix"
+    bl_label = "Copy VGroups by Prefix"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_copy_tailor_vgroups()
+        do_copy_vertex_groups_by_prefix(bpy.context.scene.Amh2bPropVGCopyNamePrefix)
         return {'FINISHED'}
 
 def do_make_tailor_vgroups():
@@ -142,7 +142,6 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
     def execute(self, context):
         do_make_tailor_vgroups()
         return {'FINISHED'}
-
 
 def get_tailor_object_name(object_name):
     if object_name.rfind(":") != -1:
@@ -187,12 +186,15 @@ def append_object_from_blend_file(mat_filepath, obj_name):
 
     return True
 
-def do_search_file_for_tailor_vgroups(chosen_blend_file):
+def do_search_file_for_auto_vgroups(chosen_blend_file):
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     # copy list of selected objects, minus the active object
     selection_list = []
     for ob in bpy.context.selected_objects:
         if ob.type == 'MESH':
             selection_list.append(bpy.data.objects[ob.name])
+    bpy.ops.object.select_all(action='DESELECT')
 
     for sel in selection_list:
         search_name = get_tailor_object_name(sel.name)
@@ -212,27 +214,32 @@ def do_search_file_for_tailor_vgroups(chosen_blend_file):
 
             continue
 
-        do_inner_copy_sew_pattern(appended_obj, [sel])
-        do_inner_copy_tailor_vgroups(appended_obj, [sel])
+        #do_inner_copy_sew_pattern(appended_obj, [sel])
+        #do_inner_copy_tailor_vgroups(appended_obj, [sel])
+        copy_vgroups_by_name_prefix(appended_obj, sel, SC_VGRP_AUTO_PREFIX)
 
-        # select only the appended object and delete it
-        bpy.ops.object.select_all(action='DESELECT')
-        select_object(appended_obj)
+        # delete the following 2 commented lines:
+        ## select only the appended object and delete it
+        ##select_object(appended_obj)
+
+        # all objects were deselected before starting this loop,
+        # and any objects currently selected could only have come from the append process,
+        # so delete all selected objects
         bpy.ops.object.delete()
 
         # if an object was named in order to do appending then fix name
         if test_obj is not None:
             test_obj.name = search_name
 
-class AMH2B_SearchFileForTailorVGroups(AMH2B_SearchFileForTailorVGroupsInner, bpy.types.Operator, ImportHelper):
+class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.types.Operator, ImportHelper):
     """Try to add Cut and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX process is used to search for the correct object in the user selected file"""
-    bl_idname = "amh2b.search_file_for_tailor_vgroups"
+    bl_idname = "amh2b.search_file_for_auto_vgroups"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         filename, extension = os.path.splitext(self.filepath)
-        do_search_file_for_tailor_vgroups(self.filepath)
+        do_search_file_for_auto_vgroups(self.filepath)
         return {'FINISHED'}
 
 def do_add_cloth_sim():
@@ -349,6 +356,9 @@ def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, en
     bpy.context.scene.frame_set(old_current_frame)
 
 def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+    if add_prefix == '':
+        print("do_bake_deform_shape_keys() error: Shape key name prefix (add_prefix) is blank.")
+        return
     if start_frame_num > end_frame_num:
         print("do_bake_deform_shape_keys() error: Start Frame number is higher than End Frame number.")
         return
@@ -382,6 +392,9 @@ def delete_deform_shapekeys(obj, delete_prefix):
             obj.shape_key_remove(sk)
 
 def do_delete_deform_shape_keys(delete_prefix):
+    if delete_prefix == '':
+        print("do_delete_deform_shape_keys() error: Shape key name prefix (delete_prefix) is blank.")
+        return
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
         print("do_delete_deform_shape_keys() error: Active Object must be a mesh.")
         return

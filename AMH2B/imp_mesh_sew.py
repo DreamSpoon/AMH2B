@@ -25,8 +25,10 @@ import bmesh
 import re
 import os
 
-from .imp_all import *
 from .imp_const import *
+from .imp_mesh_func import *
+from .imp_object_func import *
+from .imp_vgroup_func import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -37,30 +39,6 @@ else:
 
 ###############################################
 # Sewing and Patterning, Cutting and Sizing
-
-def make_mesh_line(mesh_name, vert_pos_a, vert_pos_b):
-    mesh_m = bpy.data.meshes.new("mesh")
-    mesh_obj = bpy.data.objects.new(mesh_name, mesh_m)
-
-    link_object(mesh_obj)
-    set_active_object(mesh_obj)
-    select_object(mesh_obj)
-
-    bm = bmesh.new()
-
-    # add the vertices and create an edge between them
-    new_v_a = bm.verts.new(vert_pos_a)
-    new_v_b = bm.verts.new(vert_pos_b)
-    bm.edges.new((new_v_a, new_v_b))
-
-    # finish up, write the bmesh back to the mesh
-    bm.to_mesh(mesh_m)  
-    # free and prevent further access
-    bm.free()
-
-    deselect_object(mesh_obj)
-
-    return (new_v_a, new_v_b)
 
 def make_cloth_stitch_vert_grp(mesh_obj, grp_name, vert_a, vert_b):
     new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
@@ -108,71 +86,6 @@ class AMH2B_PatternAddStitch(bpy.types.Operator):
         do_draw_cloth_stitch()
         return {'FINISHED'}
 
-def get_vert_group_indexes(mesh_obj, vert_group_index):
-    return [ v.index for v in mesh_obj.data.vertices if vert_group_index in [ vg.group for vg in v.groups ] ]
-
-def add_vertex_group(mesh_obj, grp_name, vert_indexes):
-    # create new vertex group
-    new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
-    # add vertex indexes at weight = 1.0
-    new_vert_grp.add(vert_indexes, 1.0, 'ADD')
-    return new_vert_grp
-
-#def add_replace_vertex_grp(mesh_obj, vert_grp_name):
-#    delete_vertex_group(mesh_obj, vert_grp_name)
-#    add_vertex_group(mesh_obj, vert_grp_name, [])
-def add_ifnot_vertex_grp(mesh_obj, vert_grp_name):
-    if mesh_obj.vertex_groups.get(vert_grp_name) is None:
-        return add_vertex_group(mesh_obj, vert_grp_name, [])
-
-def add_vertex_group_weighted(mesh_obj, grp_name, vert_index_weights):
-    # create new vertex group
-    new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
-    # transfer vertex group, with weights
-    for viw in vert_index_weights:
-        new_vert_grp.add([viw[0]], viw[1], 'REPLACE')
-
-def copy_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    # get vertex indexes in group given by from_vert_grp.index
-    vi_list = get_vert_group_indexes(from_mesh_obj, from_vert_grp.index)
-    # create new vertex group
-    add_vertex_group(to_mesh_obj, from_vert_grp.name, vi_list)
-
-def copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    # get vertex indexes in group given by from_vert_grp.index
-    vi_list = get_vert_group_indexes(from_mesh_obj, from_vert_grp.index)
-    # create list with weights
-    viw_list = []
-    for vi in vi_list:
-        viw_list.append([vi, from_vert_grp.weight(vi)])
-    # create new vertex group
-    add_vertex_group_weighted(to_mesh_obj, from_vert_grp.name, viw_list)
-
-def copy_replace_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    delete_vertex_group(to_mesh_obj, vert_grp_name)
-    copy_vertex_group(from_mesh_obj, to_mesh_obj, vert_grp_name)
-
-def copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name):
-    from_vert_grp = from_mesh_obj.vertex_groups.get(vert_grp_name)
-    if from_vert_grp is None:
-        return
-    delete_vertex_group(to_mesh_obj, vert_grp_name)
-    copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name)
-
-def delete_vertex_group(mesh_obj, vert_grp_name):
-    vg = mesh_obj.vertex_groups.get(vert_grp_name)
-    if vg is not None:
-        mesh_obj.vertex_groups.remove(vg)
-
 def is_vert_grp_sew(grp_name):
     return grp_name.lower() == SC_VGRP_ASTITCH.lower() or re.match(SC_VGRP_ASTITCH + "\.\w*", grp_name, re.IGNORECASE)
 
@@ -201,7 +114,6 @@ def do_copy_sew_pattern():
 
     do_inner_copy_sew_pattern(bpy.context.active_object, bpy.context.selected_objects)
 
-
 class AMH2B_PatternCopy(bpy.types.Operator):
     """Copy AStitch vertex groups from the active mesh object (last selected object) to all other selected mesh objects"""
     bl_idname = "amh2b.pattern_copy"
@@ -211,17 +123,6 @@ class AMH2B_PatternCopy(bpy.types.Operator):
     def execute(self, context):
         do_copy_sew_pattern()
         return {'FINISHED'}
-
-def make_mesh_edge(mesh_obj, vert_indexes):
-    if len(vert_indexes) != 2:
-        print("do_make_sew_pattern() error: stitch must be between 2 vertexes, not " + str(len(vert_indexes)))
-        return
-
-    bm = bmesh.from_edit_mesh(mesh_obj.data)
-    if hasattr(bm.verts, "ensure_lookup_table"): 
-        bm.verts.ensure_lookup_table()
-
-    bm.edges.new((bm.verts[vert_indexes[0]], bm.verts[vert_indexes[1]]))
 
 def do_make_sew_pattern():
     if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':

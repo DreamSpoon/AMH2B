@@ -20,18 +20,22 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
-SC_VGRP_AUTO_PREFIX = "Auto"
+import bpy
 
-# tailor Stitch
-SC_VGRP_ASTITCH = SC_VGRP_AUTO_PREFIX+"Stch"
-SC_VGRP_TSEWN = SC_VGRP_AUTO_PREFIX+"Sew"
-SC_MN_ASTITCH = "AStitch"
+def add_armature_to_objects(arm_obj, objs_list):
+    for dest_obj in objs_list:
+        if dest_obj != arm_obj and dest_obj.type != 'ARMATURE':
+            add_armature_to_obj(arm_obj, dest_obj)
 
-# tailor Cuts and Pins
-SC_VGRP_CUTS = SC_VGRP_AUTO_PREFIX+"Cuts"
-SC_VGRP_PINS = SC_VGRP_AUTO_PREFIX+"Pins"
-
-# Deform Shape Keys match distance
-FC_MATCH_DIST = 0.00001
-# Deform Shape Key default name prefix
-SC_DSKEY = "DSKey"
+def add_armature_to_obj(arm_obj, dest_obj):
+    # create ARMATURE modifier and set refs, etc.
+    mod = dest_obj.modifiers.new("ReposeArmature", 'ARMATURE')
+    if mod is None:
+        print("do_repose_rig() error: Unable to add armature to object" + dest_obj.name)
+        return
+    mod.object = arm_obj
+    mod.use_deform_preserve_volume = True
+    # Move modifier to top of stack, because this armature needs to move the mesh before
+    # any other modifications occur, to match the re-posed main armature.
+    while dest_obj.modifiers.find(mod.name) != 0:
+        bpy.ops.object.modifier_move_up({"object": dest_obj}, modifier=mod.name)

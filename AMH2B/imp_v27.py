@@ -20,7 +20,6 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
-
 import bpy
 import math
 
@@ -68,7 +67,7 @@ def doRotationGlobal(axis_name, rg):
 class AMH2B_SwapMaterialsInner:
     filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
-class AMH2B_SearchFileForTailorVGroupsInner:
+class AMH2B_SearchFileForAutoVGroupsInner:
     filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
 class AMH2B_CreateSizeRigInner:

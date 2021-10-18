@@ -68,7 +68,7 @@ def doRotationGlobal(axis_name, rg):
 class AMH2B_SwapMaterialsInner:
     filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
-class AMH2B_SearchFileForTailorVGroupsInner:
+class AMH2B_SearchFileForAutoVGroupsInner:
     filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
 class AMH2B_CreateSizeRigInner:
