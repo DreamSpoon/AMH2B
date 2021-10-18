@@ -85,15 +85,13 @@ def do_add_cloth_sim():
         print("do_add_cloth_sim() error: Unable to add CLOTH modifier to object" + mesh_obj.name)
         return
 
-    mod.settings.use_pin_cloth = True
     vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_PINS)
     if vert_grp is not None:
-        mod.settings.vertex_group_mass = vert_grp.name
+        cloth_sim_use_pin_group(mod, vert_grp.name)
 
     vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_TSEWN)
     if vert_grp is not None:
-        mod.settings.use_sewing_springs = True
-        mod.settings.vertex_group_shrink = vert_grp.name
+        cloth_sim_use_sew_group(mod, vert_grp.name)
 
     bpy.ops.object.mode_set(mode=original_mode)
 
@@ -108,17 +106,16 @@ class AMH2B_AddClothSim(bpy.types.Operator):
         return {'FINISHED'}
 
 def get_mod_verts_edges(obj):
-    obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-    verts = [v.co for v in obj_data.vertices]
-    edges = obj_data.edge_keys
-    bpy.data.meshes.remove(obj_data)
+    obj_mod_mesh = get_mesh_post_modifiers(obj)
+    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_mod_mesh.vertices]
+    edges = obj_mod_mesh.edge_keys
+    bpy.data.meshes.remove(obj_mod_mesh)
     return verts, edges
 
 def get_mod_verts(obj):
-    obj_data = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_data.vertices]
-    #verts = [Vector(matrix_vector_mult(obj.matrix_world, v.co)) for v in obj_data.vertices]
-    bpy.data.meshes.remove(obj_data)
+    obj_mod_mesh = get_mesh_post_modifiers(obj)
+    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_mod_mesh.vertices]
+    bpy.data.meshes.remove(obj_mod_mesh)
     return verts
 
 def get_vert_matches(obj):
@@ -149,14 +146,15 @@ def get_vert_matches(obj):
 
 def check_create_basis_shape_key(obj):
     if obj.data.shape_keys is None:
-        sk_basis = obj.shape_key_add('Basis')
+        sk_basis = obj.shape_key_add(name='Basis')
         sk_basis.interpolation = 'KEY_LINEAR'
 
 def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
     check_create_basis_shape_key(obj)
 
     # create a shape key
-    sk = obj.shape_key_add(add_prefix)
+    sk = obj.shape_key_add(name=add_prefix)
+
     sk.interpolation = 'KEY_LINEAR'
     # modify shape key vertex positions to match modified (deformed) mesh
     for base_v_index, mod_v_index in vert_matches:

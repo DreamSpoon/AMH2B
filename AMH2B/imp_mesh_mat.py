@@ -230,6 +230,8 @@ def do_setup_mat_swap_single():
     if obj is None:
         print("do_setup_mat_swap_single() error: no Active Object. Select an object and try again.")
         return
+    if len(obj.material_slots) < 1:
+        return
     if obj.material_slots[obj.active_material_index] is None:
         return
 

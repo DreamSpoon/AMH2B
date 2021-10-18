@@ -298,6 +298,8 @@ def stitchdata_concat_4(stitch_data1, stitch_data2):
 # other_rig_obj is source, mhx_rig_obj is destination
 def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans):
     dest_stitch = amh2b_rig_stitch_dest_list.get(mhx_rig_type).get(other_rig_type)
+    if dest_stitch is None:
+        return
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -603,11 +605,11 @@ def do_bone_woven(self):
     print("boneWoven() begin.")
     selection_list = bpy.context.selected_objects
     if bpy.context.active_object is None or len(selection_list) < 1:
-        print("No active object or selection is empty, no Bone Woven.")
+        print("do_bone_woven() error: No active object or selection is empty.")
         return {'FINISHED'}
     # this next if statement may be redundant - TODO: verify
     if not bpy.context.active_object in selection_list:
-        print("Active object is not in selection list, no Bone Woven.")
+        print("do_bone_woven() error: Active object is not in selection list.")
         return {'FINISHED'}
 
     old_3dview_mode = bpy.context.object.mode

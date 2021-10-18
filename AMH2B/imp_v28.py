@@ -26,6 +26,17 @@ import math
 
 from .imp_items import *
 
+def cloth_sim_use_sew_group(mod, vert_grp_name):
+    mod.settings.use_sewing_springs = True
+
+def cloth_sim_use_pin_group(mod, vert_grp_name):
+    mod.settings.vertex_group_mass = vert_grp_name
+
+def get_mesh_post_modifiers(obj):
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    object_eval = obj.evaluated_get(depsgraph)
+    return bpy.data.meshes.new_from_object(object_eval)
+
 def matrix_vector_mult(m, v):
     return m @ v
 
