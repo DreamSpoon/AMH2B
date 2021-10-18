@@ -99,18 +99,17 @@ class AMH2B_ClothSim(bpy.types.Panel):
         scn = context.scene
 
         box = layout.box()
-        box.label(text="Cut and Pin VGroups")
-        box.operator("amh2b.copy_tailor_groups")
+        box.label(text="Cut and Pin VGroup Make")
         box.operator("amh2b.make_tailor_groups")
         box.operator("amh2b.add_cuts_mask")
-        box.operator("amh2b.toggle_view_cuts_mask")
         box = layout.box()
-        box.label(text="Cut, and Pin Search")
+        box.label(text="Cut, and Pin VGroup Copy")
         box.operator("amh2b.search_file_for_tailor_vgroups")
         box.operator("amh2b.make_tailor_object_searchable")
+        box.operator("amh2b.copy_tailor_groups")
         layout.label(text="Cloth Sim")
         box = layout.box()
-        #box.operator("amh2b.copy_with_mesh_deform")
+        box.operator("amh2b.toggle_view_cuts_mask")
         box.operator("amh2b.add_cloth_sim")
         box = layout.box()
         box.operator("amh2b.bake_deform_shape_keys")
@@ -124,29 +123,6 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box = layout.box()
         box.operator("amh2b.delete_deform_shape_keys")
         box.prop(scn, "Amh2bPropDeformShapeKeyDeletePrefix")
-
-class AMH2B_AutoCloth(bpy.types.Panel):
-    bl_label = "Auto Cloth"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "AMH2B"
-
-    def draw(self, context):
-        layout = self.layout
-
-        box = layout.box()
-        box.label(text="Swap Materials")
-        box.operator("amh2b.swap_mat_from_file")
-        box = layout.box()
-        box.label(text="Cut, and Pin VGroups")
-        box.operator("amh2b.search_file_for_tailor_vgroups")
-        box = layout.box()
-        box.label(text="Other")
-        box.operator("amh2b.pattern_sew")
-        box.operator("amh2b.add_cuts_mask")
-        box.operator("amh2b.create_size_rig")
-        box.operator("amh2b.copy_with_mesh_deform")
-        box.operator("amh2b.add_cloth_sim")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -194,7 +170,6 @@ classes = [
     AMH2B_MakeTailorObjectSearchable,
     AMH2B_SearchFileForTailorVGroups,
     AMH2B_CreateSizeRig,
-    #AMH2B_CopyWithMeshDeform,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
     AMH2B_DeleteDeformShapeKeys,
@@ -208,7 +183,6 @@ classes = [
     AMH2B_MeshMat,
     AMH2B_MeshSew,
     AMH2B_ClothSim,
-    #AMH2B_AutoCloth,
     AMH2B_Armature,
     AMH2B_Animation,
 ]
