@@ -23,12 +23,12 @@ Brief Overview:
   - Simulations can be baked to shape keys, and the simulation can be run again!
     - Shape keys from first simulation can be used to guide the re-simulation, or add fine details
 
-To install this addon in Blender:
+## Install Addon in Blender
 1) Start Blender
 2) Go to User Preferences -> Addons -> Install addon from file
 3) Choose the AMH2B zip file you downloaded (available for download from the 'Releases' section of this website)
 
-To use this addon in Blender:
+## Use Addon in Blender
 - Look for 'AMH2B' button in View 3D:
   - Blender 2.7x: Tools menu (left-side of View 3D)
   - Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
@@ -74,7 +74,7 @@ The script will do:
 #### Instructions to use the script:
 Select all objects with materials that need to be swapped. Select meshes, armature objects, curves, etc. - the meshes will have their materials swapped and any objects without materials (e.g. armatures) will be ignored.
 
-Press button AMH2B -> Swap Materials
+Press button AMH2B -> Mesh Material -> Swap Material - From File
 
 File selection window will be shown, and user selects one file with preferred materials in it. Run this command multiple times if materials are located across many files:
   - e.g. Run Swap Materials from File and choose the file with clothes materials to swap only clothes materials (other materials will be ignored), then re-run this command and choose the file with hair materials to swap only hair materials, etc.
@@ -177,7 +177,7 @@ upper_arm.fk.L, y, -34
 
 - See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created, or leave it as default "Text"
 - Select the armature that needs it's pose-bones adjusted
-- Press button AMH2B -> AdjustPose
+- Press button AMH2B -> Armature -> Retarget - AdjustPose
 - Result: The pose bones in the selected armature will be rotated according to the script
 
 ### Retarget - Apply Scale to Rig
@@ -189,7 +189,7 @@ Background: Blender applies scale to non-animated rigs correctly, but the animat
 
 Select the armature that needs 'apply scale'.
 
-Press button AMH2B -> Apply Scale to Rig
+Press button AMH2B -> Armature -> Retarget - Apply Scale to Rig
 
 Result: The scale of the selected armature is 1.0 in X/Y/Z axes. Also, the keyframed animation on the rig is scaled correctly.
 
@@ -201,7 +201,7 @@ Basically, a duplicate rig moves the underlying mesh to the place where the re-p
 #### Instructions to use the script:
 Select only the armature (the MHX armature, although this script will work with any armature) that needs its current pose to be set as the 'rest pose'.
 
-Press button AMH2B -> Bridge Re-Pose
+Press button AMH2B -> Armature -> Retarget - Bridge Re-Pose
 
 Result: Extra armature is created, and selected meshes will have an Armature modifier applied which uses this extra armature.
 
@@ -219,7 +219,7 @@ Side-note: Ugly, But Works
 #### Instructions to use the script:
 Select the animated source rig and the MHX destination rig, so that the MHX rig is the active object.
 
-Press button AMH2B -> Bone Woven
+Press button AMH2B -> Armature -> Retarget - Bone Woven
 
 Result: Animated rig is joined to MHX rig, and a 'stitching' process will copy-swap-and-parent animated bones into the MHX rig's bone setup.
 
@@ -240,7 +240,7 @@ Before pressing this button, select all of:
 2) Objects attached to MHX rig with 'Armature' modifier (e.g. clothes, skin, hair, eyebrows)
 3) MHX rig (select the MHX rig last)
 
-Press button AMH2B -> Lucky
+Press button AMH2B -> Armature -> Retarget Multi - Lucky
 
 Result: This will Re-Pose the MHX rig, apply location/rotation and Apply Scale to the animated rig, and finish with Bone Woven joining the two rigs.
 
@@ -263,7 +263,7 @@ Re-calculate location data for an object (typically armature) given:
   - Object B - the parent object (typically armature that has walking animation)
 - Object B must be selected last so that it is the active object.
 - Before using this script, make sure that object A is parented to object B.
-- Press button AMH2B -> Ratchet Hold
+- Press button AMH2B -> Animation -> Ratchet Hold
 
 Important: Ensure your that objects A and B have their scale applied (i.e. have scale = 1 in x/y/z) before running the script. If the scale is not 1, then movements will be calculated incorrectly.
 
