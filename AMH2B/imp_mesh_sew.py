@@ -26,6 +26,7 @@ import re
 import os
 
 from .imp_const import *
+from .imp_armature_func import *
 from .imp_mesh_func import *
 from .imp_object_func import *
 from .imp_vgroup_func import *

@@ -96,7 +96,7 @@ def do_adjustPose():
 class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
     bl_idname = "amh2b.adjust_pose"
-    bl_label = "AdjustPose"
+    bl_label = "Adjust Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

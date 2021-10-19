@@ -115,7 +115,7 @@ def do_copy_vertex_groups_by_prefix(vg_name_prefix):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
 
 class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
-    """Copy vertex groups by name prefix from the active object (selected last) to all other selected mesh objects"""
+    """Copy vertex groups by name prefix from the active object (must be selected last) to all other selected mesh objects"""
     bl_idname = "amh2b.copy_vertex_groups_by_prefix"
     bl_label = "Copy VGroups by Prefix"
     bl_options = {'REGISTER', 'UNDO'}
@@ -156,7 +156,7 @@ def do_rename_tailor_object_to_searchable():
     bpy.context.active_object.name = get_tailor_object_name(bpy.context.active_object.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
-    """Rename active object, if needed, to make it searchable re: search file for Cut, and Pin VGroups"""
+    """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
     bl_idname = "amh2b.make_tailor_object_searchable"
     bl_label = "Make Object Searchable"
     bl_options = {'REGISTER', 'UNDO'}
@@ -186,7 +186,7 @@ def append_object_from_blend_file(mat_filepath, obj_name):
 
     return True
 
-def do_search_file_for_auto_vgroups(chosen_blend_file):
+def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # copy list of selected objects, minus the active object
@@ -216,7 +216,7 @@ def do_search_file_for_auto_vgroups(chosen_blend_file):
 
         #do_inner_copy_sew_pattern(appended_obj, [sel])
         #do_inner_copy_tailor_vgroups(appended_obj, [sel])
-        copy_vgroups_by_name_prefix(appended_obj, sel, SC_VGRP_AUTO_PREFIX)
+        copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
 
         # delete the following 2 commented lines:
         ## select only the appended object and delete it
@@ -232,14 +232,14 @@ def do_search_file_for_auto_vgroups(chosen_blend_file):
             test_obj.name = search_name
 
 class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.types.Operator, ImportHelper):
-    """Try to add Cut and Pin VGroups for the selected MESH object(s) with a lookup from file based on object name.\nHint: the object name from Import MHX process is used to search for the correct object in the user selected file"""
+    """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nHint: Name of object from MHX import process is used to search for object in user selected file"""
     bl_idname = "amh2b.search_file_for_auto_vgroups"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         filename, extension = os.path.splitext(self.filepath)
-        do_search_file_for_auto_vgroups(self.filepath)
+        do_search_file_for_auto_vgroups(self.filepath, bpy.context.scene.Amh2bPropVGCopyNamePrefix)
         return {'FINISHED'}
 
 def do_add_cloth_sim():

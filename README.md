@@ -1,12 +1,27 @@
 # Automate MakeHuman 2 Blender (AMH2B)
 
-Addon for Blender 2.7x through Blender 2.93 (may work with later versions too).
+Addon for Blender 2.7x through Blender 2.93
 
-Automate as much as possible of the MakeHuman to Blender workflow, e.g. materials, rig, animation.
-Currently allows for:
-1) Auto swap materials from materials library file
-2) Re-Pose any rig, even if the attached meshes have shape keys
-3) Quickly re-target MHX rig to CMU rig, or Mixamo (with fingers) rig
+Automate as much as possible of the MakeHuman to Blender workflow, e.g. materials, rig, cloth sim, animation
+
+The addon is centred around the **MakeHuman MHX2 export format with MHX armature**, which offers fine control over animation with face and finger bones. **To get the correct rig from the import process, the 'MHX' format must be selected when using the MakeHuman Import MHX to Blender plugin/addon.**
+
+Also includes convenience functions for use with any armature type, e.g. Ratchet Hold, Re-Size Clothes Rig.
+
+Brief Overview:
+- Name lookup to **auto swap materials, and cloth sim vertex groups (with weight paint),** from any Blender file
+- **Re-target MakeHuman MHX rig to CMU or Mixamo rigs** to get accurate animation - including fingers
+- Transition between different animations easily with **Ratchet Hold**
+  - e.g. Keyframe rig movements to hold a foot in place while transitioning from standing to walk animations
+- Easily adjust clothing size, before cloth sim, with **Create Size Rig** - temporary copy of MHX rig attached only to selected clothes
+  - Re-size with rig, apply re-size rig modifier, delete re-size rig - or keep re-size rig for non-destructive cloth re-sizing
+- Simplify cloth sim process with **Bake Deform Shape Keys**
+  - Use vertex masking to reduce simulation time, without delicate modifiers like Surface Deform and Mesh Deform
+    - Surface Deform and Mesh Deform are a nightmare to use with armatures and cloth/soft-body sims
+    - Bake deform to shape keys is flexible re: binding mesh for calculating deform shape keys
+    - Avoid wasting time manually creating mesh cages to run cloth/soft-body sims - just use vertex mask with original mesh
+  - Simulations can be baked to shape keys, and the simulation can be run again!
+    - Shape keys from first simulation can be used to guide the re-simulation, or add fine details
 
 To install this addon in Blender:
 1) Start Blender
@@ -14,23 +29,38 @@ To install this addon in Blender:
 3) Choose the AMH2B zip file you downloaded (available for download from the 'Releases' section of this website)
 
 To use this addon in Blender:
+- Look for 'AMH2B' button in View 3D:
+  - Blender 2.7x: Tools menu (left-side of View 3D)
+  - Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
 
-Look for 'AMH2B' button in View 3D:
-
-Blender 2.7x: Tools menu (left-side of View 3D)
-
-Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
-
-## 6+1 functions:
-1) Adjust Pose
-2) Apply Scale to Rig
-3) Bone Woven
-4) Ratchet Hold
-5) Bridge Re-Pose Rig
-6) Swap Materials
-7) Lucky
-
-'Lucky' needs to be explained last because it is a compilation of the other functions.
+## Function List:
+- Mesh Material
+  - Swap material - From file (user chooses another file)
+  - Swap material - Internal single (swapped with materials in current file only)
+  - Swap material - Internal multiple (swapped with materials in current file only)
+  - Setup material swap - Rename single
+  - Setup material swap - Rename multiple
+- Mesh Size
+  - Create size rig
+- Cloth Sim
+  - Vertex group copy - From file
+  - Vertex group copy - Make object searchable
+  - Copy vertex groups by prefix
+  - Make cut and pin groups
+  - Add cuts mask
+  - Toggle view cuts mask
+  - Add cloth sim
+  - Bake deform shape keys
+  - Deform SK view toggle
+  - Delete deform shape keys
+- Armature
+  - Adjust pose
+  - Apply scale to rig
+  - Bridge re-pose
+  - Bone woven
+  - Lucky
+- Animation
+  - Ratchet hold
 
 ## 1) Adjust Pose
 Background: Time is wasted doing repetitive rotations of pose-bones to match imported animated rigs, in preparation for the AMH2B 'Lucky' function.
@@ -41,7 +71,7 @@ In other words, script a series of pose-bone rotations so that an imported MakeH
 
 ### Instructions to use the script:
 
-Open the Text Editor and create a text. The default name is "Text". Copy-and-Paste text from a file in the ref_data folder (https://github.com/DreamSpoon/AMH2B/tree/main/ref_data) that matches your desired rig types and poses. Or make a custom CSV text, type rotations in Comma Separated Variable (CSV) format like this:
+- Open the Text Editor and create a text. The default name is "Text". Copy-and-Paste text from a file in the [ref_data folder](https://github.com/DreamSpoon/AMH2B/tree/main/ref_data) that matches your desired rig types and poses. Or make a custom CSV text, type rotations in Comma Separated Variable (CSV) format like this:
 
 clavicle.L, y, -15
 
@@ -49,13 +79,13 @@ clavicle.L, z, 5
 
 upper_arm.fk.L, y, -34
 
-See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created, or leave it as default "Text".
+- See the AMH2B menu, the Armature panel, Text Editor Script Name - this is where you enter the name of the CSV text you just created, or leave it as default "Text".
 
-Select the armature that needs it's pose-bones adjusted.
+- Select the armature that needs it's pose-bones adjusted.
 
-Press button AMH2B -> AdjustPose
+- Press button AMH2B -> AdjustPose
 
-Result: The pose bones in the selected armature will be rotated according to the script.
+- Result: The pose bones in the selected armature will be rotated according to the script.
 
 ## 2) Apply Scale to Rig
 Correctly apply scale to animated armature, by adjusting its pose bone location animation f-curve values to match the scaling.
