@@ -115,7 +115,7 @@ def do_copy_vertex_groups_by_prefix(vg_name_prefix):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
 
 class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
-    """Copy vertex groups by name prefix from the active object (must be selected last) to all other selected mesh objects"""
+    """Copy vertex groups by name prefix from the active object (must be selected last) to all other selected mesh objects.\nObject does not need to be 'searchable' """
     bl_idname = "amh2b.copy_vertex_groups_by_prefix"
     bl_label = "Copy VGroups by Prefix"
     bl_options = {'REGISTER', 'UNDO'}
@@ -232,7 +232,7 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
             test_obj.name = search_name
 
 class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.types.Operator, ImportHelper):
-    """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nHint: Name of object from MHX import process is used to search for object in user selected file"""
+    """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in user selected file"""
     bl_idname = "amh2b.search_file_for_auto_vgroups"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}

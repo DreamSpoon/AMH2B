@@ -21,9 +21,7 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
-import bmesh
 import re
-import os
 
 from .imp_const import *
 from .imp_armature_func import *
