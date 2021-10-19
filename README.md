@@ -279,3 +279,5 @@ The script will do:
 Result: Two keyframes created on object B, such that object A appears motionless over the two frames.
 
 Repeat the operation a number of times to get an animation, e.g. of a person walking.
+
+# Congratulations! You read me to the end.
