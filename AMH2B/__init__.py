@@ -58,13 +58,13 @@ class AMH2B_MeshMat(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.label(text="Swap Material")
         box = layout.box()
+        box.label(text="Swap Material")
         box.operator("amh2b.swap_mat_from_file")
         box.operator("amh2b.swap_mat_int_single")
         box.operator("amh2b.swap_mat_int_multi")
-        layout.label(text="Setup Material Swap")
         box = layout.box()
+        box.label(text="Setup Material Swap")
         box.operator("amh2b.setup_mat_swap_single")
         box.operator("amh2b.setup_mat_swap_multi")
 
@@ -84,8 +84,8 @@ class AMH2B_MeshSize(bpy.types.Panel):
         #box = layout.box()
         #box.label(text="Pattern Layout")
         #box.operator("amh2b.pattern_add_stitch")
-        layout.label(text="Clothing Size")
         box = layout.box()
+        box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
 
 class AMH2B_ClothSim(bpy.types.Panel):
@@ -98,30 +98,27 @@ class AMH2B_ClothSim(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
 
-        layout.label(text="Vertex Group Copy")
         box = layout.box()
+        box.label(text="Vertex Group Copy")
         box.operator("amh2b.search_file_for_auto_vgroups")
         box.operator("amh2b.make_tailor_object_searchable")
         box.operator("amh2b.copy_vertex_groups_by_prefix")
         box.prop(scn, "Amh2bPropVGCopyNamePrefix")
-        layout.label(text="Cut and Pin VGroup Make")
         box = layout.box()
+        box.label(text="Cut and Pin VGroup Make")
         box.operator("amh2b.make_tailor_groups")
         box.operator("amh2b.add_cuts_mask")
-        layout.label(text="Cloth Sim")
         box = layout.box()
+        box.label(text="Cloth Sim")
         box.operator("amh2b.toggle_view_cuts_mask")
         box.operator("amh2b.add_cloth_sim")
-        box = layout.box()
         box.operator("amh2b.bake_deform_shape_keys")
         box.prop(scn, "Amh2bPropDeformShapeKeyAddPrefix")
         box.prop(scn, "Amh2bPropDSK_BindFrame")
         box.prop(scn, "Amh2bPropDSK_StartFrame")
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
-        box = layout.box()
         box.operator("amh2b.deform_sk_view_toggle")
-        box = layout.box()
         box.operator("amh2b.delete_deform_shape_keys")
         box.prop(scn, "Amh2bPropDeformShapeKeyDeletePrefix")
 
@@ -136,14 +133,14 @@ class AMH2B_Armature(bpy.types.Panel):
         scn = context.scene
 
         box = layout.box()
+        box.label(text="Retarget")
         box.operator("amh2b.adjust_pose")
         box.prop(scn, "Amh2bPropTextBlockName")
-        box = layout.box()
         box.operator("amh2b.apply_scale")
         box.operator("amh2b.bridge_repose")
         box.operator("amh2b.bone_woven")
-        layout.label(text="Multi-Function")
         box = layout.box()
+        box.label(text="Retarget Multi-Function")
         box.operator("amh2b.lucky")
 
 class AMH2B_Animation(bpy.types.Panel):
@@ -154,7 +151,9 @@ class AMH2B_Animation(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("amh2b.ratchet_hold")
+        box = layout.box()
+        box.label(text="Object Location")
+        box.operator("amh2b.ratchet_hold")
 
 classes = [
     AMH2B_SwapMatWithFile,
