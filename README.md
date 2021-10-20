@@ -138,10 +138,10 @@ Rename active object, if needed, to make it searchable re: automatic search of f
 Copy vertex groups by name prefix (user text box) from the active object (must be selected last) to all other selected mesh objects. Object does not need to be "searchable".
 
 ### Cut and Pin VGroup Make - Make Cut and Pin Vertex Groups
-Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist.
+Add AutoCuts and AutoPins vertex groups to the active object, replacing these groups if they already exist.
 
 ### Cut and Pin VGroup Make - Add Cuts Mask
-Add Mask modifier to implement TotalCuts, adding TotalCuts vertex group to active object if needed.
+Add Mask modifier to implement AutoCuts, adding AutoCuts vertex group to active object if needed.
 
 ### Cloth Sim - Toggle View Cuts Mask
 Toggle the visibility of the Cuts mask modifier, in viewport and render.

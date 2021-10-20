@@ -45,7 +45,7 @@ def do_add_cuts_mask():
 
     active_obj = bpy.context.active_object
 
-    # add the TotalCuts vertex group if it does not exist
+    # add the AutoCuts vertex group if it does not exist
     add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
     v_grp = active_obj.vertex_groups.get(SC_VGRP_CUTS)
 
@@ -55,7 +55,7 @@ def do_add_cuts_mask():
             return
 
     # add mask modifier and set it
-    mod = active_obj.modifiers.new("TotalCuts Mask", 'MASK')
+    mod = active_obj.modifiers.new("AutoCuts Mask", 'MASK')
     if mod is None:
         print("do_add_cuts_mask() error: Unable to add MASK modifier to object" + active_obj.name)
         return
@@ -66,7 +66,7 @@ def do_add_cuts_mask():
         bpy.ops.object.modifier_move_up({"object": active_obj}, modifier=mod.name)
 
 class AMH2B_AddCutsMask(bpy.types.Operator):
-    """Add Mask modifier to implement TotalCuts, adding TotalCuts vertex group to active object if needed"""
+    """Add Mask modifier to implement AutoCuts, adding AutoCuts vertex group to active object if needed"""
     bl_idname = "amh2b.add_cuts_mask"
     bl_label = "Add Cuts Mask"
     bl_options = {'REGISTER', 'UNDO'}
@@ -134,7 +134,7 @@ def do_make_tailor_vgroups():
     add_ifnot_vertex_grp(active_obj, SC_VGRP_PINS)
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
-    """Add TotalCuts and TotalPins vertex groups to the active object, replacing these groups if they already exist"""
+    """Add AutoCuts and AutoPins vertex groups to the active object, only if these groups don't already exist"""
     bl_idname = "amh2b.make_tailor_groups"
     bl_label = "Make Cut & Pin Groups"
     bl_options = {'REGISTER', 'UNDO'}
@@ -419,7 +419,7 @@ def do_deform_sk_view_toggle():
     active_obj = bpy.context.active_object
 
     # save original sk_view_active state by checking all modifiers for an armature with
-    # TotalCuts vertex group; if any found then the view state is "on";
+    # AutoCuts vertex group; if any found then the view state is "on";
     # also the view state is "on" if any cloth or soft body sims have their viewport view set to visible
     sk_view_active = False
     for mod in active_obj.modifiers:
