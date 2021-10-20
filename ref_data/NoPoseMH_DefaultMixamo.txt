@@ -1,6 +1,6 @@
 clavicle.L, y, -15
 clavicle.L, z, 5
-upper_arm.fk.L, y, -34
+upper_arm.fk.L, y, -44
 upper_arm.fk.L, z, -2.5
 forearm.fk.L, z, 41.5
 forearm.fk.L, y, 3.5
@@ -20,7 +20,7 @@ thigh.fk.L, y, 7
 foot.fk.L, y, -6.5
 clavicle.R, y, 15
 clavicle.R, z, -5
-upper_arm.fk.R, y, 34
+upper_arm.fk.R, y, 44
 upper_arm.fk.R, z, 2.5
 forearm.fk.R, z, -41.5
 forearm.fk.R, y, -3.5
