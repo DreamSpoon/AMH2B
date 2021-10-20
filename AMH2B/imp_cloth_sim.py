@@ -255,6 +255,8 @@ def do_add_cloth_sim():
         print("do_add_cloth_sim() error: Unable to add CLOTH modifier to object" + mesh_obj.name)
         return
 
+    mod.settings.use_dynamic_mesh = True
+
     vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_PINS)
     if vert_grp is not None:
         cloth_sim_use_pin_group(mod, vert_grp.name)

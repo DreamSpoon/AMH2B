@@ -227,7 +227,7 @@ Important! Make sure your MHX rig has scale 1 in x/y/z, zero location, zero rota
 
 ### Retarget Multi-Function - Lucky
 One button press to:
-1) Re-Pose Rig (optional)
+1) Bridge Re-pose Rig (optional)
 2) Scale incoming rig
 3) BoneWoven the two rigs together
 
