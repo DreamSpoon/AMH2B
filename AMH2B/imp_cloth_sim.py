@@ -335,13 +335,49 @@ def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
 
     return sk
 
+mod_names = ['ARMATURE', 'CAST', 'CURVE', 'DISPLACE', 'HOOK', 'LAPLACIANDEFORM', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 'SIMPLE_DEFORM', 'SMOOTH', 'CORRECTIVE_SMOOTH', 'LAPLACIANSMOOTH', 'SURFACE_DEFORM', 'WARP', 'WAVE', 'VOLUME_DISPLACE', 'CLOTH', 'EXPLODE', 'OCEAN', 'SOFT_BODY']
+
+def is_deform_modifier(mod):
+    if mod is not None and any(mod.name in mn for mn in mod_names):
+        return True
+    return False
+
 def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
     old_current_frame = bpy.context.scene.frame_current
+
+    # before binding, temporarily mute visibility of the deform modifiers
+    muted_deform_mods = []
+    for mod in obj.modifiers:
+        if is_deform_modifier(mod):
+            # save the visiblity states of the modifier
+            muted_deform_mods.append([mod, mod.show_viewport, mod.show_render])
+            # mute the deform modifier
+            mod.show_viewport = False
+            mod.show_render = False
+
+    # before binding, temporarily mute visibility of any active shape keys
+    # if the object has shape keys, and more then a 'Basis' key ...
+    muted_sk = []
+    if obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) > 1:
+        for sk in obj.data.shape_keys.key_blocks:
+            # if Shape Key is not the Basis key and it is not muted then mute it and remember to restore
+            if sk.name != 'Basis' and not sk.mute:
+                muted_sk.append(sk)
+                sk.mute = True
 
     # get "bind" vert matches in the bind frame
     bpy.context.scene.frame_set(bind_frame_num)
     vert_matches = get_vert_matches(obj)
     print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
+
+    # after binding, restore the visibility muted shape keys
+    for sk in muted_sk:
+        sk.mute = False
+
+    # after binding, restore the visibility muted deform modifiers
+    for mod, show_v, show_r  in muted_deform_mods:
+        mod.show_viewport = show_v
+        mod.show_render = show_r
 
     # create shape keys in the "deform" frames
     for f in range(start_frame_num, end_frame_num+1):
