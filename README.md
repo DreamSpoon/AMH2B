@@ -166,6 +166,8 @@ This script takes a user-created Comma Separated Variable (CSV) script and rotat
 
 In other words, script a series of pose-bone rotations so that an imported MakeHuman MHX rig aligns to an imported animated rig (Mixamo or CMU, only Mixamo supported presently) to simplify the process of animating mass amounts of MakeHuman MHX rigs.
 
+**If using Blender 2.79 then press 'Reload Trusted' button in a loaded Blend file, or click 'Trusted Source' in the 'Load Blend' window, to enable MHX scripts before using adjust pose - or the result will be a pose adjustment that is unpredictable for FK and IK bones.**
+
 #### Instructions to use the script:
 - Open the Text Editor and create a text. The default name is "Text". Copy-and-Paste text from a file in the [ref_data folder](https://github.com/DreamSpoon/AMH2B/tree/main/ref_data) that matches your desired rig types and poses. Or make a custom CSV text, type rotations in Comma Separated Variable (CSV) format like this:
 
