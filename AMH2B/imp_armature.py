@@ -197,7 +197,7 @@ def do_bridge_repose_rig():
     selection_list = []
     for ob in bpy.context.selected_objects:
         if ob.name != selection_active_obj.name:
-            selection_list.append(bpy.data.objects[ob.name])
+            selection_list.append(ob)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')

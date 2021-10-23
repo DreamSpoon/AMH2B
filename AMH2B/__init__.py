@@ -36,6 +36,7 @@ import bpy
 from .imp_mesh_mat import *
 from .imp_mesh_sew import *
 from .imp_cloth_sim import *
+from .imp_shape_key import *
 from .imp_armature import *
 from .imp_animation import *
 from .imp_const import *
@@ -119,8 +120,22 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
         box.operator("amh2b.deform_sk_view_toggle")
-        box.operator("amh2b.delete_deform_shape_keys")
-        box.prop(scn, "Amh2bPropDeformShapeKeyDeletePrefix")
+
+class AMH2B_ShapeKey(bpy.types.Panel):
+    bl_label = "Shape Key"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+
+        box = layout.box()
+        box.label(text="Shape Key Functions")
+        box.operator("amh2b.sk_func_delete")
+        box.operator("amh2b.sk_func_copy")
+        box.prop(scn, "Amh2bPropShapeKeyFunctionsPrefix")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -173,7 +188,8 @@ classes = [
     AMH2B_CreateSizeRig,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
-    AMH2B_DeleteDeformShapeKeys,
+    AMH2B_SKFuncDelete,
+    AMH2B_SKFuncCopy,
     AMH2B_DeformSK_ViewToggle,
     AMH2B_ApplyScale,
     AMH2B_AdjustPose,
@@ -184,6 +200,7 @@ classes = [
     AMH2B_MeshMat,
     AMH2B_MeshSize,
     AMH2B_ClothSim,
+    AMH2B_ShapeKey,
     AMH2B_Armature,
     AMH2B_Animation,
 ]
@@ -198,7 +215,7 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to match frames when Shape Keys were created", default=True)
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
-    bpy.types.Scene.Amh2bPropDeformShapeKeyDeletePrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for searching mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
 
 def unregister():

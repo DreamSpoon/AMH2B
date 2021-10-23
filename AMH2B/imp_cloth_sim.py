@@ -193,7 +193,7 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
     selection_list = []
     for ob in bpy.context.selected_objects:
         if ob.type == 'MESH':
-            selection_list.append(bpy.data.objects[ob.name])
+            selection_list.append(ob)
     bpy.ops.object.select_all(action='DESELECT')
 
     for sel in selection_list:
@@ -217,10 +217,6 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
         #do_inner_copy_sew_pattern(appended_obj, [sel])
         #do_inner_copy_tailor_vgroups(appended_obj, [sel])
         copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
-
-        # delete the following 2 commented lines:
-        ## select only the appended object and delete it
-        ##select_object(appended_obj)
 
         # all objects were deselected before starting this loop,
         # and any objects currently selected could only have come from the append process,
@@ -314,11 +310,6 @@ def get_vert_matches(obj):
         matches.append([found_list[0][1], i])
 
     return matches
-
-def check_create_basis_shape_key(obj):
-    if obj.data.shape_keys is None:
-        sk_basis = obj.shape_key_add(name='Basis')
-        sk_basis.interpolation = 'KEY_LINEAR'
 
 def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
     check_create_basis_shape_key(obj)
@@ -414,39 +405,6 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
 
     def execute(self, context):
         do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDeformShapeKeyAddPrefix, bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
-        return {'FINISHED'}
-
-def is_dsk_name(name, delete_prefix):
-    if name == delete_prefix or re.match(delete_prefix + "\.\w*", name):
-        return True
-    else:
-        return False
-
-def delete_deform_shapekeys(obj, delete_prefix):
-    if obj.data.shape_keys is None or obj.data.shape_keys.key_blocks is None:
-        return
-    for sk in obj.data.shape_keys.key_blocks:
-        if is_dsk_name(sk.name, delete_prefix):
-            obj.shape_key_remove(sk)
-
-def do_delete_deform_shape_keys(delete_prefix):
-    if delete_prefix == '':
-        print("do_delete_deform_shape_keys() error: Shape key name prefix (delete_prefix) is blank.")
-        return
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_delete_deform_shape_keys() error: Active Object must be a mesh.")
-        return
-
-    delete_deform_shapekeys(bpy.context.active_object, delete_prefix)
-
-class AMH2B_DeleteDeformShapeKeys(bpy.types.Operator):
-    """Delete mesh deformations shape keys from active object"""
-    bl_idname = "amh2b.delete_deform_shape_keys"
-    bl_label = "Delete Deform Shape Keys"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_delete_deform_shape_keys(bpy.context.scene.Amh2bPropDeformShapeKeyDeletePrefix)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle():

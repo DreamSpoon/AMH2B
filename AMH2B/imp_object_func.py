@@ -27,3 +27,8 @@ def dup_selected():
     obj_to_dup = bpy.context.active_object
     bpy.ops.object.duplicate(linked=False)
     return bpy.context.active_object
+
+def check_create_basis_shape_key(obj):
+    if obj.data.shape_keys is None:
+        sk_basis = obj.shape_key_add(name='Basis')
+        sk_basis.interpolation = 'KEY_LINEAR'

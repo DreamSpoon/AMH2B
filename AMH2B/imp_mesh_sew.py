@@ -178,7 +178,7 @@ def do_create_size_rig(unlock_y):
     selection_list = []
     for ob in bpy.context.selected_objects:
         if ob.name != selection_active_obj.name and ob.type == 'MESH':
-            selection_list.append(bpy.data.objects[ob.name])
+            selection_list.append(ob)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
