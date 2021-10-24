@@ -39,8 +39,6 @@ def is_dsk_prefix_match(name, prefix):
         return False
 
 def delete_deform_shapekeys(obj, delete_prefix):
-    if obj.data.shape_keys is None or obj.data.shape_keys.key_blocks is None:
-        return
     for sk in obj.data.shape_keys.key_blocks:
         if is_dsk_prefix_match(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
@@ -52,13 +50,16 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        delete_prefix = bpy.context.scene.Amh2bPropShapeKeyFunctionsPrefix
+        delete_prefix = context.scene.Amh2bPropShapeKeyFunctionsPrefix
         if delete_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix is blank")
             return {'CANCELLED'}
-        ob_act = bpy.context.active_object
+        ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active Object is not a mesh")
+            self.report({'ERROR'}, "Active object is not a mesh")
+            return {'CANCELLED'}
+        if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
+            self.report({'ERROR'}, "Active object has no shape keys available to delete")
             return {'CANCELLED'}
 
         delete_deform_shapekeys(ob_act, delete_prefix)
@@ -104,20 +105,20 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        copy_prefix = bpy.context.scene.Amh2bPropShapeKeyFunctionsPrefix
+        copy_prefix = context.scene.Amh2bPropShapeKeyFunctionsPrefix
         if copy_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix is blank")
             return {'CANCELLED'}
 
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Source object is not a mesh")
+            self.report({'ERROR'}, "Active object is not a mesh")
             return {'CANCELLED'}
         if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
-            self.report({'ERROR'}, "Source object does not have enough shape keys. Needs at least two: 'Basis' key, and another key")
+            self.report({'ERROR'}, "Active object does not have enough shape keys to be copied")
             return {'CANCELLED'}
 
-        objects = [ob for ob in bpy.context.selected_editable_objects if ob != ob_act]
+        objects = [ob for ob in context.selected_editable_objects if ob != ob_act]
         if len(objects) < 1:
             self.report({'ERROR'}, ("No meshes were selected to receive copied shape keys"))
             return {'CANCELLED'}

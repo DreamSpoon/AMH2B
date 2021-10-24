@@ -37,6 +37,7 @@ from .imp_mesh_mat import *
 from .imp_mesh_sew import *
 from .imp_cloth_sim import *
 from .imp_shape_key import *
+from .imp_weight_paint import *
 from .imp_armature import *
 from .imp_animation import *
 from .imp_const import *
@@ -88,6 +89,27 @@ class AMH2B_MeshSize(bpy.types.Panel):
         box = layout.box()
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
+
+class AMH2B_WeightPaint(bpy.types.Panel):
+    bl_label = "Weight Paint"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+
+        box = layout.box()
+        box.label(text="Grow Selection Paint")
+        box.operator("amh2b.grow_paint")
+        box.prop(scn, "Amh2bPropGrowPaintIterations")
+        box.prop(scn, "Amh2bPropGrowPaintStartWeight")
+        box.prop(scn, "Amh2bPropGrowPaintEndWeight")
+        box.prop(scn, "Amh2bPropTailFill")
+        sub = box.column()
+        sub.active = scn.Amh2bPropTailFill
+        sub.prop(scn, "Amh2bPropTailFillValue")
 
 class AMH2B_ClothSim(bpy.types.Panel):
     bl_label = "Cloth Sim"
@@ -186,6 +208,7 @@ classes = [
     AMH2B_MakeTailorObjectSearchable,
     AMH2B_SearchFileForAutoVGroups,
     AMH2B_CreateSizeRig,
+    AMH2B_GrowPaint,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
     AMH2B_SKFuncDelete,
@@ -199,6 +222,7 @@ classes = [
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
+    AMH2B_WeightPaint,
     AMH2B_ClothSim,
     AMH2B_ShapeKey,
     AMH2B_Armature,
@@ -217,6 +241,11 @@ def register():
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+    bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=0)
+    bpy.types.Scene.Amh2bPropGrowPaintStartWeight = bpy.props.FloatProperty(name="Start Weight", description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropTailFill = bpy.props.BoolProperty(name="Tail Fill", description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail fill value, after applying weights to vertexes during 'select more' iterations", default=False)
+    bpy.types.Scene.Amh2bPropTailFillValue = bpy.props.FloatProperty(name="Tail Value", description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
 
 def unregister():
     for cls in classes:
