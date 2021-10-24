@@ -30,26 +30,35 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
     mesh = paint_object.data
     paint_vertex_group = paint_object.vertex_groups[paint_vg_index]
 
-    # get visible vertices that are selected and paint them with start weight value
-    v_sel_indexes = [v.index for v in mesh.vertices if v.select and not v.hide]
-    paint_vertex_group.add(v_sel_indexes, start_weight, 'REPLACE')
+    # make array of all current vertex select values
+    all_vert_select_values = [v.select for v in mesh.vertices]
 
-    # get visible vertices that are not selected
-    v_unsel_indexes = [v.index for v in mesh.vertices if not v.select and not v.hide]
-    # grow selection in increments and apply paint only to the newly selected vertexes
+    # optimize by keeping list of all visible unselected vertexes at beginning, and
+    # later performing checks with this subset of all mesh vertices
+    begin_unsel_vert_indexes = [v.index for v in mesh.vertices if not v.select and not v.hide]
+
+    # get visible vertices that are selected and paint them with start weight value
+    sel_indexes = [v.index for v in mesh.vertices if v.select and not v.hide]
+    paint_vertex_group.add(sel_indexes, start_weight, 'REPLACE')
+
     for iter in range(iterations):
         # grow selection
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_more()
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        # get array of indexes for previously unselected vertexes that are now selected after 'select more'
-        v_new_sel_indexes = [v_i for v_i in v_unsel_indexes if mesh.vertices[v_i].select]
-        # keep only unselected verts in array of unselected verts - 'shrink' array of unselected verts
-        v_unsel_indexes = [v_i for v_i in v_unsel_indexes if not mesh.vertices[v_i].select]
+        new_sel_indexes = [v_i for v_i in begin_unsel_vert_indexes
+            if mesh.vertices[v_i].select and not mesh.vertices[v_i].hide and all_vert_select_values[v_i] == False]
+        # quit looping if no more vertexes can be selected
+        if len(new_sel_indexes) == 0:
+            break
+        # update list of vertex selected values, only changed values
+        for new_index in new_sel_indexes:
+            all_vert_select_values[new_index] = True
+
         # apply weight paint to newly selected verts
         vw = (end_weight - start_weight) * (iter+1) / iterations + start_weight
-        paint_vertex_group.add(v_new_sel_indexes, vw, 'REPLACE')
+        paint_vertex_group.add(new_sel_indexes, vw, 'REPLACE')
 
     # if tail fill enabled then set remaining vertexes (vertexes not selected yet) to tail fill weight paint value
     if tail_fill:
