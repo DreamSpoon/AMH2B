@@ -25,6 +25,8 @@ import os
 import re
 import mathutils
 from mathutils import Vector
+import numpy
+from numpy import linalg
 from bpy_extras.io_utils import ImportHelper
 
 from .imp_const import *
@@ -39,11 +41,12 @@ else:
     Region = "UI"
 
 def do_add_cuts_mask():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_add_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
         return
 
-    active_obj = bpy.context.active_object
+    active_obj = context.active_object
 
     # add the AutoCuts vertex group if it does not exist
     add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
@@ -76,11 +79,12 @@ class AMH2B_AddCutsMask(bpy.types.Operator):
         return {'FINISHED'}
 
 def do_toggle_view_cuts_mask():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_toggle_view_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
         return
 
-    active_obj = bpy.context.active_object
+    active_obj = context.active_object
 
     # find the cuts mask in the stack
     for mod in active_obj.modifiers:
@@ -101,15 +105,16 @@ class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
         return {'FINISHED'}
 
 def do_copy_vertex_groups_by_prefix(vg_name_prefix):
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_copy_vertex_groups_by_prefix() error: active object was not a MESH. Select a MESH and try again.")
         return
-    if len(bpy.context.selected_objects) < 2:
+    if len(context.selected_objects) < 2:
         print("do_copy_vertex_groups_by_prefix() error: less then 2 objects selected. Select another mesh and try again.")
         return
 
-    from_mesh_obj = bpy.context.active_object
-    selection_list = bpy.context.selected_objects
+    from_mesh_obj = context.active_object
+    selection_list = context.selected_objects
     # iterate over selected 'MESH' type objects that are not the active object
     for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
@@ -125,11 +130,12 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
         return {'FINISHED'}
 
 def do_make_tailor_vgroups():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
         return
 
-    active_obj = bpy.context.active_object
+    active_obj = context.active_object
     add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
     add_ifnot_vertex_grp(active_obj, SC_VGRP_PINS)
 
@@ -150,10 +156,11 @@ def get_tailor_object_name(object_name):
         return object_name
 
 def do_rename_tailor_object_to_searchable():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_rename_tailor_object_to_searchable() error: Active Object is not MESH type. Select only one MESH object and try again.")
         return
-    bpy.context.active_object.name = get_tailor_object_name(bpy.context.active_object.name)
+    context.active_object.name = get_tailor_object_name(context.active_object.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
     """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
@@ -239,11 +246,12 @@ class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.ty
         return {'FINISHED'}
 
 def do_add_cloth_sim():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
         print("do_add_cloth_sim() error: Active Object must be a mesh.")
         return
-    mesh_obj = bpy.context.active_object
-    original_mode = bpy.context.object.mode
+    mesh_obj = context.active_object
+    original_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     mod = mesh_obj.modifiers.new("Cloth", 'CLOTH')
@@ -272,13 +280,6 @@ class AMH2B_AddClothSim(bpy.types.Operator):
     def execute(self, context):
         do_add_cloth_sim()
         return {'FINISHED'}
-
-def get_mod_verts_edges(obj):
-    obj_mod_mesh = get_mesh_post_modifiers(obj)
-    verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_mod_mesh.vertices]
-    edges = obj_mod_mesh.edge_keys
-    bpy.data.meshes.remove(obj_mod_mesh)
-    return verts, edges
 
 def get_mod_verts(obj):
     obj_mod_mesh = get_mesh_post_modifiers(obj)
@@ -326,14 +327,141 @@ def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
 
     return sk
 
-mod_names = ['ARMATURE', 'CAST', 'CURVE', 'DISPLACE', 'HOOK', 'LAPLACIANDEFORM', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 'SIMPLE_DEFORM', 'SMOOTH', 'CORRECTIVE_SMOOTH', 'LAPLACIANSMOOTH', 'SURFACE_DEFORM', 'WARP', 'WAVE', 'VOLUME_DISPLACE', 'CLOTH', 'EXPLODE', 'OCEAN', 'SOFT_BODY']
+mod_names = ['ARMATURE', 'CAST', 'CURVE', 'DISPLACE', 'HOOK', 'LAPLACIANDEFORM', 'LATTICE', 'MESH_DEFORM',
+    'SHRINKWRAP', 'SIMPLE_DEFORM', 'SMOOTH',
+    'CORRECTIVE_SMOOTH', 'LAPLACIANSMOOTH', 'SURFACE_DEFORM', 'WARP', 'WAVE',
+    'VOLUME_DISPLACE', 'CLOTH', 'EXPLODE', 'OCEAN', 'SOFT_BODY']
 
 def is_deform_modifier(mod):
-    if mod is not None and any(mod.name in mn for mn in mod_names):
+    if mod is not None and any(mod.type in mn for mn in mod_names):
         return True
     return False
 
-def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches):
+    # create shape keys in the "deform" frames
+    for f in range(start_frame_num, end_frame_num+1):
+        bpy.context.scene.frame_set(f)
+        mod_verts = get_mod_verts(obj)
+        sk = create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts)
+        # if animating keys then add keyframes before and after the current frame with value = 0, and
+        # add keyframe on current frame with value = 1
+        if animate_keys:
+            sk.value = 0
+            sk.keyframe_insert(data_path='value', frame=f-1)
+            sk.keyframe_insert(data_path='value', frame=f+1)
+            sk.value = 1
+            sk.keyframe_insert(data_path='value', frame=f)
+
+def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches):
+    # create a shape key for each axis, with offsets of +1.0 in for respective axis
+    check_create_basis_shape_key(obj)
+    sk_x = obj.shape_key_add(name=SC_TEMP_SK_X)
+    sk_x.interpolation = 'KEY_LINEAR'
+    for v in sk_x.data:
+        v.co.x = v.co.x + 1.0
+
+    sk_y = obj.shape_key_add(name=SC_TEMP_SK_Y)
+    sk_y.interpolation = 'KEY_LINEAR'
+    for v in sk_y.data:
+        v.co.y = v.co.y + 1.0
+
+    sk_z = obj.shape_key_add(name=SC_TEMP_SK_Z)
+    sk_z.interpolation = 'KEY_LINEAR'
+    for v in sk_z.data:
+        v.co.z = v.co.z + 1.0
+
+    obj.show_only_shape_key = False
+
+    for frame in range(start_frame_num+1, end_frame_num+2):
+        # go to current frame
+        bpy.context.scene.frame_set(frame)
+
+        # get target deformation points
+        deformed_cos = get_mod_verts(obj)
+
+        # temporarily mute visibility of the deform modifiers, except ARMATURE modifiers
+        muted_deform_mods = []
+        for mod in obj.modifiers:
+            if mod.type != 'ARMATURE' and is_deform_modifier(mod):
+                # save the visiblity states of the modifier
+                muted_deform_mods.append([mod, mod.show_viewport, mod.show_render])
+                # mute the deform modifier
+                mod.show_viewport = False
+                mod.show_render = False
+
+        # temporarily mute visibility of any active shape keys if the object has shape keys,
+        # and more then a 'Basis' key ...
+        muted_sk = []
+        if obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) > 1:
+            for sk in obj.data.shape_keys.key_blocks:
+                # if Shape Key is not the Basis key and it is not muted then mute it and remember to restore
+                if sk.name != 'Basis' and not sk.mute and sk.name not in (sk_x.name, sk_y.name, sk_z.name):
+                    muted_sk.append(sk)
+                    sk.mute = True
+
+        # get baseline vertice.co values after ARMATURE MODIFIERS, and before axis shape keys
+        basis_cos = get_mod_verts(obj)
+
+        # get x-offset vertice.co values
+        sk_x.value = 1.0
+        key_x_cos = get_mod_verts(obj)
+        sk_x.value = 0.0
+        # get y-offset vertice.co values
+        sk_y.value = 1.0
+        key_y_cos = get_mod_verts(obj)
+        sk_y.value = 0.0
+        # get z-offset vertice.co values
+        sk_z.value = 1.0
+        key_z_cos = get_mod_verts(obj)
+        sk_z.value = 0.0
+
+        deform_offsets = []
+        for i in range(len(basis_cos)):
+            diff_x = numpy.subtract(key_x_cos[i], basis_cos[i])
+            diff_y = numpy.subtract(key_y_cos[i], basis_cos[i])
+            diff_z = numpy.subtract(key_z_cos[i], basis_cos[i])
+            mat = [diff_x, diff_y, diff_z]
+
+            diff = numpy.subtract(deformed_cos[i], basis_cos[i])
+
+            # for the deformed vertices, construct inverse transformation matrices based on the
+            # armature transforms - then retarget deformations to correct shape key positions with
+            # inverse matrices - look at:
+            #     https://stackoverflow.com/questions/55082928/change-of-basis-in-numpy
+            #         vec_new = np.linalg.inv(np.array([w1, w2, w3])).dot(vec_old)
+            vec_offset = linalg.solve(numpy.linalg.inv(mat), diff)
+            deform_offsets.append(vec_offset)
+
+        sk_offsets = obj.shape_key_add(name=add_prefix)
+        sk_offsets.interpolation = 'KEY_LINEAR'
+        for base_v_index, mod_v_index in vert_matches:
+            skv = sk_offsets.data[base_v_index]
+            d_offset = deform_offsets[mod_v_index]
+            skv.co.x = skv.co.x + d_offset[0]
+            skv.co.y = skv.co.y + d_offset[1]
+            skv.co.z = skv.co.z + d_offset[2]
+
+        if animate_keys:
+            sk_offsets.value = 0
+            sk_offsets.keyframe_insert(data_path='value', frame=frame-1)
+            sk_offsets.keyframe_insert(data_path='value', frame=frame+1)
+            sk_offsets.value = 1
+            sk_offsets.keyframe_insert(data_path='value', frame=frame)
+
+        # restore the visibility muted shape keys
+        for sk in muted_sk:
+            sk.mute = False
+
+        # restore the visibility muted deform modifiers
+        for mod, show_v, show_r  in muted_deform_mods:
+            mod.show_viewport = show_v
+            mod.show_render = show_r
+
+    obj.shape_key_remove(sk_x)
+    obj.shape_key_remove(sk_y)
+    obj.shape_key_remove(sk_z)
+
+def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic):
     old_current_frame = bpy.context.scene.frame_current
 
     # before binding, temporarily mute visibility of the deform modifiers
@@ -370,21 +498,14 @@ def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, en
         mod.show_viewport = show_v
         mod.show_render = show_r
 
-    # create shape keys in the "deform" frames
-    for f in range(start_frame_num, end_frame_num+1):
-        bpy.context.scene.frame_set(f)
-        mod_verts = get_mod_verts(obj)
-        sk = create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts)
-        if animate_keys:
-            sk.value = 0
-            sk.keyframe_insert(data_path='value', frame=f-1)
-            sk.keyframe_insert(data_path='value', frame=f+1)
-            sk.value = 1
-            sk.keyframe_insert(data_path='value', frame=f)
+    if is_dynamic:
+        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches)
+    else:
+        do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches)
 
     bpy.context.scene.frame_set(old_current_frame)
 
-def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys):
+def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic):
     if add_prefix == '':
         print("do_bake_deform_shape_keys() error: Shape key name prefix (add_prefix) is blank.")
         return
@@ -395,7 +516,8 @@ def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_f
         print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
         return
 
-    create_deform_shapekeys(bpy.context.active_object, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys)
+    create_deform_shapekeys(bpy.context.active_object, add_prefix, bind_frame_num,
+        start_frame_num, end_frame_num, animate_keys, is_dynamic)
 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
@@ -404,15 +526,19 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_bake_deform_shape_keys(bpy.context.scene.Amh2bPropDeformShapeKeyAddPrefix, bpy.context.scene.Amh2bPropDSK_BindFrame, bpy.context.scene.Amh2bPropDSK_StartFrame, bpy.context.scene.Amh2bPropDSK_EndFrame, bpy.context.scene.Amh2bPropDSK_AnimateSK)
+        scn = context.scene
+        do_bake_deform_shape_keys(scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
+            scn.Amh2bPropDSK_StartFrame, scn.Amh2bPropDSK_EndFrame, scn.Amh2bPropDSK_AnimateSK,
+            scn.Amh2bPropDSK_Dynamic)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
+    context = bpy.context
+    if context.active_object is None or context.active_object.type != 'MESH':
+        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH.")
         return
 
-    active_obj = bpy.context.active_object
+    active_obj = context.active_object
 
     # save original sk_view_active state by checking all modifiers for an armature with
     # AutoCuts vertex group; if any found then the view state is "on";

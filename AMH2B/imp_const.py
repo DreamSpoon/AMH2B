@@ -24,14 +24,18 @@ SC_VGRP_AUTO_PREFIX = "Auto"
 
 # tailor Stitch
 SC_VGRP_ASTITCH = SC_VGRP_AUTO_PREFIX+"Stch"
-SC_VGRP_TSEWN = SC_VGRP_AUTO_PREFIX+"Sew"
+SC_VGRP_TSEWN = SC_VGRP_AUTO_PREFIX+"ClothSew"
 SC_MN_ASTITCH = "AStitch"
 
 # tailor Cuts and Pins
-SC_VGRP_CUTS = SC_VGRP_AUTO_PREFIX+"Cuts"
-SC_VGRP_PINS = SC_VGRP_AUTO_PREFIX+"Pins"
+SC_VGRP_CUTS = SC_VGRP_AUTO_PREFIX+"Mask"
+SC_VGRP_PINS = SC_VGRP_AUTO_PREFIX+"ClothPin"
 
 # Deform Shape Keys match distance
 FC_MATCH_DIST = 0.00001
 # Deform Shape Key default name prefix
 SC_DSKEY = "DSKey"
+
+SC_TEMP_SK_X = "TempSK_X"
+SC_TEMP_SK_Y = "TempSK_Y"
+SC_TEMP_SK_Z = "TempSK_Z"
