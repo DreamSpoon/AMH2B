@@ -142,6 +142,8 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
         box.prop(scn, "Amh2bPropDSK_Dynamic")
+        box.label(text="Extra accuracy")
+        box.prop(scn, "Amh2bPropDSK_ExtraAccuracy")
         box.operator("amh2b.deform_sk_view_toggle")
 
 class AMH2B_ShapeKey(bpy.types.Panel):
@@ -240,6 +242,7 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_EndFrame = bpy.props.IntProperty(name="End frame", description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to animate frames when Shape Keys were created", default=True)
     bpy.types.Scene.Amh2bPropDSK_Dynamic = bpy.props.BoolProperty(name="Dynamic", description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
+    bpy.types.Scene.Amh2bPropDSK_ExtraAccuracy = bpy.props.IntProperty(name="", description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)

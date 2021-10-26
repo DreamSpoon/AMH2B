@@ -339,20 +339,20 @@ def is_deform_modifier(mod):
 
 def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches):
     # create shape keys in the "deform" frames
-    for f in range(start_frame_num, end_frame_num+1):
-        bpy.context.scene.frame_set(f)
+    for frame in range(start_frame_num+1, end_frame_num+2):
+        bpy.context.scene.frame_set(frame)
         mod_verts = get_mod_verts(obj)
         sk = create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts)
         # if animating keys then add keyframes before and after the current frame with value = 0, and
         # add keyframe on current frame with value = 1
         if animate_keys:
             sk.value = 0
-            sk.keyframe_insert(data_path='value', frame=f-1)
-            sk.keyframe_insert(data_path='value', frame=f+1)
+            sk.keyframe_insert(data_path='value', frame=frame-1)
+            sk.keyframe_insert(data_path='value', frame=frame+1)
             sk.value = 1
-            sk.keyframe_insert(data_path='value', frame=f)
+            sk.keyframe_insert(data_path='value', frame=frame)
 
-def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches):
+def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches, extra_accuracy):
     # create a shape key for each axis, with offsets of +1.0 in for respective axis
     check_create_basis_shape_key(obj)
     sk_x = obj.shape_key_add(name=SC_TEMP_SK_X)
@@ -415,27 +415,40 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
         key_z_cos = get_mod_verts(obj)
         sk_z.value = 0.0
 
-        deform_offsets = []
-        for i in range(len(basis_cos)):
-            # calculate inverse-change of basis matrix
-            rebase_x = numpy.subtract(key_x_cos[i], basis_cos[i])
-            rebase_y = numpy.subtract(key_y_cos[i], basis_cos[i])
-            rebase_z = numpy.subtract(key_z_cos[i], basis_cos[i])
-            rebase_mat = numpy.array([rebase_x, rebase_y, rebase_z])
-
-            # apply inverse-change of basis matrix to deformed offset
-            deform_offset = numpy.subtract(deformed_cos[i], basis_cos[i])
-            vec_offset = rebase_mat.dot(deform_offset)
-            deform_offsets.append(vec_offset)
+        deform_mats = [ numpy.array(
+            [numpy.subtract(key_x_cos[i], basis_cos[i]),
+            numpy.subtract(key_y_cos[i], basis_cos[i]),
+            numpy.subtract(key_z_cos[i], basis_cos[i])])
+            for i in range(len(basis_cos)) ]
+        # release references and free memory
+        key_x_cos = None
+        key_y_cos = None
+        key_z_cos = None
 
         sk_offsets = obj.shape_key_add(name=add_prefix)
         sk_offsets.interpolation = 'KEY_LINEAR'
         for base_v_index, mod_v_index in vert_matches:
             skv = sk_offsets.data[base_v_index]
-            d_offset = deform_offsets[mod_v_index]
+            d_offset = numpy.subtract(deformed_cos[mod_v_index], basis_cos[mod_v_index])
+            # apply change of basis matrix to deformed offset
+            d_offset = deform_mats[mod_v_index].dot(d_offset)
             skv.co.x = skv.co.x + d_offset[0]
             skv.co.y = skv.co.y + d_offset[1]
             skv.co.z = skv.co.z + d_offset[2]
+
+        for iter in range(extra_accuracy):
+            print("do more accuracy, iter = " + str(iter))
+            sk_offsets.value = 1.0
+            key_test_cos = get_mod_verts(obj)
+            sk_offsets.value = 0.0
+            for base_v_index, mod_v_index in vert_matches:
+                skv = sk_offsets.data[base_v_index]
+                d_offset = numpy.subtract(deformed_cos[mod_v_index], key_test_cos[mod_v_index])
+                d_offset = deform_mats[mod_v_index].dot(d_offset)
+                skv.co.x = skv.co.x + d_offset[0]
+                skv.co.y = skv.co.y + d_offset[1]
+                skv.co.z = skv.co.z + d_offset[2]
+
 
         if animate_keys:
             sk_offsets.value = 0
@@ -457,51 +470,53 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_y)
     obj.shape_key_remove(sk_z)
 
-def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic):
+def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
+    extra_accuracy):
     old_current_frame = bpy.context.scene.frame_current
 
-    # before binding, temporarily mute visibility of the deform modifiers
+    # before binding, temporarily mute visibility of deform modifiers
     muted_deform_mods = []
     for mod in obj.modifiers:
         if is_deform_modifier(mod):
-            # save the visiblity states of the modifier
+            # save visiblity states of modifier
             muted_deform_mods.append([mod, mod.show_viewport, mod.show_render])
-            # mute the deform modifier
+            # mute deform modifier
             mod.show_viewport = False
             mod.show_render = False
 
     # before binding, temporarily mute visibility of any active shape keys
-    # if the object has shape keys, and more then a 'Basis' key ...
+    # if object has shape keys, and more then a 'Basis' key ...
     muted_sk = []
     if obj.data.shape_keys is not None and len(obj.data.shape_keys.key_blocks) > 1:
         for sk in obj.data.shape_keys.key_blocks:
-            # if Shape Key is not the Basis key and it is not muted then mute it and remember to restore
+            # if Shape Key is not Basis key and it is not muted then mute it and remember to restore
             if sk.name != 'Basis' and not sk.mute:
                 muted_sk.append(sk)
                 sk.mute = True
 
-    # get "bind" vert matches in the bind frame
+    # get "bind" vert matches, by location, in bind frame
     bpy.context.scene.frame_set(bind_frame_num)
     vert_matches = get_vert_matches(obj)
     print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
 
-    # after binding, restore the visibility muted shape keys
+    # after binding, restore visibility of muted shape keys
     for sk in muted_sk:
         sk.mute = False
 
-    # after binding, restore the visibility muted deform modifiers
+    # after binding, restore visibility of muted deform modifiers
     for mod, show_v, show_r  in muted_deform_mods:
         mod.show_viewport = show_v
         mod.show_render = show_r
 
     if is_dynamic:
-        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches)
+        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches, extra_accuracy)
     else:
         do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches)
 
     bpy.context.scene.frame_set(old_current_frame)
 
-def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic):
+def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
+    extra_accuracy):
     if add_prefix == '':
         print("do_bake_deform_shape_keys() error: Shape key name prefix (add_prefix) is blank.")
         return
@@ -513,7 +528,7 @@ def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_f
         return
 
     create_deform_shapekeys(bpy.context.active_object, add_prefix, bind_frame_num,
-        start_frame_num, end_frame_num, animate_keys, is_dynamic)
+        start_frame_num, end_frame_num, animate_keys, is_dynamic, extra_accuracy)
 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
@@ -525,7 +540,7 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
         scn = context.scene
         do_bake_deform_shape_keys(scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
             scn.Amh2bPropDSK_StartFrame, scn.Amh2bPropDSK_EndFrame, scn.Amh2bPropDSK_AnimateSK,
-            scn.Amh2bPropDSK_Dynamic)
+            scn.Amh2bPropDSK_Dynamic, scn.Amh2bPropDSK_ExtraAccuracy)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle():

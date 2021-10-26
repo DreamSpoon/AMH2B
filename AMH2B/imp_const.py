@@ -28,7 +28,7 @@ SC_VGRP_TSEWN = SC_VGRP_AUTO_PREFIX+"ClothSew"
 SC_MN_ASTITCH = "AStitch"
 
 # tailor Cuts and Pins
-SC_VGRP_CUTS = SC_VGRP_AUTO_PREFIX+"Mask"
+SC_VGRP_CUTS = SC_VGRP_AUTO_PREFIX+"MaskOut"
 SC_VGRP_PINS = SC_VGRP_AUTO_PREFIX+"ClothPin"
 
 # Deform Shape Keys match distance
