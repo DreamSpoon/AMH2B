@@ -417,19 +417,15 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
 
         deform_offsets = []
         for i in range(len(basis_cos)):
-            diff_x = numpy.subtract(key_x_cos[i], basis_cos[i])
-            diff_y = numpy.subtract(key_y_cos[i], basis_cos[i])
-            diff_z = numpy.subtract(key_z_cos[i], basis_cos[i])
-            mat = [diff_x, diff_y, diff_z]
+            # calculate inverse-change of basis matrix
+            rebase_x = numpy.subtract(key_x_cos[i], basis_cos[i])
+            rebase_y = numpy.subtract(key_y_cos[i], basis_cos[i])
+            rebase_z = numpy.subtract(key_z_cos[i], basis_cos[i])
+            rebase_mat = numpy.array([rebase_x, rebase_y, rebase_z])
 
-            diff = numpy.subtract(deformed_cos[i], basis_cos[i])
-
-            # for the deformed vertices, construct inverse transformation matrices based on the
-            # armature transforms - then retarget deformations to correct shape key positions with
-            # inverse matrices - look at:
-            #     https://stackoverflow.com/questions/55082928/change-of-basis-in-numpy
-            #         vec_new = np.linalg.inv(np.array([w1, w2, w3])).dot(vec_old)
-            vec_offset = linalg.solve(numpy.linalg.inv(mat), diff)
+            # apply inverse-change of basis matrix to deformed offset
+            deform_offset = numpy.subtract(deformed_cos[i], basis_cos[i])
+            vec_offset = rebase_mat.dot(deform_offset)
             deform_offsets.append(vec_offset)
 
         sk_offsets = obj.shape_key_add(name=add_prefix)
