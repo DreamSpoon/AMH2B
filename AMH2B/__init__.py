@@ -94,6 +94,12 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         scn = context.scene
 
         box = layout.box()
+        box.label(text="Vertex Select by Weight")
+        box.operator("amh2b.select_vertex_by_weight")
+        box.prop(scn, "Amh2bPropSelectVertexMinW")
+        box.prop(scn, "Amh2bPropSelectVertexMaxW")
+        box.prop(scn, "Amh2bPropSelectVertexDeselect")
+        box = layout.box()
         box.label(text="Grow Selection Paint")
         box.operator("amh2b.grow_paint")
         box.prop(scn, "Amh2bPropGrowPaintIterations")
@@ -207,6 +213,7 @@ classes = [
     AMH2B_SearchFileForAutoVGroups,
     AMH2B_CreateSizeRig,
     AMH2B_GrowPaint,
+    AMH2B_SelectVertexByWeight,
     AMH2B_AddClothSim,
     AMH2B_BakeDeformShapeKeys,
     AMH2B_SKFuncDelete,
@@ -241,6 +248,9 @@ def register():
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Add Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Delete Prefix", description="Prefix for shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+    bpy.types.Scene.Amh2bPropSelectVertexMinW = bpy.props.FloatProperty(name="Min Weight", description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropSelectVertexMaxW = bpy.props.FloatProperty(name="Max Weight", description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropSelectVertexDeselect = bpy.props.BoolProperty(name="Deselect all first", description="Deselect all vertexes before selecting by weight", default=True)
     bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=0)
     bpy.types.Scene.Amh2bPropGrowPaintStartWeight = bpy.props.FloatProperty(name="Start Weight", description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)

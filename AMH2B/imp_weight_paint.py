@@ -29,9 +29,7 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
     only_connected):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='EDIT')
-
-    #mesh = paint_object.data
-    #paint_vertex_group = paint_object.vertex_groups[paint_vg_index]
+    bpy.ops.mesh.select_mode(type='VERT')
 
     # create a temp vertex group containing only current selection
     temp_vgrp_a = paint_object.vertex_groups.new(name=SC_TEMP_VGRP_NAME)
@@ -128,4 +126,45 @@ class AMH2B_GrowPaint(bpy.types.Operator):
         scn = context.scene
         do_grow_paint(ob_act, vg_ai, scn.Amh2bPropGrowPaintIterations, scn.Amh2bPropGrowPaintStartWeight,
             scn.Amh2bPropGrowPaintEndWeight, scn.Amh2bPropTailFill, scn.Amh2bPropTailFillValue, scn.Amh2bPropTailFillConnected)
+        return {'FINISHED'}
+
+def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
+    old_3dview_mode = bpy.context.object.mode
+
+    if deselect_first:
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type='VERT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+    verts = [v for v in obj.data.vertices]
+    for v in verts:
+        actual_grp_list = [g for g in v.groups if g.group == vert_group_index]
+        if len(actual_grp_list) < 1:
+            continue
+        actual_grp = actual_grp_list[0]
+        vw = actual_grp.weight
+        if vw <= max_weight and vw >= min_weight:
+            v.select = True
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_SelectVertexByWeight(bpy.types.Operator):
+    """With active object, deselect all vertices (optional), then select only vertices with weights between min_weight and max_weight, inclusive"""
+    bl_idname = "amh2b.select_vertex_by_weight"
+    bl_label = "Select by Weight"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        ob_act = context.active_object
+        if ob_act is None or ob_act.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not a mesh")
+            return {'CANCELLED'}
+        vg_ai = context.active_object.vertex_groups.active_index
+        if vg_ai < 0:
+            self.report({'ERROR'}, "Active object does not have a vertex group")
+            return {'CANCELLED'}
+        scn = context.scene
+        do_select_vertex_by_weight(ob_act, vg_ai, scn.Amh2bPropSelectVertexMinW, scn.Amh2bPropSelectVertexMaxW, scn.Amh2bPropSelectVertexDeselect)
+
         return {'FINISHED'}
