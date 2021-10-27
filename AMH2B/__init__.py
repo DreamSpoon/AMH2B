@@ -34,7 +34,7 @@ bl_info = {
 import bpy
 
 from .imp_mesh_mat import *
-from .imp_mesh_sew import *
+from .imp_mesh_size import *
 from .imp_cloth_sim import *
 from .imp_shape_key import *
 from .imp_weight_paint import *
@@ -79,13 +79,6 @@ class AMH2B_MeshSize(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        #box = layout.box()
-        #box.label(text="Pattern Utility")
-        #box.operator("amh2b.pattern_copy")
-        #box.operator("amh2b.pattern_sew")
-        #box = layout.box()
-        #box.label(text="Pattern Layout")
-        #box.operator("amh2b.pattern_add_stitch")
         box = layout.box()
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
@@ -142,9 +135,13 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
         box.prop(scn, "Amh2bPropDSK_Dynamic")
-        box.label(text="Extra accuracy")
-        box.prop(scn, "Amh2bPropDSK_ExtraAccuracy")
-        box.operator("amh2b.deform_sk_view_toggle")
+        sub = box.column()
+        sub.active = scn.Amh2bPropDSK_Dynamic
+        sub.label(text="Extra accuracy")
+        sub.prop(scn, "Amh2bPropDSK_ExtraAccuracy")
+        sub = box.column()
+        sub.active = not scn.Amh2bPropDSK_Dynamic
+        sub.operator("amh2b.deform_sk_view_toggle")
 
 class AMH2B_ShapeKey(bpy.types.Panel):
     bl_label = "Shape Key"
@@ -201,9 +198,6 @@ classes = [
     AMH2B_SwapMatIntMulti,
     AMH2B_SetupMatSwapSingle,
     AMH2B_SetupMatSwapMulti,
-    #AMH2B_PatternAddStitch,
-    #AMH2B_PatternCopy,
-    #AMH2B_PatternSew,
     AMH2B_AddCutsMask,
     AMH2B_ToggleViewCutsMask,
     AMH2B_CopyVertexGroupsByPrefix,

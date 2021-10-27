@@ -579,7 +579,7 @@ def do_deform_sk_view_toggle():
             mod.show_render = sk_view_active
 
 class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
-    """Toggle visibility between shape keys and cloth/soft body sims on active object"""
+    """Toggle visibility between shape keys and cloth/soft body sims on active object.\nIntended only for non-Dynamic deform shape keys"""
     bl_idname = "amh2b.deform_sk_view_toggle"
     bl_label = "Deform SK View Toggle"
     bl_options = {'REGISTER', 'UNDO'}
