@@ -23,47 +23,89 @@
 import bpy
 import numpy
 
-def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weight, tail_fill, tail_fill_value):
+SC_TEMP_VGRP_NAME = "TempVGroup"
+
+def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weight, tail_fill, tail_fill_value,
+    only_connected):
     old_3dview_mode = bpy.context.object.mode
-    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='EDIT')
 
-    mesh = paint_object.data
-    paint_vertex_group = paint_object.vertex_groups[paint_vg_index]
+    #mesh = paint_object.data
+    #paint_vertex_group = paint_object.vertex_groups[paint_vg_index]
 
-    # make array of all current vertex select values
-    all_vert_select_values = [v.select for v in mesh.vertices]
+    # create a temp vertex group containing only current selection
+    temp_vgrp_a = paint_object.vertex_groups.new(name=SC_TEMP_VGRP_NAME)
+    paint_object.vertex_groups.active_index = temp_vgrp_a.index
+    bpy.context.scene.tool_settings.vertex_group_weight = 1.0
+    bpy.ops.object.vertex_group_assign()
 
-    # optimize by keeping list of all visible unselected vertexes at beginning, and
-    # later performing checks with this subset of all mesh vertices
-    begin_unsel_vert_indexes = [v.index for v in mesh.vertices if not v.select and not v.hide]
+    # create a second group, to allow for "leap-frogging" of new selection
+    temp_vgrp_b = paint_object.vertex_groups.new(name=SC_TEMP_VGRP_NAME)
 
-    # get visible vertices that are selected and paint them with start weight value
-    sel_indexes = [v.index for v in mesh.vertices if v.select and not v.hide]
-    paint_vertex_group.add(sel_indexes, start_weight, 'REPLACE')
+    # apply starting weihgt paint to only initial selection
+    paint_object.vertex_groups.active_index = paint_vg_index
+    bpy.context.scene.tool_settings.vertex_group_weight = start_weight
+    bpy.ops.object.vertex_group_assign()
 
+    # switch back to temp group
+    paint_object.vertex_groups.active_index = temp_vgrp_a.index
+    temp_flip = False
     for iter in range(iterations):
         # grow selection
-        bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_more()
-        bpy.ops.object.mode_set(mode='OBJECT')
 
-        new_sel_indexes = [v_i for v_i in begin_unsel_vert_indexes
-            if mesh.vertices[v_i].select and not mesh.vertices[v_i].hide and all_vert_select_values[v_i] == False]
-        # quit looping if no more vertexes can be selected
-        if len(new_sel_indexes) == 0:
-            break
-        # update list of vertex selected values, only changed values
-        for new_index in new_sel_indexes:
-            all_vert_select_values[new_index] = True
+        # assign grown selection to vertex group X
+        if temp_flip:
+            paint_object.vertex_groups.active_index = temp_vgrp_a.index
+        else:
+            paint_object.vertex_groups.active_index = temp_vgrp_b.index
+        bpy.context.scene.tool_settings.vertex_group_weight = 1.0
+        bpy.ops.object.vertex_group_assign()
 
-        # apply weight paint to newly selected verts
+        # deselect group Y, so total selection will contain only extra vertexes from "select more" operation
+        if temp_flip:
+            paint_object.vertex_groups.active_index = temp_vgrp_b.index
+        else:
+            paint_object.vertex_groups.active_index = temp_vgrp_a.index
+        bpy.ops.object.vertex_group_deselect()
+
+        # assign the blended weight paint to only the extra selected vertexes
+        paint_object.vertex_groups.active_index = paint_vg_index
         vw = (end_weight - start_weight) * (iter+1) / iterations + start_weight
-        paint_vertex_group.add(new_sel_indexes, vw, 'REPLACE')
+        bpy.context.scene.tool_settings.vertex_group_weight = vw
+        bpy.ops.object.vertex_group_assign()
 
-    # if tail fill enabled then set remaining vertexes (vertexes not selected yet) to tail fill weight paint value
+        # return to larger selection
+        if temp_flip:
+            paint_object.vertex_groups.active_index = temp_vgrp_a.index
+        else:
+            paint_object.vertex_groups.active_index = temp_vgrp_b.index
+        bpy.ops.object.vertex_group_select()
+
+        temp_flip = not temp_flip
+
+    # if tail fill enabled then set certain remaining vertexes (vertexes not selected yet) to
+    # tail fill weight paint value
     if tail_fill:
-        tail_vsel_indexes = [v.index for v in mesh.vertices if not v.select and not v.hide]
-        paint_object.vertex_groups[paint_vg_index].add(tail_vsel_indexes, tail_fill_value, 'REPLACE')
+        if only_connected:
+            # from previous code, selection will be at the largest, so keep a copy of selection, ...
+            paint_object.vertex_groups.active_index = temp_vgrp_a.index
+            bpy.context.scene.tool_settings.vertex_group_weight = 1.0
+            bpy.ops.object.vertex_group_assign()
+            # select all connect verts, ...
+            bpy.ops.mesh.select_linked(delimit=set())
+            # and deselect the previous largest selection to assign paint to verts that are linked, and not yet painted
+            bpy.ops.object.vertex_group_deselect()
+        else:
+            bpy.ops.mesh.select_all(action='INVERT')
+
+        paint_object.vertex_groups.active_index = paint_vg_index
+        bpy.context.scene.tool_settings.vertex_group_weight = tail_fill_value
+        bpy.ops.object.vertex_group_assign()
+
+    paint_object.vertex_groups.active_index = paint_vg_index
+    paint_object.vertex_groups.remove(temp_vgrp_a)
+    paint_object.vertex_groups.remove(temp_vgrp_b)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -83,5 +125,7 @@ class AMH2B_GrowPaint(bpy.types.Operator):
             self.report({'ERROR'}, "Active object does not have a vertex group")
             return {'CANCELLED'}
 
-        do_grow_paint(ob_act, vg_ai, context.scene.Amh2bPropGrowPaintIterations, context.scene.Amh2bPropGrowPaintStartWeight, context.scene.Amh2bPropGrowPaintEndWeight, context.scene.Amh2bPropTailFill, context.scene.Amh2bPropTailFillValue)
+        scn = context.scene
+        do_grow_paint(ob_act, vg_ai, scn.Amh2bPropGrowPaintIterations, scn.Amh2bPropGrowPaintStartWeight,
+            scn.Amh2bPropGrowPaintEndWeight, scn.Amh2bPropTailFill, scn.Amh2bPropTailFillValue, scn.Amh2bPropTailFillConnected)
         return {'FINISHED'}

@@ -29,7 +29,7 @@ def add_vertex_group(mesh_obj, grp_name, vert_indexes):
     # create new vertex group
     new_vert_grp = mesh_obj.vertex_groups.new(name=grp_name)
     # add vertex indexes at weight = 1.0
-    new_vert_grp.add(vert_indexes, 1.0, 'ADD')
+    new_vert_grp.add(vert_indexes, 1.0, 'REPLACE')
     return new_vert_grp
 
 #def add_replace_vertex_grp(mesh_obj, vert_grp_name):

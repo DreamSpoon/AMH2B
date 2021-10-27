@@ -103,6 +103,7 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         sub = box.column()
         sub.active = scn.Amh2bPropTailFill
         sub.prop(scn, "Amh2bPropTailFillValue")
+        sub.prop(scn, "Amh2bPropTailFillConnected")
 
 class AMH2B_ClothSim(bpy.types.Panel):
     bl_label = "Cloth Sim"
@@ -245,6 +246,7 @@ def register():
     bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropTailFill = bpy.props.BoolProperty(name="Tail Fill", description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail fill value, after applying weights to vertexes during 'select more' iterations", default=False)
     bpy.types.Scene.Amh2bPropTailFillValue = bpy.props.FloatProperty(name="Tail Value", description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropTailFillConnected = bpy.props.BoolProperty(name="Fill only linked", description="Only linked vertexes will be included in the tail fill process", default=True)
 
 def unregister():
     for cls in classes:
