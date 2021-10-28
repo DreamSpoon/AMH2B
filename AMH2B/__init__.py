@@ -144,7 +144,7 @@ class AMH2B_ClothSim(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_Dynamic")
         sub = box.column()
         sub.active = scn.Amh2bPropDSK_Dynamic
-        sub.label(text="Extra accuracy")
+        sub.label(text="Extra Accuracy")
         sub.prop(scn, "Amh2bPropDSK_ExtraAccuracy")
         sub = box.column()
         sub.active = not scn.Amh2bPropDSK_Dynamic
@@ -250,7 +250,7 @@ def register():
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bpy.types.Scene.Amh2bPropSelectVertexMinW = bpy.props.FloatProperty(name="Min Weight", description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexMaxW = bpy.props.FloatProperty(name="Max Weight", description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
-    bpy.types.Scene.Amh2bPropSelectVertexDeselect = bpy.props.BoolProperty(name="Deselect all first", description="Deselect all vertexes before selecting by weight", default=True)
+    bpy.types.Scene.Amh2bPropSelectVertexDeselect = bpy.props.BoolProperty(name="Deselect All First", description="Deselect all vertexes before selecting by weight", default=True)
     bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=0)
     bpy.types.Scene.Amh2bPropGrowPaintStartWeight = bpy.props.FloatProperty(name="Start Weight", description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)

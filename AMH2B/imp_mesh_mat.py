@@ -158,7 +158,7 @@ def rename_material(old_mat_name, new_mat_name):
 
 def do_mat_swaps_internal_single():
     obj = bpy.context.active_object
-    if obj is None:
+    if obj is None or len(obj.material_slots) < 1:
         return
     mat_slot = obj.material_slots[obj.active_material_index]
     if mat_slot is None:

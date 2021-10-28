@@ -125,6 +125,24 @@ e.g.
 ### Clothing Size - Create Size Rig
 Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature. Select mesh objects first and select armature object last.
 
+## Weight Paint
+### Vertex Select by Weight
+With active object, deselect all vertices (optional), then select only vertices with weights between min_weight and max_weight, inclusive.
+'Deselect all first' is enabled by default, if enabled then all mesh vertexes are deselected before the Select by Weight operation is applied.
+
+### Grow Selection Paint
+With active object, starting with currently selected vertexes, set weight paint in successive 'rings' by using 'select more' and weight painting only the newly selected vertexes - blending weight paint value by 'select more' iteration. Very useful, e.g. on dresses, to weight paint 1.0 at the waist and blend to 0.0 at the edge of the dress.
+
+'Iterations' controls the amount of growth, it is the number of times 'Select More' is applied.
+
+'Start Weight' is applied to the currently selected vertexes, and used as the beginning blend value.
+
+'End Weight' is applied to the vertexes in the last 'Select More' iteration.
+
+'Tail Fill' is disabled by default, if enabled then 'Tail Value' is weight painted to any vertexes that remain unselected after the 'Iterations' weight paint is applied. Basically, an 'Invert Selection' operation is applied after all growth weight paint is appplied.
+
+'Fill Only Linked' is enabled by default, if enabled then 'Tail fill' is applied only to the vertexes that are linked - i.e. can be selected by 'Select Linked' operation.
+
 ## Cloth Sim
 ### Vertex Group Copy - From File
 For each selected mesh object: Search another file automatically and try to copy vertex groups based on user given prefix and object name.
@@ -152,11 +170,40 @@ Add CLOTH modifer to active object with settings auto-filled for Pinning.
 ### Cloth Sim - Bake Deform Shape Keys
 Bake active object's mesh deformations to shape keys.
 
-### Cloth Sim - Deform SK View Toggle
-Toggle visibility between shape keys and cloth/soft body sims on active object
+'Bind frame' - the frame when the object's vertexes must be in the same position as the 'deformation'.
+Hint: the vertexes should be in the same position in 'Edit Mode' as they are in 'Object Mode' - zero deformation.
 
-### Cloth Sim - Delete Deform Shape Keys
-Delete mesh deformations shape keys from active object.
+'Start frame' - the first frame for which shape keys are baked.
+
+'End frame' - the last frame for which shape keys are baked.
+
+Shape keys are baked Start Frame to End Frame **inclusive**.
+
+'Animate Shape Keys' - add keyframes to baked shape keys so that they are active only on the frame when they were baked.
+
+'Dynamic' - respect armature transformations when calculating deform shape keys - Dynamic is slower to run than not-Dynamic
+
+Hint: use 'Dynamic' if you have an ARMATURE modifier on the object that needs shape keys baked
+
+'Extra Accuracy' - increase accuracy of 'Dynamic' bake at the cost of extra computation time, use 0 to start and increase as needed
+
+### Cloth Sim - Deform SK View Toggle
+Toggle visibility between shape keys and cloth/soft body sims on active object.
+Deform SK View Toggle - **only available if 'Dynamic' is disabled** - a convenience function to:
+- if toggling on:
+  - make CLOTH and SOFTBODY sims not visible
+  - disable influence of ARMATURE modifier on vertexes that have baked shape keys, so that shape key verts are not "double-Armature-modified"
+    - this step is unnecessary if 'Dynamic' bake is used, since shape keys are baked with armature influence accounted for
+- if toggling off:
+  - make CLOTH and SOFTBODY sims visible
+  - undo disabling of influence of ARMATURE modifier on vertexes that have baked shape keys
+
+## Shape Key
+### Delete Prefixed Keys
+Delete mesh deformation shape keys from active object, by prefix. Shape keys can be any kind, not limited to just deformation shape keys.
+
+### Copy Prefixed Keys
+With active object, copy shape keys by prefix to all other selected objects.
 
 ## Armature
 ### Retarget - Adjust Pose
@@ -226,6 +273,8 @@ Press button AMH2B -> Armature -> Retarget - Bone Woven
 Result: Animated rig is joined to MHX rig, and a 'stitching' process will copy-swap-and-parent animated bones into the MHX rig's bone setup.
 
 Important! Make sure your MHX rig has scale 1 in x/y/z, zero location, zero rotation - basically all transforms equal default. If your MHX rig already has location/rotation/scale, then re-locate/rotate/apply scale (with Apply Scale to Rig (!)) to set everything back to defaults. If the MHX rig has non-default location/rotation/scale then results are undefined.
+
+It's a good idea to edit the bone groups after Bone Woven is applied. Select a visibility group that has the "new" bones from the animated rig, and very few bones from the original MHX rig, e.g. bone visility layer 0 (zero). Enter EDIT or POSE mode, select all, then deselect the MHX bones (only 2 bones in bone vis layer 0!), and move remaining bones to desired (empty) bone visibility layer. This way it's easier to select only the "new" bones, or just the regular MHX bones.
 
 ### Retarget Multi-Function - Lucky
 One button press to:
