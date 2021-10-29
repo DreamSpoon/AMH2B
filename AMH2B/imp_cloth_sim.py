@@ -113,11 +113,16 @@ def do_copy_vertex_groups_by_prefix(vg_name_prefix):
         print("do_copy_vertex_groups_by_prefix() error: less then 2 objects selected. Select another mesh and try again.")
         return
 
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     from_mesh_obj = context.active_object
     selection_list = context.selected_objects
     # iterate over selected 'MESH' type objects that are not the active object
     for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
     """Copy vertex groups by name prefix from the active object (must be selected last) to all other selected mesh objects.\nObject does not need to be 'searchable' """
@@ -136,8 +141,14 @@ def do_make_tailor_vgroups():
         return
 
     active_obj = context.active_object
+
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
     add_ifnot_vertex_grp(active_obj, SC_VGRP_PINS)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add AutoCuts and AutoPins vertex groups to the active object, only if these groups don't already exist"""
