@@ -35,9 +35,10 @@ import bpy
 
 from .imp_mesh_mat import *
 from .imp_mesh_size import *
+from .imp_vgroup import *
+from .imp_weight_paint import *
 from .imp_cloth_sim import *
 from .imp_shape_key import *
-from .imp_weight_paint import *
 from .imp_armature import *
 from .imp_animation import *
 from .imp_const import *
@@ -83,6 +84,28 @@ class AMH2B_MeshSize(bpy.types.Panel):
         box.label(text="Clothing Size")
         box.operator("amh2b.create_size_rig")
 
+class AMH2B_VertexGroup(bpy.types.Panel):
+    bl_label = "Vertex Group"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+
+        box = layout.box()
+        box.label(text="Group Copy")
+        box.operator("amh2b.search_file_for_auto_vgroups")
+        box.operator("amh2b.make_tailor_object_searchable")
+        box.operator("amh2b.copy_vertex_groups_by_prefix")
+        box.prop(scn, "Amh2bPropVGCopyNamePrefix")
+        box = layout.box()
+        box.label(text="Auto Mask & Pin Group")
+        box.operator("amh2b.make_tailor_groups")
+        box.operator("amh2b.add_cuts_mask")
+        box.operator("amh2b.toggle_view_cuts_mask")
+
 class AMH2B_WeightPaint(bpy.types.Panel):
     bl_label = "Weight Paint"
     bl_space_type = "VIEW_3D"
@@ -111,28 +134,6 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         sub.active = scn.Amh2bPropTailFill
         sub.prop(scn, "Amh2bPropTailFillValue")
         sub.prop(scn, "Amh2bPropTailFillConnected")
-
-class AMH2B_VertexGroup(bpy.types.Panel):
-    bl_label = "Vertex Group"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "AMH2B"
-
-    def draw(self, context):
-        layout = self.layout
-        scn = context.scene
-
-        box = layout.box()
-        box.label(text="Vertex Group Copy")
-        box.operator("amh2b.search_file_for_auto_vgroups")
-        box.operator("amh2b.make_tailor_object_searchable")
-        box.operator("amh2b.copy_vertex_groups_by_prefix")
-        box.prop(scn, "Amh2bPropVGCopyNamePrefix")
-        box = layout.box()
-        box.label(text="Cut and Pin Vertex Group")
-        box.operator("amh2b.make_tailor_groups")
-        box.operator("amh2b.add_cuts_mask")
-        box.operator("amh2b.toggle_view_cuts_mask")
 
 class AMH2B_Simulation(bpy.types.Panel):
     bl_label = "Simulation"
@@ -247,8 +248,8 @@ classes = [
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
-    AMH2B_WeightPaint,
     AMH2B_VertexGroup,
+    AMH2B_WeightPaint,
     AMH2B_Simulation,
     AMH2B_ShapeKey,
     AMH2B_Armature,
@@ -266,8 +267,8 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_AnimateSK = bpy.props.BoolProperty(name="Animate Shape Keys", description="Keyframe shape key values to animate frames when Shape Keys were created", default=True)
     bpy.types.Scene.Amh2bPropDSK_Dynamic = bpy.props.BoolProperty(name="Dynamic", description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
     bpy.types.Scene.Amh2bPropDSK_ExtraAccuracy = bpy.props.IntProperty(name="", description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
-    bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Bake Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
-    bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="SK Prefix", description="Prefix for shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Prefix", description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bpy.types.Scene.Amh2bPropSelectVertexMinW = bpy.props.FloatProperty(name="Min Weight", description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexMaxW = bpy.props.FloatProperty(name="Max Weight", description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)

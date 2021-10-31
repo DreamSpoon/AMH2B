@@ -366,7 +366,7 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
     bl_idname = "amh2b.bake_deform_shape_keys"
-    bl_label = "Bake Deform Shape Keys"
+    bl_label = "Bake Deform Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
