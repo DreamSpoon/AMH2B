@@ -116,7 +116,7 @@ class AMH2B_GrowPaint(bpy.types.Operator):
     def execute(self, context):
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not a mesh")
+            self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
         vg_ai = context.active_object.vertex_groups.active_index
         if vg_ai < 0:
@@ -158,13 +158,13 @@ class AMH2B_SelectVertexByWeight(bpy.types.Operator):
     def execute(self, context):
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not a mesh")
+            self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
         vg_ai = context.active_object.vertex_groups.active_index
         if vg_ai < 0:
             self.report({'ERROR'}, "Active object does not have a vertex group")
             return {'CANCELLED'}
+
         scn = context.scene
         do_select_vertex_by_weight(ob_act, vg_ai, scn.Amh2bPropSelectVertexMinW, scn.Amh2bPropSelectVertexMaxW, scn.Amh2bPropSelectVertexDeselect)
-
         return {'FINISHED'}

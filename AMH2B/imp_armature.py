@@ -40,25 +40,27 @@ else:
 # Script rotations of bones to reduce time waste. Input is from TextBlock named 'Text', in CSV format.
 # Get the rotations correct once, type it up as a CSV file, then use the script repeatedly.
 
-def rotBone(rig_object, bone_name, axis_name, offset_deg):
+def global_rotate_bone(rig_object, bone_name, axis_name, offset_deg):
     the_bone = rig_object.pose.bones.get(bone_name)
     if the_bone is None:
         return
     the_bone.bone.select = True
-    doRotationGlobal(axis_name, offset_deg)
+    do_global_rotate(axis_name, offset_deg)
     the_bone.bone.select = False
 
-def runOffsets(rig_obj, offsets, datablock_textname):
+def run_offsets(rig_obj, offsets, datablock_textname):
     rec_count = 0
     try:
         for of_bone_name, of_axis, of_deg in offsets:
-            rotBone(rig_obj, of_bone_name.strip(), of_axis.strip(), float(of_deg))
+            global_rotate_bone(rig_obj, of_bone_name.strip(), of_axis.strip(), float(of_deg))
             rec_count = rec_count+1
 
     except ValueError:
-        print("adjust_pose() error: ValueError while parsing CSV record #" + str(rec_count) + " in text block: " + datablock_textname)
+        return "ValueError while parsing CSV record #" + str(rec_count) + " in text block: " + datablock_textname
 
-def getScriptedOffsets(datablock_textname):
+    return None
+
+def get_scripted_offsets(datablock_textname):
     bl = bpy.data.texts.get(datablock_textname)
     if bl is None:
         return
@@ -70,29 +72,21 @@ def getScriptedOffsets(datablock_textname):
     csv_lines = csv.reader(bl_str.splitlines())
     return list(csv_lines)
 
-def do_adjustPose():
+def do_adjust_pose(mhx_arm_obj):
     # get CSV user data text block and convert to array of offsets data
-    offsets = getScriptedOffsets(bpy.context.scene.Amh2bPropTextBlockName)
+    offsets = get_scripted_offsets(bpy.context.scene.Amh2bPropTextBlockName)
     if offsets is None:
-        return
-
-    # copy ref to active object, the MHX armature
-    mhx_arm_obj = bpy.context.active_object
-    # quit if Active Object is None or not an armature
-    if mhx_arm_obj is None:
-        print("adjust_pose() error: Active object is None, cannot adjust pose.")
-        return
-    if mhx_arm_obj.type != 'ARMATURE':
-        print("adjust_pose() error: Active object is not Armature type, cannot adjust pose.")
-        return
+        return "Scripted offsets text block not found: " + bpy.context.scene.Amh2bPropTextBlockName
 
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
 
+    # deselect all bones and run script to (select, pose, unselect) each bone individually
     bpy.ops.pose.select_all(action='DESELECT')
-    runOffsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropTextBlockName)
+    err_str = run_offsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropTextBlockName)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
+    return err_str
 
 class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
@@ -101,8 +95,18 @@ class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_adjustPose()
-        return {'FINISHED'}
+        act_ob = bpy.context.active_object
+        # quit if Active Object is None or not an armature
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            self.report({'ERROR'}, "Active object is not ARMATURE type")
+            return {'CANCELLED'}
+
+        err_str = do_adjust_pose(act_ob)
+        if err_str is None:
+            return {'FINISHED'}
+
+        self.report({'ERROR'}, err_str)
+        return {'CANCELLED'}
 
 #####################################################
 #     Apply Scale
@@ -110,34 +114,21 @@ class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
 # and adjust it"s bone location animation f-curve values to match the scaling.
 # If this operation is not done, then the bones that have changing location values
 # will appear to move incorrectly.
-def do_apply_scale():
-    if bpy.context.active_object is None:
-        print("do_apply_scale() error: Active Object is None, should have an object selected as Active Object.")
-        return
-    if bpy.context.active_object.type != 'ARMATURE':
-        print("do_apply_scale() error: Active Object is not ARMATURE type.")
-        return
-
+def do_apply_scale(act_ob):
     old_3dview_mode = bpy.context.object.mode
 
     # keep copy of old scale values
-    old_scale = bpy.context.active_object.scale.copy()
+    old_scale = act_ob.scale.copy()
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # do not apply scale if scale is already 1.0 in all dimensions!
     if old_scale.x == 1 and old_scale.y == 1 and old_scale.z == 1:
-        print("do_apply_scale() avoided, active_object scale is already 1 in all dimensions.")
         return
 
-    print("do_apply_scale() to rig = " + bpy.context.active_object.name + "; old scale = " + str(old_scale))
     # apply scale to active object
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
-    # scale only the location f-curves on active object
-    obj = bpy.context.active_object
-    if obj is None:
-        return
-    action = obj.animation_data.action
+    action = act_ob.animation_data.action
     if action is None:
         return
 
@@ -172,53 +163,51 @@ class AMH2B_ApplyScale(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_apply_scale()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            self.report({'ERROR'}, "Active object is not ARMATURE type")
+            return {'CANCELLED'}
+
+        do_apply_scale(act_ob)
         return {'FINISHED'}
 
 #####################################################
 #     Bridge Re-Pose Rig
 # Re-pose original rig (which has shape keys, hence this work-around) by way of a duplicate of original
-# that moves mesh to desired pose, then original rig is pose-apply"ed and takes over from duplicate rig.
+# that moves mesh to desired pose, then original rig is pose-apply'ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
-def do_bridge_repose_rig():
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'ARMATURE':
-        print("do_bridge_repose_rig() error: Active object is None, cannot Re-Pose MHX rig.")
-        return
-
+def do_bridge_repose_rig(act_ob):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-
-    # copy ref to active object
-    selection_active_obj = bpy.context.active_object
 
     # copy list of selected objects, minus the active object
     # (0 selected objects is allowed, because armature can be re-posed independently)
     selection_list = []
     for ob in bpy.context.selected_objects:
-        if ob.name != selection_active_obj.name:
+        if ob.name != act_ob.name:
             selection_list.append(ob)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
 
     # select the old active_object in the 3D viewport
-    select_object(selection_active_obj)
+    select_object(act_ob)
     # make it the active selected object
-    set_active_object(selection_active_obj)
+    set_active_object(act_ob)
 
     # duplicate the original armature
     new_arm = dup_selected()
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
-    new_arm.parent = selection_active_obj
+    new_arm.parent = act_ob
 
     # add modifiers to the other selected objects, so the other selected objects will use the new armature
     add_armature_to_objects(new_arm, selection_list)
 
     # ensure original armature is selected
-    select_object(selection_active_obj)
+    select_object(act_ob)
     # make original armature the active object
-    set_active_object(selection_active_obj)
+    set_active_object(act_ob)
 
     bpy.ops.object.mode_set(mode='POSE')
     # apply pose to original armature
@@ -233,7 +222,12 @@ class AMH2B_BridgeRepose(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_bridge_repose_rig()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            self.report({'ERROR'}, "Active object is not ARMATURE type")
+            return {'CANCELLED'}
+
+        do_bridge_repose_rig(act_ob)
         return {'FINISHED'}
 
 #####################################################
@@ -393,16 +387,16 @@ def stitch_dup_swap(rig_obj, bone_to_dup, ref_bone, dist_on_dup, dist_on_ref, bo
     rig_obj.data.edit_bones[bone_to_dup_trans].use_connect = False
     rig_obj.data.edit_bones[ref_bone_trans].use_connect = False
 
-    tVec = get_translation_vec(rig_obj.data.edit_bones[bone_to_dup_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_dup, dist_on_ref)
+    t_vec = get_translation_vec(rig_obj.data.edit_bones[bone_to_dup_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_dup, dist_on_ref)
 
     # duplicate bone
     new_bone = rig_obj.data.edit_bones.new(rig_obj.data.edit_bones[bone_to_dup_trans].name)
-    new_bone.head.x = rig_obj.data.edit_bones[bone_to_dup_trans].head.x + tVec[0]
-    new_bone.head.y = rig_obj.data.edit_bones[bone_to_dup_trans].head.y + tVec[1]
-    new_bone.head.z = rig_obj.data.edit_bones[bone_to_dup_trans].head.z + tVec[2]
-    new_bone.tail.x = rig_obj.data.edit_bones[bone_to_dup_trans].tail.x + tVec[0]
-    new_bone.tail.y = rig_obj.data.edit_bones[bone_to_dup_trans].tail.y + tVec[1]
-    new_bone.tail.z = rig_obj.data.edit_bones[bone_to_dup_trans].tail.z + tVec[2]
+    new_bone.head.x = rig_obj.data.edit_bones[bone_to_dup_trans].head.x + t_vec[0]
+    new_bone.head.y = rig_obj.data.edit_bones[bone_to_dup_trans].head.y + t_vec[1]
+    new_bone.head.z = rig_obj.data.edit_bones[bone_to_dup_trans].head.z + t_vec[2]
+    new_bone.tail.x = rig_obj.data.edit_bones[bone_to_dup_trans].tail.x + t_vec[0]
+    new_bone.tail.y = rig_obj.data.edit_bones[bone_to_dup_trans].tail.y + t_vec[1]
+    new_bone.tail.z = rig_obj.data.edit_bones[bone_to_dup_trans].tail.z + t_vec[2]
     new_bone.roll = rig_obj.data.edit_bones[bone_to_dup_trans].roll
     # swap new bone for ref_bone
     new_bone.parent = rig_obj.data.edit_bones[ref_bone_trans].parent
@@ -482,14 +476,14 @@ def do_move_bone(rig_obj, bone_to_move, ref_bone, dist_on_move, dist_on_ref, bon
     # set parenting type to Offset to prevent warping when moving bone
     rig_obj.data.edit_bones[bone_to_move_trans].use_connect = False
 
-    tVec = get_translation_vec(rig_obj.data.edit_bones[bone_to_move_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_move, dist_on_ref)
+    t_vec = get_translation_vec(rig_obj.data.edit_bones[bone_to_move_trans], rig_obj.data.edit_bones[ref_bone_trans], dist_on_move, dist_on_ref)
 
-    rig_obj.data.edit_bones[bone_to_move_trans].head.x += tVec[0]
-    rig_obj.data.edit_bones[bone_to_move_trans].head.y += tVec[1]
-    rig_obj.data.edit_bones[bone_to_move_trans].head.z += tVec[2]
-    rig_obj.data.edit_bones[bone_to_move_trans].tail.x += tVec[0]
-    rig_obj.data.edit_bones[bone_to_move_trans].tail.y += tVec[1]
-    rig_obj.data.edit_bones[bone_to_move_trans].tail.z += tVec[2]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.x += t_vec[0]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.y += t_vec[1]
+    rig_obj.data.edit_bones[bone_to_move_trans].head.z += t_vec[2]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.x += t_vec[0]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.y += t_vec[1]
+    rig_obj.data.edit_bones[bone_to_move_trans].tail.z += t_vec[2]
 
 def batch_do_set_parents(self, rig_obj, stitch_datapack, bone_name_trans):
     # TORSO
@@ -602,41 +596,11 @@ def get_bone_name_match_count(bone_name_list_A, bone_name_list_B):
             m = m + 1
     return m
 
-def do_bone_woven(self):
-    print("boneWoven() begin.")
-    selection_list = bpy.context.selected_objects
-    if bpy.context.active_object is None or len(selection_list) < 1:
-        print("do_bone_woven() error: No active object or selection is empty.")
-        return {'FINISHED'}
-    # this next if statement may be redundant - TODO: verify
-    if not bpy.context.active_object in selection_list:
-        print("do_bone_woven() error: Active object is not in selection list.")
-        return {'FINISHED'}
-
+def do_bone_woven(self, dest_rig_obj, src_rig_obj):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    dest_rig_obj = bpy.context.active_object
-    src_rig_obj = None
-    # the Active Object must be the imported MHX2 rig (not animated - should not be animated, anyway...)
-    # the other selected object must be the rig with the animation
-    for i in selection_list:
-        if i != bpy.context.active_object:
-            src_rig_obj = i
-
-    # fail if did not get two ARMATURE type objects
-    if src_rig_obj is None:
-        print("Only one object selected, but two are needed. No Bone Woven.")
-        return {'FINISHED'}
-    if dest_rig_obj.type != 'ARMATURE':
-        print("Bone Woven failed because active object " + dest_rig_obj.name + " is not ARMATURE type.")
-        return {'FINISHED'}
-    if src_rig_obj.type != 'ARMATURE':
-        print("Bone Woven failed because selected object " + src_rig_obj.name + " is not ARMATURE type.")
-        return {'FINISHED'}
-
     detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj)
-    print("boneWoven() end.")
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -658,9 +622,22 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
         layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
-        do_bone_woven(self)
+        act_ob = bpy.context.active_object
+        sel_obs = bpy.context.selected_objects
+        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
+            self.report({'ERROR'}, "Select exactly 2 ARMATURES and try again")
+            return {'CANCELLED'}
 
-        return {'FINISHED'}            # Lets Blender know the operator finished successfully.
+        dest_rig_obj = act_ob
+        src_rig_obj = None
+        if sel_obs[0] != act_ob:
+            src_rig_obj = sel_obs[0]
+        else:
+            src_rig_obj = sel_obs[1]
+
+        do_bone_woven(self, dest_rig_obj, src_rig_obj)
+
+        return {'FINISHED'}
 
 #####################################################
 #     Lucky
@@ -673,35 +650,13 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
 # Select all meshes attached to the MHX Armature, and the Animated Armature, and the MHX Armature.
 # The MHX Armature must be selected last so that it is the Active Object.
 
-def do_lucky(self):
-    # copy ref to active object, the MHX armature
-    mhx_arm_obj = bpy.context.active_object
-
-    # quit if no MHX rig selected or active object is wrong type
-    if mhx_arm_obj is None or mhx_arm_obj.type != 'ARMATURE':
-        print("do_lucky() error: Active object is None or is not ARMATURE type, cannot Re-Pose MHX rig")
-        return
-
-    # get the animated armature (other_armature_obj) from the list of selected objects
-    # (other_armature_obj will be joined to the MHX armature)
-    other_armature_obj = None
-    for ob in bpy.context.selected_objects:
-        if ob.name != mhx_arm_obj.name:
-            if ob.type == 'ARMATURE':
-                other_armature_obj = ob
-                break
-
-    # quit if no secondary armature is selected
-    if other_armature_obj == None:
-        print("do_lucky() error: : missing other armature to join to MHX armature.")
-        return
-
+def do_lucky(self, mhx_arm_obj, other_armature_obj):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # since MHX armature is already the active object, do repose first
     if self.repose_rig_enum == 'YES':
-        do_bridge_repose_rig()
+        do_bridge_repose_rig(mhx_arm_obj)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
@@ -746,5 +701,26 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
         layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
-        do_lucky(self)
+        mhx_arm_obj = bpy.context.active_object
+
+        # quit if no MHX rig selected or active object is wrong type
+        if mhx_arm_obj is None or mhx_arm_obj.type != 'ARMATURE':
+            self.report({'ERROR'}, "Active object is not ARMATURE type")
+            return {'CANCELLED'}
+
+        # get the animated armature (other_armature_obj) from the list of selected objects
+        # (other_armature_obj will be joined to the MHX armature)
+        other_armature_obj = None
+        for ob in bpy.context.selected_objects:
+            if ob.name != mhx_arm_obj.name:
+                if ob.type == 'ARMATURE':
+                    other_armature_obj = ob
+                    break
+
+        # quit if no secondary armature is selected
+        if other_armature_obj == None:
+            self.report({'ERROR'}, "Could not find other armature to join with MHX armature")
+            return {'CANCELLED'}
+
+        do_lucky(self, mhx_arm_obj, other_armature_obj)
         return {'FINISHED'}

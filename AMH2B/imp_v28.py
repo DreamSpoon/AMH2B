@@ -52,10 +52,10 @@ def deselect_object(ob):
 def link_object(ob):
     bpy.context.scene.collection.objects.link(ob)
 
-def doTranslateGlobal(tg):
+def do_global_translate(tg):
     bpy.ops.transform.translate(value=tg, orient_type='GLOBAL')
 
-def doRotationGlobal(axis_name, rg):
+def do_global_rotate(axis_name, rg):
     if axis_name == "x" or axis_name == "X":
         bpy.ops.transform.rotate(value=(math.pi * rg / 180), orient_axis='X', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(True, False, False))
     elif axis_name == "y" or axis_name == "Y":
@@ -63,7 +63,7 @@ def doRotationGlobal(axis_name, rg):
     elif axis_name == "z" or axis_name == "Z":
         bpy.ops.transform.rotate(value=(math.pi * rg / 180), orient_axis='Z', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, False, True))
     else:
-        print("doRotationGlobal Error: Unknown axis name = " + axis_name)
+        print("do_global_rotate() Error: Unknown axis name = " + axis_name)
 
 class AMH2B_SwapMaterialsInner:
     filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})

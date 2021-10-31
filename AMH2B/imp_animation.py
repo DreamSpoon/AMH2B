@@ -56,18 +56,9 @@ else:
 # Two keyframes created on object A, such that object B appears motionless over the two frames.
 # Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
-def do_ratchet():
-    if len(bpy.context.selected_objects) != 2:
-        print("do_ratchet() error: Cannot Ratchet Hold, need to have exactly two objects selected.")
-        return
-
+def do_ratchet(obj_to_ratchet):
+    old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-
-    # copy ref to active object
-    obj_to_ratchet = bpy.context.active_object
-    if obj_to_ratchet is None:
-        print("do_ratchet() error: Active object is None, but must be the object to re-keyframe.")
-        return
 
     # get ref to other object (presumably an "Empty" type object), the not active object
     hold_onto_obj = bpy.context.selected_objects[0]
@@ -87,9 +78,11 @@ def do_ratchet():
     # such that hold onto object remains stationary.
     deltaMove = numpy.subtract(hold_obj_old_loc, hold_obj_new_loc)
     # do move in (world coordinate system)
-    doTranslateGlobal(deltaMove)
+    do_global_translate(deltaMove)
     # insert location keyframes on object to ratchet at new location
     obj_to_ratchet.keyframe_insert(data_path="location")
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_RatchetHold(bpy.types.Operator):
     """Active object's location is offset and keyframed to make other selected object appear stationary.\nSelect first the intended stationary object, select last the object to be keyframed"""
@@ -98,5 +91,12 @@ class AMH2B_RatchetHold(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_ratchet()
+        if bpy.context.active_object is None:
+            self.report({'ERROR'}, "Active object is None")
+            return {'CANCELLED'}
+        if len(bpy.context.selected_objects) != 2:
+            self.report({'ERROR'}, "Select exactly 2 objects and try again")
+            return {'CANCELLED'}
+
+        do_ratchet(bpy.context.active_object)
         return {'FINISHED'}

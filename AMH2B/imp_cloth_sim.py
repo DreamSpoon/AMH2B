@@ -40,33 +40,28 @@ else:
     from .imp_v28 import *
     Region = "UI"
 
-def do_add_cuts_mask():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_add_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
-        return
-
-    active_obj = context.active_object
-
+def do_add_cuts_mask(act_ob):
     # add the AutoCuts vertex group if it does not exist
-    add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
-    v_grp = active_obj.vertex_groups.get(SC_VGRP_CUTS)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_CUTS)
+    v_grp = act_ob.vertex_groups.get(SC_VGRP_CUTS)
 
     # prevent duplicate masks: check for cuts mask in modifiers stack and quit if found
-    for mod in active_obj.modifiers:
+    for mod in act_ob.modifiers:
         if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
-            return
+            return None
 
     # add mask modifier and set it
-    mod = active_obj.modifiers.new("AutoCuts Mask", 'MASK')
+    mod = act_ob.modifiers.new("AutoCuts Mask", 'MASK')
     if mod is None:
-        print("do_add_cuts_mask() error: Unable to add MASK modifier to object" + active_obj.name)
-        return
+        return "Unable to add MASK modifier to object" + act_ob.name
+
     mod.vertex_group = v_grp.name
     mod.invert_vertex_group = True
     # move modifier to top of stack
-    while active_obj.modifiers.find(mod.name) != 0:
-        bpy.ops.object.modifier_move_up({"object": active_obj}, modifier=mod.name)
+    while act_ob.modifiers.find(mod.name) != 0:
+        bpy.ops.object.modifier_move_up({"object": act_ob}, modifier=mod.name)
+
+    return None
 
 class AMH2B_AddCutsMask(bpy.types.Operator):
     """Add Mask modifier to implement AutoCuts, adding AutoCuts vertex group to active object if needed"""
@@ -75,19 +70,21 @@ class AMH2B_AddCutsMask(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_add_cuts_mask()
-        return {'FINISHED'}
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
 
-def do_toggle_view_cuts_mask():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH. Select a MESH object and try again.")
-        return
+        err_str = do_add_cuts_mask(act_ob)
+        if err_str == None:
+            return {'FINISHED'}
 
-    active_obj = context.active_object
+        self.report({'ERROR'}, err_str)
+        return {'CANCELLED'}
 
+def do_toggle_view_cuts_mask(act_ob):
     # find the cuts mask in the stack
-    for mod in active_obj.modifiers:
+    for mod in act_ob.modifiers:
         if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
             # toggle and ensure that viewport and render visibility are the same
             mod.show_viewport = not mod.show_viewport
@@ -101,23 +98,19 @@ class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_toggle_view_cuts_mask()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+
+        do_toggle_view_cuts_mask(act_ob)
         return {'FINISHED'}
 
-def do_copy_vertex_groups_by_prefix(vg_name_prefix):
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_copy_vertex_groups_by_prefix() error: active object was not a MESH. Select a MESH and try again.")
-        return
-    if len(context.selected_objects) < 2:
-        print("do_copy_vertex_groups_by_prefix() error: less then 2 objects selected. Select another mesh and try again.")
-        return
-
+def do_copy_vertex_groups_by_prefix(from_mesh_obj, vg_name_prefix):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    from_mesh_obj = context.active_object
-    selection_list = context.selected_objects
+    selection_list = bpy.context.selected_objects
     # iterate over selected 'MESH' type objects that are not the active object
     for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
@@ -131,22 +124,23 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_copy_vertex_groups_by_prefix(bpy.context.scene.Amh2bPropVGCopyNamePrefix)
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+        if len(bpy.context.selected_objects) < 2:
+            self.report({'ERROR'}, "Less than two objects selected")
+            return {'CANCELLED'}
+
+        do_copy_vertex_groups_by_prefix(act_ob, bpy.context.scene.Amh2bPropVGCopyNamePrefix)
         return {'FINISHED'}
 
-def do_make_tailor_vgroups():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_make_tailor_vgroups() error: active object was not a MESH. Select a MESH and try again.")
-        return
-
-    active_obj = context.active_object
-
+def do_make_tailor_vgroups(act_ob):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    add_ifnot_vertex_grp(active_obj, SC_VGRP_CUTS)
-    add_ifnot_vertex_grp(active_obj, SC_VGRP_PINS)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_CUTS)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_PINS)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -157,7 +151,12 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_make_tailor_vgroups()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+
+        do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
 def get_tailor_object_name(object_name):
@@ -166,12 +165,8 @@ def get_tailor_object_name(object_name):
     else:
         return object_name
 
-def do_rename_tailor_object_to_searchable():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_rename_tailor_object_to_searchable() error: Active Object is not MESH type. Select only one MESH object and try again.")
-        return
-    context.active_object.name = get_tailor_object_name(context.active_object.name)
+def do_rename_tailor_object_to_searchable(act_ob):
+    act_ob.name = get_tailor_object_name(act_ob.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
     """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
@@ -180,7 +175,11 @@ class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_rename_tailor_object_to_searchable()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+        do_rename_tailor_object_to_searchable(act_ob)
         return {'FINISHED'}
 
 # Returns True if material was successfully appended.
@@ -256,19 +255,13 @@ class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.ty
         do_search_file_for_auto_vgroups(self.filepath, bpy.context.scene.Amh2bPropVGCopyNamePrefix)
         return {'FINISHED'}
 
-def do_add_cloth_sim():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_add_cloth_sim() error: Active Object must be a mesh.")
-        return
-    mesh_obj = context.active_object
-    original_mode = context.object.mode
+def do_add_cloth_sim(mesh_obj):
+    original_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     mod = mesh_obj.modifiers.new("Cloth", 'CLOTH')
     if mod is None:
-        print("do_add_cloth_sim() error: Unable to add CLOTH modifier to object" + mesh_obj.name)
-        return
+        return "Unable to add CLOTH modifier to object" + mesh_obj.name
 
     mod.settings.use_dynamic_mesh = True
 
@@ -282,6 +275,8 @@ def do_add_cloth_sim():
 
     bpy.ops.object.mode_set(mode=original_mode)
 
+    return None
+
 class AMH2B_AddClothSim(bpy.types.Operator):
     """Add CLOTH modifer to active object with settings auto-filled for Pinning"""
     bl_idname = "amh2b.add_cloth_sim"
@@ -289,8 +284,18 @@ class AMH2B_AddClothSim(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_add_cloth_sim()
-        return {'FINISHED'}
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+
+        err_str = do_add_cloth_sim(act_ob)
+        if err_str is None:
+            return {'FINISHED'}
+
+        self.report({'ERROR'}, err_str)
+        return {'CANCELLED'}
+            
 
 def get_mod_verts(obj):
     obj_mod_mesh = get_mesh_post_modifiers(obj)
@@ -448,7 +453,6 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
             skv.co.z = skv.co.z + d_offset[2]
 
         for iter in range(extra_accuracy):
-            print("do more accuracy, iter = " + str(iter))
             sk_offsets.value = 1.0
             key_test_cos = get_mod_verts(obj)
             sk_offsets.value = 0.0
@@ -481,7 +485,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_y)
     obj.shape_key_remove(sk_z)
 
-def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
+def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
     extra_accuracy):
     old_current_frame = bpy.context.scene.frame_current
 
@@ -526,21 +530,6 @@ def create_deform_shapekeys(obj, add_prefix, bind_frame_num, start_frame_num, en
 
     bpy.context.scene.frame_set(old_current_frame)
 
-def do_bake_deform_shape_keys(add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
-    extra_accuracy):
-    if add_prefix == '':
-        print("do_bake_deform_shape_keys() error: Shape key name prefix (add_prefix) is blank.")
-        return
-    if start_frame_num > end_frame_num:
-        print("do_bake_deform_shape_keys() error: Start Frame number is higher than End Frame number.")
-        return
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'MESH':
-        print("do_bake_deform_shape_keys() error: Active Object must be a mesh.")
-        return
-
-    create_deform_shapekeys(bpy.context.active_object, add_prefix, bind_frame_num,
-        start_frame_num, end_frame_num, animate_keys, is_dynamic, extra_accuracy)
-
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
     bl_idname = "amh2b.bake_deform_shape_keys"
@@ -548,37 +537,42 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+
         scn = context.scene
-        do_bake_deform_shape_keys(scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
+        if scn.Amh2bPropDeformShapeKeyAddPrefix == '':
+            self.report({'ERROR'}, "Shape key name prefix (add_prefix) is blank")
+            return {'CANCELLED'}
+        if scn.Amh2bPropDSK_StartFrame > scn.Amh2bPropDSK_EndFrame:
+            self.report({'ERROR'}, "Start Frame number is higher than End Frame number")
+            return {'CANCELLED'}
+
+        do_bake_deform_shape_keys(act_ob, scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
             scn.Amh2bPropDSK_StartFrame, scn.Amh2bPropDSK_EndFrame, scn.Amh2bPropDSK_AnimateSK,
             scn.Amh2bPropDSK_Dynamic, scn.Amh2bPropDSK_ExtraAccuracy)
         return {'FINISHED'}
 
-def do_deform_sk_view_toggle():
-    context = bpy.context
-    if context.active_object is None or context.active_object.type != 'MESH':
-        print("do_toggle_view_cuts_mask() error: Active Object is not a MESH.")
-        return
-
-    active_obj = context.active_object
-
+def do_deform_sk_view_toggle(act_ob):
     # save original sk_view_active state by checking all modifiers for an armature with
     # AutoCuts vertex group; if any found then the view state is "on";
     # also the view state is "on" if any cloth or soft body sims have their viewport view set to visible
     sk_view_active = False
-    for mod in active_obj.modifiers:
+    for mod in act_ob.modifiers:
         if mod.type == 'ARMATURE' and mod.vertex_group == SC_VGRP_CUTS:
             sk_view_active = True
         elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
             sk_view_active = True
 
-    if active_obj.vertex_groups.get(SC_VGRP_CUTS) is None:
+    if act_ob.vertex_groups.get(SC_VGRP_CUTS) is None:
         obj_has_cuts_grp = False
     else:
         obj_has_cuts_grp = True
 
     # based on original view state, do toggle
-    for mod in active_obj.modifiers:
+    for mod in act_ob.modifiers:
         if mod.type == 'ARMATURE' and (mod.vertex_group == SC_VGRP_CUTS or mod.vertex_group == ""):
             if sk_view_active:
                 mod.vertex_group = ""
@@ -596,5 +590,10 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_deform_sk_view_toggle()
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'MESH':
+            self.report({'ERROR'}, "Active object is not MESH type")
+            return {'CANCELLED'}
+
+        do_deform_sk_view_toggle(act_ob)
         return {'FINISHED'}

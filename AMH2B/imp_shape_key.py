@@ -56,7 +56,7 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
             return {'CANCELLED'}
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not a mesh")
+            self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
         if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
             self.report({'ERROR'}, "Active object has no shape keys available to delete")
@@ -112,7 +112,7 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
 
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not a mesh")
+            self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
         if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
             self.report({'ERROR'}, "Active object does not have enough shape keys to be copied")

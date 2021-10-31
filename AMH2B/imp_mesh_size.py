@@ -32,34 +32,28 @@ else:
     from .imp_v28 import *
     Region = "UI"
 
-def do_create_size_rig(unlock_y):
-    if bpy.context.active_object is None or bpy.context.active_object.type != 'ARMATURE':
-        print("do_create_size_rig() error: no active object. Select exactly one ARMATURE and select meshes attached to the armature, and try again.")
-        return
-
+def do_create_size_rig(act_ob, unlock_y):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    # copy ref to active object
-    selection_active_obj = bpy.context.active_object
     # copy list of selected objects, minus the active object
     selection_list = []
     for ob in bpy.context.selected_objects:
-        if ob.name != selection_active_obj.name and ob.type == 'MESH':
+        if ob.name != act_ob.name and ob.type == 'MESH':
             selection_list.append(ob)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
 
     # select the old active_object in the 3D viewport
-    select_object(selection_active_obj)
+    select_object(act_ob)
     # make it the active selected object
-    set_active_object(selection_active_obj)
+    set_active_object(act_ob)
 
     # duplicate the original armature
     new_arm = dup_selected()
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
-    new_arm.parent = selection_active_obj
+    new_arm.parent = act_ob
 
     # add modifiers to the other selected objects (meshes), so the meshes will use the new armature
     if len(selection_list) > 0:
@@ -69,6 +63,12 @@ def do_create_size_rig(unlock_y):
     select_object(new_arm)
     # make new armature is the active object
     set_active_object(new_arm)
+
+    # hack: ensure new armature has same location as original armature, because using CreateSizeRig with a rig
+    # that has non-zero location will create a size rig in the wrong location (original rig location values x2)
+    new_arm.location.x = act_ob.x
+    new_arm.location.y = act_ob.y
+    new_arm.location.z = act_ob.z
 
     # unlock scale values for all pose bones - except for Y axis, unless allowed
     bpy.ops.object.mode_set(mode='POSE')
@@ -87,5 +87,10 @@ class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_create_size_rig(self.unlock_y_scale)
+        act_ob = bpy.context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            self.report({'ERROR'}, "Active object is not ARMATURE type")
+            return {'CANCELLED'}
+
+        do_create_size_rig(act_ob, self.unlock_y_scale)
         return {'FINISHED'}

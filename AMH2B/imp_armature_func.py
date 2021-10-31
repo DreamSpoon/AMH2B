@@ -31,8 +31,9 @@ def add_armature_to_obj(arm_obj, dest_obj):
     # create ARMATURE modifier and set refs, etc.
     mod = dest_obj.modifiers.new("ReposeArmature", 'ARMATURE')
     if mod is None:
-        print("do_repose_rig() error: Unable to add armature to object" + dest_obj.name)
+        print("Error: Unable to add armature to object" + dest_obj.name)
         return
+
     mod.object = arm_obj
     mod.use_deform_preserve_volume = True
     # Move modifier to top of stack, because this armature needs to move the mesh before
