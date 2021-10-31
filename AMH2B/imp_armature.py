@@ -724,3 +724,36 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
 
         do_lucky(self, mhx_arm_obj, other_armature_obj)
         return {'FINISHED'}
+
+def do_toggle_preserve_volume(new_state):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    for ob in bpy.context.selected_objects:
+        if ob.type != 'MESH':
+            continue
+        for mod in ob.modifiers:
+            if mod.type == 'ARMATURE':
+                mod.use_deform_preserve_volume = new_state
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
+    """Enable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
+    bl_idname = "amh2b.enable_mod_preserve_volume"
+    bl_label = "Enable Preserve Volume"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_toggle_preserve_volume(True)
+        return {'FINISHED'}
+
+class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
+    """Disable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
+    bl_idname = "amh2b.disable_mod_preserve_volume"
+    bl_label = "Disable Preserve Volume"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_toggle_preserve_volume(False)
+        return {'FINISHED'}

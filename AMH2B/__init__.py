@@ -105,6 +105,7 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         box.prop(scn, "Amh2bPropGrowPaintIterations")
         box.prop(scn, "Amh2bPropGrowPaintStartWeight")
         box.prop(scn, "Amh2bPropGrowPaintEndWeight")
+        box.prop(scn, "Amh2bPropPaintInitialSelection")
         box.prop(scn, "Amh2bPropTailFill")
         sub = box.column()
         sub.active = scn.Amh2bPropTailFill
@@ -186,6 +187,10 @@ class AMH2B_Armature(bpy.types.Panel):
         box = layout.box()
         box.label(text="Retarget Multi-Function")
         box.operator("amh2b.lucky")
+        box = layout.box()
+        box.label(text="Preserve Volume Toggle")
+        box.operator("amh2b.enable_mod_preserve_volume")
+        box.operator("amh2b.disable_mod_preserve_volume")
 
 class AMH2B_Animation(bpy.types.Panel):
     bl_label = "Animation"
@@ -224,6 +229,8 @@ classes = [
     AMH2B_BridgeRepose,
     AMH2B_BoneWoven,
     AMH2B_Lucky,
+    AMH2B_EnableModPreserveVolume,
+    AMH2B_DisableModPreserveVolume,
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
@@ -254,6 +261,7 @@ def register():
     bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=0)
     bpy.types.Scene.Amh2bPropGrowPaintStartWeight = bpy.props.FloatProperty(name="Start Weight", description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
+    bpy.types.Scene.Amh2bPropPaintInitialSelection = bpy.props.BoolProperty(name="Paint Initial Selection", description="Initial selection will be included when applying weight paints", default=True)
     bpy.types.Scene.Amh2bPropTailFill = bpy.props.BoolProperty(name="Tail Fill", description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail fill value, after applying weights to vertexes during 'select more' iterations", default=False)
     bpy.types.Scene.Amh2bPropTailFillValue = bpy.props.FloatProperty(name="Tail Value", description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropTailFillConnected = bpy.props.BoolProperty(name="Fill only linked", description="Only linked vertexes will be included in the tail fill process", default=True)
