@@ -82,12 +82,17 @@ def copy_replace_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name
     delete_vertex_group(to_mesh_obj, vert_grp_name)
     copy_vertex_group_weighted(from_mesh_obj, to_mesh_obj, vert_grp_name)
 
+def copy_vgroups_by_name_prefix(obj_src, obj_dest, name_prefix):
+    for vgrp in obj_src.vertex_groups:
+        if re.match(name_prefix + "\w*", vgrp.name):
+            copy_replace_vertex_group_weighted(obj_src, obj_dest, vgrp.name)
+
 def delete_vertex_group(mesh_obj, vert_grp_name):
     vg = mesh_obj.vertex_groups.get(vert_grp_name)
     if vg is not None:
         mesh_obj.vertex_groups.remove(vg)
 
-def copy_vgroups_by_name_prefix(obj_src, obj_dest, name_prefix):
-    for vgrp in obj_src.vertex_groups:
+def delete_vgroups_by_name_prefix(mesh_obj, name_prefix):
+    for vgrp in mesh_obj.vertex_groups:
         if re.match(name_prefix + "\w*", vgrp.name):
-            copy_replace_vertex_group_weighted(obj_src, obj_dest, vgrp.name)
+            delete_vertex_group(mesh_obj, vgrp.name)

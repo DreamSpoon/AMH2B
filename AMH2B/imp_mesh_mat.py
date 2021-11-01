@@ -23,7 +23,8 @@
 import bpy
 from bpy_extras.io_utils import ImportHelper
 import re
-import os
+
+from .imp_append_from_file import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -42,23 +43,6 @@ else:
 # Returns True if material was successfully appended.
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
-def append_material_from_blend_file(mat_filepath, mat_name):
-    # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
-    inner_path = "Material"
-
-    try:
-        bpy.ops.wm.append(
-            filepath=os.path.join(mat_filepath, inner_path, mat_name),
-            directory=os.path.join(mat_filepath, inner_path),
-            filename=mat_name
-            )
-    except:
-        return False
-
-    if bpy.data.materials.get(mat_name) is None:
-        return False
-
-    return True
 
 # trim string up to, and including, the first ":" character, and return trimmed string
 def get_swatch_name_for_MH_name(mh_name):
@@ -119,7 +103,6 @@ class AMH2B_SwapMatWithFile(AMH2B_SwapMaterialsInner, bpy.types.Operator, Import
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        filename, extension = os.path.splitext(self.filepath)
         do_swap_mats_with_file(self.filepath)
         return {'FINISHED'}
 

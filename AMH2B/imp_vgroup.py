@@ -21,9 +21,9 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
-import os
 from bpy_extras.io_utils import ImportHelper
 
+from .imp_append_from_file import *
 from .imp_const import *
 from .imp_vgroup_func import *
 
@@ -118,15 +118,47 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
-        if len(bpy.context.selected_objects) < 2:
+        if len(context.selected_objects) < 2:
             self.report({'ERROR'}, "Less than two objects selected")
             return {'CANCELLED'}
 
-        do_copy_vertex_groups_by_prefix(act_ob, bpy.context.scene.Amh2bPropVGCopyNamePrefix)
+        do_copy_vertex_groups_by_prefix(act_ob, context.scene.Amh2bPropVGFunctionNamePrefix)
+        return {'FINISHED'}
+
+def is_auto_prefix_match(name, prefix):
+    if name == prefix or re.match(prefix + "\w*", name):
+        return True
+    else:
+        return False
+
+def delete_prefixed_vertex_groups(delete_prefix):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    selection_list = bpy.context.selected_objects
+    # iterate over selected 'MESH' type objects that are not the active object
+    for mesh_obj in (x for x in selection_list if x.type == 'MESH'):
+        delete_vgroups_by_name_prefix(mesh_obj, delete_prefix)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
+    """With active object, delete vertex groups by prefix"""
+    bl_idname = "amh2b.delete_vertex_groups_by_prefix"
+    bl_label = "Delete Groups"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        scn = context.scene
+        if scn.Amh2bPropVGFunctionNamePrefix == '':
+            self.report({'ERROR'}, "Vertex group name prefix is blank")
+            return {'CANCELLED'}
+
+        delete_prefixed_vertex_groups(scn.Amh2bPropVGFunctionNamePrefix)
         return {'FINISHED'}
 
 def do_make_tailor_vgroups(act_ob):
@@ -176,30 +208,7 @@ class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
         do_rename_tailor_object_to_searchable(act_ob)
         return {'FINISHED'}
 
-# Returns True if material was successfully appended.
-# Checks if the material already exists in this file, if it does exist then rename the
-# current material, and then append the new material.
-def append_object_from_blend_file(mat_filepath, obj_name):
-    # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
-    inner_path = "Object"
-
-    try:
-        bpy.ops.wm.append(
-            filepath=os.path.join(mat_filepath, inner_path, obj_name),
-            directory=os.path.join(mat_filepath, inner_path),
-            filename=obj_name
-            )
-    except:
-        return False
-
-    if bpy.data.objects.get(obj_name) is None:
-        return False
-
-    return True
-
 def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
-    bpy.ops.object.mode_set(mode='OBJECT')
-
     # copy list of selected objects, minus the active object
     selection_list = []
     for ob in bpy.context.selected_objects:
@@ -225,8 +234,6 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
 
             continue
 
-        #do_inner_copy_sew_pattern(appended_obj, [sel])
-        #do_inner_copy_tailor_vgroups(appended_obj, [sel])
         copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
 
         # all objects were deselected before starting this loop,
@@ -241,10 +248,9 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
 class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in user selected file"""
     bl_idname = "amh2b.search_file_for_auto_vgroups"
-    bl_label = "From File"
+    bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        filename, extension = os.path.splitext(self.filepath)
-        do_search_file_for_auto_vgroups(self.filepath, bpy.context.scene.Amh2bPropVGCopyNamePrefix)
+        do_search_file_for_auto_vgroups(self.filepath, bpy.context.scene.Amh2bPropVGFunctionNamePrefix)
         return {'FINISHED'}

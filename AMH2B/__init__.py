@@ -91,10 +91,11 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         scn = context.scene
 
         box = layout.box()
-        box.label(text="Group Copy")
+        box.label(text="Functions")
         box.operator("amh2b.search_file_for_auto_vgroups")
         box.operator("amh2b.copy_vertex_groups_by_prefix")
-        box.prop(scn, "Amh2bPropVGCopyNamePrefix")
+        box.operator("amh2b.delete_vertex_groups_by_prefix")
+        box.prop(scn, "Amh2bPropVGFunctionNamePrefix")
         box = layout.box()
         box.label(text="Auto Mask & Pin Group")
         box.operator("amh2b.make_tailor_groups")
@@ -239,6 +240,7 @@ classes = [
     AMH2B_AddCutsMask,
     AMH2B_ToggleViewCutsMask,
     AMH2B_CopyVertexGroupsByPrefix,
+    AMH2B_DeleteVertexGroupsByPrefix,
     AMH2B_MakeTailorGroups,
     AMH2B_MakeTailorObjectSearchable,
     AMH2B_SearchFileForAutoVGroups,
@@ -282,7 +284,7 @@ def register():
     bpy.types.Scene.Amh2bPropDSK_ExtraAccuracy = bpy.props.IntProperty(name="", description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
     bpy.types.Scene.Amh2bPropDeformShapeKeyAddPrefix = bpy.props.StringProperty(name="Prefix", description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bpy.types.Scene.Amh2bPropShapeKeyFunctionsPrefix = bpy.props.StringProperty(name="Prefix", description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
-    bpy.types.Scene.Amh2bPropVGCopyNamePrefix = bpy.props.StringProperty(name="Prefix", description="Copy from active mesh object, only vertex groups with names beginning with this prefix, to other selected meshes. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+    bpy.types.Scene.Amh2bPropVGFunctionNamePrefix = bpy.props.StringProperty(name="Prefix", description="Perform functions on selected MESH type objects, but only vertex groups with names beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bpy.types.Scene.Amh2bPropSelectVertexMinW = bpy.props.FloatProperty(name="Min Weight", description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexMaxW = bpy.props.FloatProperty(name="Max Weight", description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexDeselect = bpy.props.BoolProperty(name="Deselect All First", description="Deselect all vertexes before selecting by weight", default=True)
