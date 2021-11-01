@@ -25,6 +25,7 @@ from bpy_extras.io_utils import ImportHelper
 
 from .imp_append_from_file import *
 from .imp_const import *
+from .imp_template import *
 from .imp_vgroup_func import *
 
 if bpy.app.version < (2,80,0):
@@ -185,15 +186,6 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
-def get_tailor_object_name(object_name):
-    if object_name.rfind(":") != -1:
-        return object_name[object_name.rfind(":")+1 : len(object_name)]
-    else:
-        return object_name
-
-def do_rename_tailor_object_to_searchable(act_ob):
-    act_ob.name = get_tailor_object_name(act_ob.name)
-
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
     """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
     bl_idname = "amh2b.make_tailor_object_searchable"
@@ -205,7 +197,7 @@ class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
-        do_rename_tailor_object_to_searchable(act_ob)
+        do_rename_mhx_object_to_searchable(act_ob)
         return {'FINISHED'}
 
 def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
@@ -217,7 +209,7 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
     bpy.ops.object.select_all(action='DESELECT')
 
     for sel in selection_list:
-        search_name = get_tailor_object_name(sel.name)
+        search_name = get_searchable_object_name(sel.name)
         # if the desired VGroups mesh object name is already used then rename it before appending from file,
         # and rename later after the appended object is deleted
         test_obj = bpy.data.objects.get(search_name)
@@ -245,8 +237,8 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
         if test_obj is not None:
             test_obj.name = search_name
 
-class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchFileForAutoVGroupsInner, bpy.types.Operator, ImportHelper):
-    """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in user selected file"""
+class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
+    """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
     bl_idname = "amh2b.search_file_for_auto_vgroups"
     bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}

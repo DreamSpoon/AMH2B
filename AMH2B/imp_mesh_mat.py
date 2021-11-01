@@ -96,7 +96,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
             # swap material
             mat_slot.material = bpy.data.materials[swatch_mat_name]
 
-class AMH2B_SwapMatWithFile(AMH2B_SwapMaterialsInner, bpy.types.Operator, ImportHelper):
+class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """Try to swap all materials (based on material name) on all selected objects with replacement materials from another Blend File"""
     bl_idname = "amh2b.swap_mat_from_file"
     bl_label = "From File"

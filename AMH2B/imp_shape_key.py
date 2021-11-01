@@ -21,13 +21,16 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
+from bpy_extras.io_utils import ImportHelper
 import re
 import mathutils
 from mathutils import Vector
 import numpy
 
+from .imp_append_from_file import *
 from .imp_const import *
 from .imp_object_func import *
+from .imp_template import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -36,7 +39,7 @@ else:
     from .imp_v28 import *
     Region = "UI"
 
-def is_dsk_prefix_match(name, prefix):
+def is_name_prefix_match(name, prefix):
     if name == prefix or re.match(prefix + "\w*", name):
         return True
     else:
@@ -44,7 +47,7 @@ def is_dsk_prefix_match(name, prefix):
 
 def delete_deform_shapekeys(obj, delete_prefix):
     for sk in obj.data.shape_keys.key_blocks:
-        if is_dsk_prefix_match(sk.name, delete_prefix):
+        if is_name_prefix_match(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
 
 class AMH2B_SKFuncDelete(bpy.types.Operator):
@@ -73,18 +76,23 @@ def copy_single_shapekey(src_obj, dest_obj, shape_key_index):
     check_create_basis_shape_key(dest_obj)
 
     src_obj.active_shape_key_index = shape_key_index
-    set_active_object(dest_obj)
     src_obj.select = True
     dest_obj.select = True
+    set_active_object(dest_obj)
     bpy.ops.object.shape_key_transfer()
     src_obj.select = False
     dest_obj.select = False
 
-def copy_shapekeys(src_obj, dest_objects, copy_prefix):
+def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix):
     for dest_obj in dest_objects:
+        print("Try to copy to object named: " + dest_obj.name)
         show_temp = dest_obj.show_only_shape_key
+        if src_obj.data.shape_keys is None:
+            continue
+        print("and so on")
         for sk in src_obj.data.shape_keys.key_blocks:
-            if is_dsk_prefix_match(sk.name, copy_prefix):
+            if is_name_prefix_match(sk.name, copy_prefix):
+                print("copy shape key named: " + sk.name)
                 copy_single_shapekey(src_obj, dest_obj, src_obj.data.shape_keys.key_blocks.find(sk.name))
 
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
@@ -98,7 +106,7 @@ def do_copy_shape_keys(src_object, dest_objects, copy_prefix):
     # and this requires exactly two specific objects be selected per shape key copy
     bpy.ops.object.select_all(action='DESELECT')
 
-    copy_shapekeys(src_object, dest_objects, copy_prefix)
+    copy_shapekeys_by_name_prefix(src_object, dest_objects, copy_prefix)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 # TODO copy animation keyframes too
@@ -297,7 +305,6 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
                 skv.co.y = skv.co.y + d_offset[1]
                 skv.co.z = skv.co.z + d_offset[2]
 
-
         if animate_keys:
             sk_offsets.value = 0
             sk_offsets.keyframe_insert(data_path='value', frame=frame-1)
@@ -429,4 +436,63 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
             return {'CANCELLED'}
 
         do_deform_sk_view_toggle(act_ob)
+        return {'FINISHED'}
+
+def do_search_file_for_auto_sk(chosen_blend_file, name_prefix):
+    # copy list of selected objects, minus the active object
+    selection_list = []
+    for ob in bpy.context.selected_objects:
+        if ob.type == 'MESH':
+            selection_list.append(ob)
+    bpy.ops.object.select_all(action='DESELECT')
+
+    for sel in selection_list:
+        search_name = get_searchable_object_name(sel.name)
+        # if the desired ShapeKey mesh object name is already used then rename it before appending from file,
+        # and rename later after the appended object is deleted
+        test_obj = bpy.data.objects.get(search_name)
+        if test_obj is not None:
+            test_obj.name = "TempRenameName"
+
+        # if cannot load mesh object from file...
+        append_object_from_blend_file(chosen_blend_file, search_name)
+        appended_obj = bpy.data.objects.get(search_name)
+        if appended_obj is None:
+            # if rename occurred, then undo rename
+            if test_obj is not None:
+                test_obj.name = search_name
+
+            continue
+
+        # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
+        # and this requires exactly two specific objects be selected per shape key copy
+        appended_selection_list = []
+        for ob in bpy.context.selected_objects:
+            appended_selection_list.append(ob)
+        bpy.ops.object.select_all(action='DESELECT')
+
+        print("copy the shape keys from file")
+        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix)
+
+        # re-select the objects that were appended
+        for ob in appended_selection_list:
+            ob.select = True
+
+        # all objects were deselected before starting this loop,
+        # and any objects currently selected could only have come from the append process,
+        # so delete all selected objects
+        bpy.ops.object.delete()
+
+        # if an object was named in order to do appending then fix name
+        if test_obj is not None:
+            test_obj.name = search_name
+
+class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
+    """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
+    bl_idname = "amh2b.search_file_for_auto_sk"
+    bl_label = "Copy from File"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_search_file_for_auto_sk(self.filepath, context.scene.Amh2bPropShapeKeyFunctionsPrefix)
         return {'FINISHED'}

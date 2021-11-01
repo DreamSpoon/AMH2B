@@ -66,9 +66,9 @@ def do_create_size_rig(act_ob, unlock_y):
 
     # hack: ensure new armature has same location as original armature, because using CreateSizeRig with a rig
     # that has non-zero location will create a size rig in the wrong location (original rig location values x2)
-    new_arm.location.x = act_ob.x
-    new_arm.location.y = act_ob.y
-    new_arm.location.z = act_ob.z
+    new_arm.location.x = act_ob.location.x
+    new_arm.location.y = act_ob.location.y
+    new_arm.location.z = act_ob.location.z
 
     # unlock scale values for all pose bones - except for Y axis, unless allowed
     bpy.ops.object.mode_set(mode='POSE')

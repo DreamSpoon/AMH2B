@@ -64,10 +64,7 @@ def do_global_rotate(axis_name, rg):
     else:
         print("do_global_rotate() Error: Unknown axis name = " + axis_name)
 
-class AMH2B_SwapMaterialsInner:
-    filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
-
-class AMH2B_SearchFileForAutoVGroupsInner:
+class AMH2B_SearchInFileInner:
     filter_glob = bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
 
 class AMH2B_CreateSizeRigInner:
