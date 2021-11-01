@@ -66,10 +66,6 @@ class AMH2B_MeshMat(bpy.types.Panel):
         box.operator("amh2b.swap_mat_from_file")
         box.operator("amh2b.swap_mat_int_single")
         box.operator("amh2b.swap_mat_int_multi")
-        box = layout.box()
-        box.label(text="Setup Material Swap")
-        box.operator("amh2b.setup_mat_swap_single")
-        box.operator("amh2b.setup_mat_swap_multi")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
@@ -97,7 +93,6 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box = layout.box()
         box.label(text="Group Copy")
         box.operator("amh2b.search_file_for_auto_vgroups")
-        box.operator("amh2b.make_tailor_object_searchable")
         box.operator("amh2b.copy_vertex_groups_by_prefix")
         box.prop(scn, "Amh2bPropVGCopyNamePrefix")
         box = layout.box()
@@ -117,7 +112,7 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         scn = context.scene
 
         box = layout.box()
-        box.label(text="Vertex Select by Weight")
+        box.label(text="Vertex Select")
         box.operator("amh2b.select_vertex_by_weight")
         box.prop(scn, "Amh2bPropSelectVertexMinW")
         box.prop(scn, "Amh2bPropSelectVertexMaxW")
@@ -161,8 +156,8 @@ class AMH2B_ShapeKey(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="ShapeKey Functions")
-        box.operator("amh2b.sk_func_delete")
         box.operator("amh2b.sk_func_copy")
+        box.operator("amh2b.sk_func_delete")
         box.prop(scn, "Amh2bPropShapeKeyFunctionsPrefix")
         box = layout.box()
         box.label(text="Bake Deform ShapeKey")
@@ -218,6 +213,23 @@ class AMH2B_Animation(bpy.types.Panel):
         box.label(text="Object Location")
         box.operator("amh2b.ratchet_hold")
 
+class AMH2B_Template(bpy.types.Panel):
+    bl_label = "Template"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        layout = self.layout
+        box = layout.box()
+        box.label(text="Material")
+        box.operator("amh2b.setup_mat_swap_single")
+        box.operator("amh2b.setup_mat_swap_multi")
+
+        box = layout.box()
+        box.label(text="Vertex Group and ShapeKey")
+        box.operator("amh2b.make_tailor_object_searchable")
+
 classes = [
     AMH2B_SwapMatWithFile,
     AMH2B_SwapMatIntSingle,
@@ -254,6 +266,7 @@ classes = [
     AMH2B_ShapeKey,
     AMH2B_Armature,
     AMH2B_Animation,
+    AMH2B_Template,
 ]
 
 def register():
@@ -273,7 +286,7 @@ def register():
     bpy.types.Scene.Amh2bPropSelectVertexMinW = bpy.props.FloatProperty(name="Min Weight", description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexMaxW = bpy.props.FloatProperty(name="Max Weight", description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropSelectVertexDeselect = bpy.props.BoolProperty(name="Deselect All First", description="Deselect all vertexes before selecting by weight", default=True)
-    bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=0)
+    bpy.types.Scene.Amh2bPropGrowPaintIterations = bpy.props.IntProperty(name="Iterations", description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=1)
     bpy.types.Scene.Amh2bPropGrowPaintStartWeight = bpy.props.FloatProperty(name="Start Weight", description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropGrowPaintEndWeight = bpy.props.FloatProperty(name="End Weight", description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
     bpy.types.Scene.Amh2bPropPaintInitialSelection = bpy.props.BoolProperty(name="Paint Initial Selection", description="Initial selection will be included when applying weight paints", default=True)

@@ -60,7 +60,7 @@ def do_add_cuts_mask(act_ob):
 class AMH2B_AddCutsMask(bpy.types.Operator):
     """Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to active object if needed"""
     bl_idname = "amh2b.add_cuts_mask"
-    bl_label = "Add Auto Mask Modifier"
+    bl_label = "Add MaskOut Modifier"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -88,7 +88,7 @@ def do_toggle_view_cuts_mask(act_ob):
 class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
     """Toggle the visibility of the Auto Mask modifier, in viewport and render"""
     bl_idname = "amh2b.toggle_view_cuts_mask"
-    bl_label = "Toggle View Auto Mask"
+    bl_label = "Toggle AutoMaskOut"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -112,9 +112,9 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, vg_name_prefix):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
-    """Copy vertex groups by name prefix from the active object (must be selected last) to all other selected mesh objects.\nObject does not need to be 'searchable' """
+    """Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects.\nObject name does not need to be 'searchable' """
     bl_idname = "amh2b.copy_vertex_groups_by_prefix"
-    bl_label = "Copy Prefixed Groups"
+    bl_label = "Copy Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -141,7 +141,7 @@ def do_make_tailor_vgroups(act_ob):
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add AutoMaskOut and AutoClothPin vertex groups to the active object, if these groups don't already exist"""
     bl_idname = "amh2b.make_tailor_groups"
-    bl_label = "Make Auto Mask & Pin Groups"
+    bl_label = "Add Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

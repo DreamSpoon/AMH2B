@@ -231,7 +231,7 @@ def do_setup_mat_swap_single(act_ob):
 class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
     """Rename active material slot of active object to make the material searchable re: swap material from file"""
     bl_idname = "amh2b.setup_mat_swap_single"
-    bl_label = "Rename Single"
+    bl_label = "Active Material Only"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -264,7 +264,7 @@ def do_setup_mat_swap_multi():
 class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
     """Rename all materials on all selected objects to make them searchable re: swap material from file"""
     bl_idname = "amh2b.setup_mat_swap_multi"
-    bl_label = "Rename Multi"
+    bl_label = "All Material Slots"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

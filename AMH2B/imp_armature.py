@@ -216,7 +216,7 @@ def do_bridge_repose_rig(act_ob):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_BridgeRepose(bpy.types.Operator):
-    """Use a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
+    """Create a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
     bl_idname = "amh2b.bridge_repose"
     bl_label = "Bridge Re-Pose"
     bl_options = {'REGISTER', 'UNDO'}
@@ -741,7 +741,7 @@ def do_toggle_preserve_volume(new_state):
 class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
     """Enable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
     bl_idname = "amh2b.enable_mod_preserve_volume"
-    bl_label = "Enable Preserve Volume"
+    bl_label = "Enable"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -751,7 +751,7 @@ class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
 class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
     """Disable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
     bl_idname = "amh2b.disable_mod_preserve_volume"
-    bl_label = "Disable Preserve Volume"
+    bl_label = "Disable"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

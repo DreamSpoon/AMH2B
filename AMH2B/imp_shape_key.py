@@ -50,7 +50,7 @@ def delete_deform_shapekeys(obj, delete_prefix):
 class AMH2B_SKFuncDelete(bpy.types.Operator):
     """With active object, delete shape keys by prefix"""
     bl_idname = "amh2b.sk_func_delete"
-    bl_label = "Delete Prefixed Keys"
+    bl_label = "Delete Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -105,7 +105,7 @@ def do_copy_shape_keys(src_object, dest_objects, copy_prefix):
 class AMH2B_SKFuncCopy(bpy.types.Operator):
     """With active object, copy shape keys by prefix to all other selected objects"""
     bl_idname = "amh2b.sk_func_copy"
-    bl_label = "Copy Prefixed Keys"
+    bl_label = "Copy Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

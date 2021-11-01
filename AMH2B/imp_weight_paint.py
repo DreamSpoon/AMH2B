@@ -25,6 +25,7 @@ import numpy
 
 SC_TEMP_VGRP_NAME = "TempVGroup"
 
+# iterations must be >= 1
 def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weight, paint_initial_selection,
     tail_fill, tail_fill_value, only_connected):
     old_3dview_mode = bpy.context.object.mode
@@ -55,7 +56,17 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
 
         # assign the blended weight paint to only the 'select more' vertexes
         paint_object.vertex_groups.active_index = paint_vg_index
-        vw = (end_weight - start_weight) * (iter+1) / iterations + start_weight
+
+        # if initial selection was painted with start_weight, then then offset weight blend by +1:
+        # first iteration gets start_weight blended slightly to end_weight
+        vw = start_weight
+        if paint_initial_selection:
+            vw = (end_weight - start_weight) * (iter+1) / iterations + start_weight
+        # otherwise, offset weight blend by zero:
+        # first iteration gets start_weight
+        elif iterations > 1:
+            vw = (end_weight - start_weight) * iter / (iterations-1) + start_weight
+
         bpy.context.scene.tool_settings.vertex_group_weight = vw
         bpy.ops.object.vertex_group_assign()
 
