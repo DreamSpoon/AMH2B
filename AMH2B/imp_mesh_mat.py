@@ -22,7 +22,6 @@
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
-import re
 
 from .imp_append_from_file import *
 from .imp_material_func import *

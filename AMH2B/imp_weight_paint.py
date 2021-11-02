@@ -21,7 +21,6 @@
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
-import numpy
 
 SC_TEMP_VGRP_NAME = "TempVGroup"
 
@@ -46,7 +45,7 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
     bpy.context.scene.tool_settings.vertex_group_weight = 1.0
     bpy.ops.object.vertex_group_assign()
 
-    for iter in range(iterations):
+    for i in range(iterations):
         # grow selection
         bpy.ops.mesh.select_more()
 
@@ -61,11 +60,11 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
         # first iteration gets start_weight blended slightly to end_weight
         vw = start_weight
         if paint_initial_selection:
-            vw = (end_weight - start_weight) * (iter+1) / iterations + start_weight
+            vw = (end_weight - start_weight) * (i+1) / iterations + start_weight
         # otherwise, offset weight blend by zero:
         # first iteration gets start_weight
         elif iterations > 1:
-            vw = (end_weight - start_weight) * iter / (iterations-1) + start_weight
+            vw = (end_weight - start_weight) * i / (iterations-1) + start_weight
 
         bpy.context.scene.tool_settings.vertex_group_weight = vw
         bpy.ops.object.vertex_group_assign()

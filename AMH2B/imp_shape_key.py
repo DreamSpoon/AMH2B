@@ -299,7 +299,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
             skv.co.y = skv.co.y + d_offset[1]
             skv.co.z = skv.co.z + d_offset[2]
 
-        for iter in range(extra_accuracy):
+        for i in range(extra_accuracy):
             sk_offsets.value = 1.0
             key_test_cos = get_mod_verts(obj)
             sk_offsets.value = 0.0
@@ -413,11 +413,6 @@ def do_deform_sk_view_toggle(act_ob):
             sk_view_active = True
         elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
             sk_view_active = True
-
-    if act_ob.vertex_groups.get(SC_VGRP_CUTS) is None:
-        obj_has_cuts_grp = False
-    else:
-        obj_has_cuts_grp = True
 
     # based on original view state, do toggle
     for mod in act_ob.modifiers:

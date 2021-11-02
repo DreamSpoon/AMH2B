@@ -24,7 +24,6 @@ import bpy
 
 # duplicate selected objects, return active object afterwards
 def dup_selected():
-    obj_to_dup = bpy.context.active_object
     bpy.ops.object.duplicate(linked=False)
     return bpy.context.active_object
 

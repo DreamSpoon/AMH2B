@@ -130,12 +130,6 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
         do_copy_vertex_groups_by_prefix(act_ob, context.scene.Amh2bPropVGFunctionNamePrefix)
         return {'FINISHED'}
 
-def is_auto_prefix_match(name, prefix):
-    if name == prefix or re.match(prefix + "\w*", name):
-        return True
-    else:
-        return False
-
 def delete_prefixed_vertex_groups(delete_prefix):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')

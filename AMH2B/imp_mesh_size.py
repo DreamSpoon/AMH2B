@@ -54,8 +54,15 @@ def do_create_size_rig(act_ob, unlock_y):
     new_arm = dup_selected()
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
     new_arm.parent = act_ob
-    # location of duplicate, relative to parent, is zero
-    new_arm.location = (0.0, 0.0, 0.0)
+    # reset location/rotation of duplicate, relative to parent, to zero - and reset scale to 1
+    new_arm.location = (0, 0, 0)
+    if new_arm.rotation_mode == 'AXIS_ANGLE':
+        new_arm.rotation_axis_angle = (0, 0, 1, 0)
+    elif new_arm.rotation_mode == 'QUATERNION':
+        new_arm.rotation_quaternion = (1, 0, 0, 0)
+    else:
+        new_arm.rotation_euler = (0, 0, 0)
+    new_arm.scale = (1, 1, 1)
 
     # add modifiers to the other selected objects (meshes), so the meshes will use the new armature
     if len(selection_list) > 0:

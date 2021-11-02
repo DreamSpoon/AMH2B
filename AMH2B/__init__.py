@@ -139,8 +139,6 @@ class AMH2B_Simulation(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = context.scene
-
         box = layout.box()
         box.label(text="Cloth Sim")
         box.operator("amh2b.add_cloth_sim")
@@ -154,7 +152,6 @@ class AMH2B_ShapeKey(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
-
         box = layout.box()
         box.label(text="ShapeKey Functions")
         box.operator("amh2b.search_file_for_auto_sk")
@@ -188,7 +185,6 @@ class AMH2B_Armature(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
-
         box = layout.box()
         box.label(text="Retarget")
         box.operator("amh2b.adjust_pose")
@@ -228,7 +224,6 @@ class AMH2B_Template(bpy.types.Panel):
         box.label(text="Material")
         box.operator("amh2b.setup_mat_swap_single")
         box.operator("amh2b.setup_mat_swap_multi")
-
         box = layout.box()
         box.label(text="Vertex Group and ShapeKey")
         box.operator("amh2b.make_tailor_object_searchable")
