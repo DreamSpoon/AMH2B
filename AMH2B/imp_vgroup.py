@@ -186,20 +186,6 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
-class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
-    """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
-    bl_idname = "amh2b.make_tailor_object_searchable"
-    bl_label = "Make Object Searchable"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = bpy.context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-        do_rename_mhx_object_to_searchable(act_ob)
-        return {'FINISHED'}
-
 def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
     # copy list of selected objects, minus the active object
     selection_list = []

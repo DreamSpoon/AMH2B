@@ -54,6 +54,8 @@ def do_create_size_rig(act_ob, unlock_y):
     new_arm = dup_selected()
     # parent the duplicated armature to the original armature, to prevent mesh tearing if the armatures move apart
     new_arm.parent = act_ob
+    # location of duplicate, relative to parent, is zero
+    new_arm.location = (0.0, 0.0, 0.0)
 
     # add modifiers to the other selected objects (meshes), so the meshes will use the new armature
     if len(selection_list) > 0:
@@ -63,12 +65,6 @@ def do_create_size_rig(act_ob, unlock_y):
     select_object(new_arm)
     # make new armature is the active object
     set_active_object(new_arm)
-
-    # hack: ensure new armature has same location as original armature, because using CreateSizeRig with a rig
-    # that has non-zero location will create a size rig in the wrong location (original rig location values x2)
-    new_arm.location.x = act_ob.location.x
-    new_arm.location.y = act_ob.location.y
-    new_arm.location.z = act_ob.location.z
 
     # unlock scale values for all pose bones - except for Y axis, unless allowed
     bpy.ops.object.mode_set(mode='POSE')

@@ -25,6 +25,8 @@ from bpy_extras.io_utils import ImportHelper
 import re
 
 from .imp_append_from_file import *
+from .imp_material_func import *
+from .imp_template import get_mat_template_name
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -44,16 +46,6 @@ else:
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
 
-# trim string up to, and including, the first ":" character, and return trimmed string
-def get_swatch_name_for_MH_name(mh_name):
-    # if name is in MH format then return trimmed name
-    # (remove first third, up to the ":", and return the remaining two-thirds)
-    if len(mh_name.split(":", -1)) == 3:
-        return mh_name.split(":", 1)[1]
-    # otherwise return original name
-    else:
-        return mh_name
-
 def do_swap_mats_with_file(shaderswap_blendfile):
     mats_loaded_from_file = []
 
@@ -69,7 +61,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
             if mat_slot.material is None:
                 continue
 
-            swatch_mat_name = get_swatch_name_for_MH_name(mat_slot.material.name)
+            swatch_mat_name = get_mat_template_name(mat_slot.material.name)
 
             # if material has already been loaded from file...
             if swatch_mat_name in mats_loaded_from_file:
@@ -116,26 +108,6 @@ class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportH
 # Search and swap material only active material slot on active object.
 #     Multi
 # Search and swap materials for all material slots on all selected objects.
-
-def is_mat_swappable_name(mat_name):
-    if mat_name.count(':') == 1:
-        return True
-    return False
-
-def is_mat_mhx_name(mat_name):
-    if mat_name.count(':') == 2:
-        return True
-    return False
-
-# this function is different from get_swatch_name_for_MH_name() because this function assumes
-# proper MHX convention format of mat_name
-def get_swappable_from_mhx_name(mat_name):
-    return mat_name[ mat_name.find(":")+1 : len(mat_name) ]
-
-def rename_material(old_mat_name, new_mat_name):
-    got_mat = bpy.data.materials.get(old_mat_name)
-    if got_mat is not None:
-        got_mat.name = new_mat_name
 
 def do_mat_swaps_internal_single():
     obj = bpy.context.active_object
@@ -192,64 +164,4 @@ class AMH2B_SwapMatIntMulti(bpy.types.Operator):
 
     def execute(self, context):
         do_mat_swaps_internal_multi()
-        return {'FINISHED'}
-
-#####################################################
-# Setup Swap Materials Single and Multi
-# Rename material(s) to be searchable by the swap materials functions.
-#    Single
-# Rename only material in active slot on active object.
-#    Multi
-# Rename all materials in all slots on all selected objects.
-#
-# Note: Renames material only if it matches the Import MHX material name convention.
-
-def do_setup_mat_swap_single(act_ob):
-    active_mat_name = act_ob.material_slots[act_ob.active_material_index].name
-
-    if is_mat_mhx_name(active_mat_name):
-        new_mat_name = get_swappable_from_mhx_name(active_mat_name)
-        rename_material(active_mat_name, new_mat_name)
-
-class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
-    """Rename active material slot of active object to make the material searchable re: swap material from file"""
-    bl_idname = "amh2b.setup_mat_swap_single"
-    bl_label = "Active Material Only"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = bpy.context.active_object
-        if act_ob is None:
-            self.report({'ERROR'}, "Active object is None")
-            return {'CANCELLED'}
-        if len(act_ob.material_slots) < 1:
-            self.report({'ERROR'}, "Active object does not have material slots")
-            return {'CANCELLED'}
-        if act_ob.material_slots[act_ob.active_material_index] is None:
-            self.report({'ERROR'}, "Active object does not have an active material index")
-            return {'CANCELLED'}
-
-        do_setup_mat_swap_single(act_ob)
-        return {'FINISHED'}
-
-def do_setup_mat_swap_multi():
-    selection_list = bpy.context.selected_objects
-    for obj in selection_list:
-        # iterate over the material slots and check/rename the materials
-        for mat_slot in obj.material_slots:
-            if mat_slot.material is None:
-                continue
-            mat_name = mat_slot.material.name
-            if is_mat_mhx_name(mat_name):
-                new_mat_name = get_swappable_from_mhx_name(mat_name)
-                rename_material(mat_name, new_mat_name)
-
-class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
-    """Rename all materials on all selected objects to make them searchable re: swap material from file"""
-    bl_idname = "amh2b.setup_mat_swap_multi"
-    bl_label = "All Material Slots"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_setup_mat_swap_multi()
         return {'FINISHED'}

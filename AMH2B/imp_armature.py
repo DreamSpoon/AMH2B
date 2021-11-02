@@ -668,7 +668,7 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj):
     # use Blender to apply location and rotation to animated armature
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
     # use custom apply scale to animated armature
-    do_apply_scale()
+    do_apply_scale(other_armature_obj)
 
     # other_armature_obj will still be selected and the active_object, so just add the MHX armature
     # to the selected list and make it the active object
@@ -676,7 +676,7 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj):
     set_active_object(mhx_arm_obj)
 
     # do bone woven
-    do_bone_woven(self)
+    do_bone_woven(self, mhx_arm_obj, other_armature_obj)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
