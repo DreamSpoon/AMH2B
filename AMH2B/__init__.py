@@ -169,6 +169,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         box.prop(scn, "Amh2bPropDSK_StartFrame")
         box.prop(scn, "Amh2bPropDSK_EndFrame")
         box.prop(scn, "Amh2bPropDSK_AnimateSK")
+        box.prop(scn, "Amh2bPropDSK_AddFrameToName")
         box.prop(scn, "Amh2bPropDSK_Dynamic")
         sub = box.column()
         sub.active = scn.Amh2bPropDSK_Dynamic
@@ -289,6 +290,8 @@ def register():
         description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
     bts.Amh2bPropDSK_AnimateSK = bp.BoolProperty(name="Animate Shape Keys",
         description="Keyframe shape key values to animate frames when Shape Keys were created", default=True)
+    bts.Amh2bPropDSK_AddFrameToName = bp.BoolProperty(name="Add Frame to Name",
+        description="Append frame number to key name (e.g. DSKey005, DSKey006)", default=True)
     bts.Amh2bPropDSK_Dynamic = bp.BoolProperty(name="Dynamic",
         description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
     bts.Amh2bPropDSK_ExtraAccuracy = bp.IntProperty(name="",

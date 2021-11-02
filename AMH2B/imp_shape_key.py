@@ -85,14 +85,11 @@ def copy_single_shapekey(src_obj, dest_obj, shape_key_index):
 
 def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix):
     for dest_obj in dest_objects:
-        print("Try to copy to object named: " + dest_obj.name)
         show_temp = dest_obj.show_only_shape_key
         if src_obj.data.shape_keys is None:
             continue
-        print("and so on")
         for sk in src_obj.data.shape_keys.key_blocks:
             if is_name_prefix_match(sk.name, copy_prefix):
-                print("copy shape key named: " + sk.name)
                 copy_single_shapekey(src_obj, dest_obj, src_obj.data.shape_keys.key_blocks.find(sk.name))
 
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
@@ -194,12 +191,17 @@ def is_deform_modifier(mod):
         return True
     return False
 
-def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches):
+def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+    vert_matches):
     # create shape keys in the "deform" frames
-    for frame in range(start_frame_num+1, end_frame_num+2):
+    for frame in range(start_frame_num, end_frame_num+1):
         bpy.context.scene.frame_set(frame)
         mod_verts = get_mod_verts(obj)
-        sk = create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts)
+
+        prefix = add_prefix
+        if append_frame_to_name:
+            prefix = prefix + str(frame).zfill(4)
+        sk = create_single_deform_shape_key(obj, prefix, vert_matches, mod_verts)
         # if animating keys then add keyframes before and after the current frame with value = 0, and
         # add keyframe on current frame with value = 1
         if animate_keys:
@@ -209,7 +211,8 @@ def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys
             sk.value = 1
             sk.keyframe_insert(data_path='value', frame=frame)
 
-def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches, extra_accuracy):
+def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+    vert_matches, extra_accuracy):
     # create a shape key for each axis, with offsets of +1.0 in for respective axis
     check_create_basis_shape_key(obj)
     sk_x = obj.shape_key_add(name=SC_TEMP_SK_X)
@@ -229,7 +232,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
 
     obj.show_only_shape_key = False
 
-    for frame in range(start_frame_num+1, end_frame_num+2):
+    for frame in range(start_frame_num, end_frame_num+1):
         # go to current frame
         bpy.context.scene.frame_set(frame)
 
@@ -282,7 +285,10 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
         key_y_cos = None
         key_z_cos = None
 
-        sk_offsets = obj.shape_key_add(name=add_prefix)
+        prefix = add_prefix
+        if append_frame_to_name:
+            prefix = prefix + str(frame).zfill(4)
+        sk_offsets = obj.shape_key_add(name=prefix)
         sk_offsets.interpolation = 'KEY_LINEAR'
         for base_v_index, mod_v_index in vert_matches:
             skv = sk_offsets.data[base_v_index]
@@ -325,8 +331,8 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_y)
     obj.shape_key_remove(sk_z)
 
-def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys, is_dynamic,
-    extra_accuracy):
+def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
+    append_frame_to_name, is_dynamic, extra_accuracy):
     old_current_frame = bpy.context.scene.frame_current
 
     # before binding, temporarily mute visibility of deform modifiers
@@ -364,9 +370,11 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
         mod.show_render = show_r
 
     if is_dynamic:
-        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches, extra_accuracy)
+        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+            vert_matches, extra_accuracy)
     else:
-        do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, vert_matches)
+        do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+            vert_matches)
 
     bpy.context.scene.frame_set(old_current_frame)
 
@@ -392,7 +400,7 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
 
         do_bake_deform_shape_keys(act_ob, scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
             scn.Amh2bPropDSK_StartFrame, scn.Amh2bPropDSK_EndFrame, scn.Amh2bPropDSK_AnimateSK,
-            scn.Amh2bPropDSK_Dynamic, scn.Amh2bPropDSK_ExtraAccuracy)
+            scn.Amh2bPropDSK_AddFrameToName, scn.Amh2bPropDSK_Dynamic, scn.Amh2bPropDSK_ExtraAccuracy)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle(act_ob):
@@ -471,7 +479,6 @@ def do_search_file_for_auto_sk(chosen_blend_file, name_prefix):
             appended_selection_list.append(ob)
         bpy.ops.object.select_all(action='DESELECT')
 
-        print("copy the shape keys from file")
         copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix)
 
         # re-select the objects that were appended
