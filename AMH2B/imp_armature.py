@@ -177,14 +177,14 @@ class AMH2B_ApplyScale(bpy.types.Operator):
 # that moves mesh to desired pose, then original rig is pose-apply'ed and takes over from duplicate rig.
 # Basically, a duplicate rig moves the underlying mesh to the place where the reposed original rig will be.
 
-def do_bridge_repose_rig(act_ob):
+def do_bridge_repose_rig(act_ob, sel_obj_list):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # copy list of selected objects, minus the active object
     # (0 selected objects is allowed, because armature can be re-posed independently)
     selection_list = []
-    for ob in bpy.context.selected_objects:
+    for ob in sel_obj_list:
         if ob.name != act_ob.name:
             selection_list.append(ob)
 
@@ -236,7 +236,7 @@ class AMH2B_BridgeRepose(bpy.types.Operator):
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
 
-        do_bridge_repose_rig(act_ob)
+        do_bridge_repose_rig(act_ob, context.selected_objects)
         return {'FINISHED'}
 
 #####################################################
@@ -659,13 +659,13 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
 # Select all meshes attached to the MHX Armature, and the Animated Armature, and the MHX Armature.
 # The MHX Armature must be selected last so that it is the Active Object.
 
-def do_lucky(self, mhx_arm_obj, other_armature_obj):
+def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # since MHX armature is already the active object, do repose first
     if self.repose_rig_enum == 'YES':
-        do_bridge_repose_rig(mhx_arm_obj)
+        do_bridge_repose_rig(mhx_arm_obj, sel_obj_list)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
@@ -731,14 +731,14 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
             self.report({'ERROR'}, "Could not find other armature to join with MHX armature")
             return {'CANCELLED'}
 
-        do_lucky(self, mhx_arm_obj, other_armature_obj)
+        do_lucky(self, mhx_arm_obj, other_armature_obj, context.selected_objects)
         return {'FINISHED'}
 
-def do_toggle_preserve_volume(new_state):
+def do_toggle_preserve_volume(new_state, sel_obj_list):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    for ob in bpy.context.selected_objects:
+    for ob in sel_obj_list:
         if ob.type != 'MESH':
             continue
         for mod in ob.modifiers:
@@ -754,7 +754,7 @@ class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_toggle_preserve_volume(True)
+        do_toggle_preserve_volume(True, context.selected_objects)
         return {'FINISHED'}
 
 class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
@@ -764,5 +764,5 @@ class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_toggle_preserve_volume(False)
+        do_toggle_preserve_volume(False, context.selected_objects)
         return {'FINISHED'}

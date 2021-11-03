@@ -93,8 +93,7 @@ class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
         do_setup_mat_template_single(act_ob)
         return {'FINISHED'}
 
-def do_setup_mat_template_multi():
-    selection_list = bpy.context.selected_objects
+def do_setup_mat_template_multi(selection_list):
     for obj in selection_list:
         # iterate over the material slots and check/rename the materials
         for mat_slot in obj.material_slots:
@@ -112,7 +111,7 @@ class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_setup_mat_template_multi()
+        do_setup_mat_template_multi(context.selected_objects)
         return {'FINISHED'}
 
 def get_searchable_object_name(object_name):

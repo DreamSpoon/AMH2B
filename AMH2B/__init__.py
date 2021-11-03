@@ -95,7 +95,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_copy_from_file")
         box.operator("amh2b.vg_copy_by_prefix")
         box.operator("amh2b.vg_delete_by_prefix")
-        box.prop(scn, "Amh2bPropVGFunctionNamePrefix")
+        box.prop(scn, "Amh2bPropVG_FunctionNamePrefix")
         box = layout.box()
         box.label(text="Auto Mask & Pin Group")
         box.operator("amh2b.vg_make_auto_vgroups")
@@ -295,7 +295,7 @@ def register():
         description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
-    bts.Amh2bPropVGFunctionNamePrefix = bp.StringProperty(name="Prefix",
+    bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bts.Amh2bPropWP_SelectVertexMinW = bp.FloatProperty(name="Min Weight",
         description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)

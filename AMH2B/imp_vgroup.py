@@ -101,13 +101,12 @@ class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
         do_toggle_view_cuts_mask(act_ob)
         return {'FINISHED'}
 
-def do_copy_vertex_groups_by_prefix(from_mesh_obj, vg_name_prefix):
+def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    selection_list = bpy.context.selected_objects
     # iterate over selected 'MESH' type objects that are not the active object
-    for to_mesh_obj in (x for x in selection_list if x.type == 'MESH' and x != from_mesh_obj):
+    for to_mesh_obj in (x for x in sel_obj_list if x.type == 'MESH' and x != from_mesh_obj):
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
@@ -127,15 +126,14 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
             self.report({'ERROR'}, "Less than two objects selected")
             return {'CANCELLED'}
 
-        do_copy_vertex_groups_by_prefix(act_ob, context.scene.Amh2bPropVGFunctionNamePrefix)
+        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, context.scene.Amh2bPropVG_FunctionNamePrefix)
         return {'FINISHED'}
 
-def delete_prefixed_vertex_groups(delete_prefix):
+def delete_prefixed_vertex_groups(selection_list, delete_prefix):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    selection_list = bpy.context.selected_objects
-    # iterate over selected 'MESH' type objects that are not the active object
+    # iterate over selected 'MESH' type objects
     for mesh_obj in (x for x in selection_list if x.type == 'MESH'):
         delete_vgroups_by_name_prefix(mesh_obj, delete_prefix)
 
@@ -149,11 +147,11 @@ class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
 
     def execute(self, context):
         scn = context.scene
-        if scn.Amh2bPropVGFunctionNamePrefix == '':
+        if scn.Amh2bPropVG_FunctionNamePrefix == '':
             self.report({'ERROR'}, "Vertex group name prefix is blank")
             return {'CANCELLED'}
 
-        delete_prefixed_vertex_groups(scn.Amh2bPropVGFunctionNamePrefix)
+        delete_prefixed_vertex_groups(context.selected_objects, scn.Amh2bPropVG_FunctionNamePrefix)
         return {'FINISHED'}
 
 def do_make_tailor_vgroups(act_ob):
@@ -180,15 +178,15 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
+def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix):
     # copy list of selected objects, minus the active object
-    selection_list = []
-    for ob in bpy.context.selected_objects:
+    other_obj_list = []
+    for ob in sel_obj_list:
         if ob.type == 'MESH':
-            selection_list.append(ob)
+            other_obj_list.append(ob)
     bpy.ops.object.select_all(action='DESELECT')
 
-    for sel in selection_list:
+    for sel in other_obj_list:
         search_name = get_searchable_object_name(sel.name)
         # if the desired VGroups mesh object name is already used then rename it before appending from file,
         # and rename later after the appended object is deleted
@@ -224,5 +222,6 @@ class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_search_file_for_auto_vgroups(self.filepath, context.scene.Amh2bPropVGFunctionNamePrefix)
+        do_search_file_for_auto_vgroups(context.selected_objects, self.filepath,
+            context.scene.Amh2bPropVG_FunctionNamePrefix)
         return {'FINISHED'}

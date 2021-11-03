@@ -56,14 +56,14 @@ else:
 # Two keyframes created on object A, such that object B appears motionless over the two frames.
 # Repeat the operation a number of times to get an animation, e.g. of a person walking.
 
-def do_ratchet_hold(obj_to_ratchet):
+def do_ratchet_hold(obj_to_ratchet, sel_obj_list):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # get ref to other object (presumably an "Empty" type object), the not active object
-    hold_onto_obj = bpy.context.selected_objects[0]
+    hold_onto_obj = sel_obj_list[0]
     if hold_onto_obj.name == obj_to_ratchet.name:
-        hold_onto_obj = bpy.context.selected_objects[1]
+        hold_onto_obj = sel_obj_list[1]
 
     # insert location keyframes on object to ratchet at old location
     obj_to_ratchet.keyframe_insert(data_path="location")
@@ -98,5 +98,5 @@ class AMH2B_RatchetHold(bpy.types.Operator):
             self.report({'ERROR'}, "Select exactly 2 objects and try again")
             return {'CANCELLED'}
 
-        do_ratchet_hold(context.active_object)
+        do_ratchet_hold(context.active_object, context.selected_objects)
         return {'FINISHED'}

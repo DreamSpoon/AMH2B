@@ -45,13 +45,21 @@ def is_name_prefix_match(name, prefix):
     else:
         return False
 
-def delete_deform_shapekeys(obj, delete_prefix):
+def delete_shapekeys_by_prefix(obj, delete_prefix):
     for sk in obj.data.shape_keys.key_blocks:
         if is_name_prefix_match(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
 
+def do_sk_func_delete(sel_obj_list, delete_prefix):
+    # iterate over selected 'MESH' type objects that have shape keys; more than just Basis key
+    for mesh_obj in (x for x in sel_obj_list
+                     if x.type == 'MESH' and x.data.shape_keys is not None and
+                     len(x.data.shape_keys.key_blocks) > 1):
+        delete_shapekeys_by_prefix(mesh_obj, delete_prefix)
+
+
 class AMH2B_SKFuncDelete(bpy.types.Operator):
-    """With active object, delete shape keys by prefix"""
+    """With selected MESH type objects, delete shape keys by prefix"""
     bl_idname = "amh2b.sk_func_delete"
     bl_label = "Delete Keys"
     bl_options = {'REGISTER', 'UNDO'}
@@ -61,15 +69,8 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
         if delete_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix is blank")
             return {'CANCELLED'}
-        ob_act = context.active_object
-        if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-        if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
-            self.report({'ERROR'}, "Active object has no shape keys available to delete")
-            return {'CANCELLED'}
 
-        delete_deform_shapekeys(ob_act, delete_prefix)
+        do_sk_func_delete(context.selected_objects, delete_prefix)
         return {'FINISHED'}
 
 def copy_single_shapekey(src_obj, dest_obj, shape_key_index):
@@ -127,12 +128,12 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
             self.report({'ERROR'}, "Active object does not have enough shape keys to be copied")
             return {'CANCELLED'}
 
-        objects = [ob for ob in context.selected_editable_objects if ob != ob_act]
-        if len(objects) < 1:
+        other_obj_list = [ob for ob in context.selected_editable_objects if ob != ob_act]
+        if len(other_obj_list) < 1:
             self.report({'ERROR'}, ("No meshes were selected to receive copied shape keys"))
             return {'CANCELLED'}
 
-        do_copy_shape_keys(ob_act, objects, copy_prefix)
+        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix)
         return {'FINISHED'}
 
 def get_mod_verts(obj):
@@ -441,14 +442,11 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
         do_deform_sk_view_toggle(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_sk(chosen_blend_file, name_prefix):
+def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix):
     # copy list of selected objects, minus the active object
-    selection_list = []
-    for ob in bpy.context.selected_objects:
-        if ob.type == 'MESH':
-            selection_list.append(ob)
-    bpy.ops.object.select_all(action='DESELECT')
+    selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
 
+    bpy.ops.object.select_all(action='DESELECT')
     for sel in selection_list:
         search_name = get_searchable_object_name(sel.name)
         # if the desired ShapeKey mesh object name is already used then rename it before appending from file,
@@ -467,14 +465,15 @@ def do_search_file_for_auto_sk(chosen_blend_file, name_prefix):
 
             continue
 
+        # use bpy.context.selected_objects instead of sel_obj_list because bpy.context.selected_objects will change
+        # as objects are selected/deselected
+        appended_selection_list = [ob for ob in bpy.context.selected_objects]
+
         # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
         # and this requires exactly two specific objects be selected per shape key copy
-        appended_selection_list = []
-        for ob in bpy.context.selected_objects:
-            appended_selection_list.append(ob)
         bpy.ops.object.select_all(action='DESELECT')
-
         copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix)
+        bpy.ops.object.select_all(action='DESELECT')
 
         # re-select the objects that were appended
         for ob in appended_selection_list:
@@ -496,5 +495,5 @@ class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operat
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_search_file_for_auto_sk(self.filepath, context.scene.Amh2bPropSK_FunctionPrefix)
+        do_search_file_for_auto_sk(context.selected_objects, self.filepath, context.scene.Amh2bPropSK_FunctionPrefix)
         return {'FINISHED'}

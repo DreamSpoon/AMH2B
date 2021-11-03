@@ -45,12 +45,8 @@ else:
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
 
-def do_swap_mats_with_file(shaderswap_blendfile):
+def do_swap_mats_with_file(shaderswap_blendfile, selection_list):
     mats_loaded_from_file = []
-
-    # get list of objects currently selected and fix materials on all selected objects,
-    # swapping to correct materials
-    selection_list = bpy.context.selected_objects
 
     # do the material swaps for each selected object
     for obj in selection_list:
@@ -94,7 +90,7 @@ class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportH
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_swap_mats_with_file(self.filepath)
+        do_swap_mats_with_file(self.filepath, context.selected_objects)
         return {'FINISHED'}
 
 #####################################################
@@ -138,9 +134,9 @@ class AMH2B_SwapMatIntSingle(bpy.types.Operator):
         do_mat_swaps_internal_single()
         return {'FINISHED'}
 
-def do_mat_swaps_internal_multi():
+def do_mat_swaps_internal_multi(sel_obj_list):
     # fix materials on all selected objects, swapping to correct materials if available
-    for obj in bpy.context.selected_objects:
+    for obj in sel_obj_list:
         # iterate over the material slots and check/swap the materials
         for mat_slot in (s for s in obj.material_slots if s.material is not None):
             if not is_mat_mhx_name(mat_slot.material.name):
@@ -162,5 +158,5 @@ class AMH2B_SwapMatIntMulti(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_mat_swaps_internal_multi()
+        do_mat_swaps_internal_multi(context.selected_objects)
         return {'FINISHED'}

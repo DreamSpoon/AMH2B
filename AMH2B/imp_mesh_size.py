@@ -32,15 +32,15 @@ else:
     from .imp_v28 import *
     Region = "UI"
 
-def do_create_size_rig(act_ob, unlock_y):
+def do_create_size_rig(act_ob, sel_obj_list, unlock_y):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # copy list of selected objects, minus the active object
-    selection_list = []
-    for ob in bpy.context.selected_objects:
+    other_sel_list = []
+    for ob in sel_obj_list:
         if ob.name != act_ob.name and ob.type == 'MESH':
-            selection_list.append(ob)
+            other_sel_list.append(ob)
 
     # de-select all objects
     bpy.ops.object.select_all(action='DESELECT')
@@ -65,8 +65,8 @@ def do_create_size_rig(act_ob, unlock_y):
     new_arm.scale = (1, 1, 1)
 
     # add modifiers to the other selected objects (meshes), so the meshes will use the new armature
-    if len(selection_list) > 0:
-        add_armature_to_objects(new_arm, selection_list)
+    if len(other_sel_list) > 0:
+        add_armature_to_objects(new_arm, other_sel_list)
 
     # ensure new armature is selected
     select_object(new_arm)
@@ -95,5 +95,5 @@ class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
 
-        do_create_size_rig(act_ob, self.unlock_y_scale)
+        do_create_size_rig(act_ob, context.selected_objects, self.unlock_y_scale)
         return {'FINISHED'}
