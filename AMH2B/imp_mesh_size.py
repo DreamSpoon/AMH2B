@@ -85,12 +85,12 @@ def do_create_size_rig(act_ob, unlock_y):
 
 class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
     """Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature.\nSelect mesh objects first and select armature object last"""
-    bl_idname = "amh2b.create_size_rig"
+    bl_idname = "amh2b.mesh_create_size_rig"
     bl_label = "Create Size Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}

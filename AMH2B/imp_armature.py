@@ -74,28 +74,28 @@ def get_scripted_offsets(datablock_textname):
 
 def do_adjust_pose(mhx_arm_obj):
     # get CSV user data text block and convert to array of offsets data
-    offsets = get_scripted_offsets(bpy.context.scene.Amh2bPropTextBlockName)
+    offsets = get_scripted_offsets(bpy.context.scene.Amh2bPropArmTextBlockName)
     if offsets is None:
-        return "Scripted offsets text block not found: " + bpy.context.scene.Amh2bPropTextBlockName
+        return "Scripted offsets text block not found: " + bpy.context.scene.Amh2bPropArmTextBlockName
 
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
 
     # deselect all bones and run script to (select, pose, unselect) each bone individually
     bpy.ops.pose.select_all(action='DESELECT')
-    err_str = run_offsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropTextBlockName)
+    err_str = run_offsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropArmTextBlockName)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return err_str
 
 class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
     """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
-    bl_idname = "amh2b.adjust_pose"
+    bl_idname = "amh2b.arm_adjust_pose"
     bl_label = "Adjust Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         # quit if Active Object is None or not an armature
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
@@ -158,12 +158,12 @@ def do_apply_scale(act_ob):
 
 class AMH2B_ApplyScale(bpy.types.Operator):
     """Apply Scale to active object (ARMATURE type) without corrupting the armature pose data (i.e. location)"""
-    bl_idname = "amh2b.apply_scale"
+    bl_idname = "amh2b.arm_apply_scale"
     bl_label = "Apply Scale to Rig"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
@@ -226,12 +226,12 @@ def do_bridge_repose_rig(act_ob):
 
 class AMH2B_BridgeRepose(bpy.types.Operator):
     """Create a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
-    bl_idname = "amh2b.bridge_repose"
+    bl_idname = "amh2b.arm_bridge_repose"
     bl_label = "Bridge Re-Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
@@ -615,7 +615,7 @@ def do_bone_woven(self, dest_rig_obj, src_rig_obj):
 
 class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
     """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
-    bl_idname = "amh2b.bone_woven"
+    bl_idname = "amh2b.arm_bone_woven"
     bl_label = "Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -631,8 +631,8 @@ class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
         layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
-        sel_obs = bpy.context.selected_objects
+        act_ob = context.active_object
+        sel_obs = context.selected_objects
         if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
             self.report({'ERROR'}, "Select exactly 2 ARMATURES and try again")
             return {'CANCELLED'}
@@ -693,7 +693,7 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj):
 # to get rid of doubling of code for user options input.
 class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
-    bl_idname = "amh2b.lucky"
+    bl_idname = "amh2b.arm_lucky"
     bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -710,7 +710,7 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
         layout.prop(self, "fingers_right_stitch_enum")
 
     def execute(self, context):
-        mhx_arm_obj = bpy.context.active_object
+        mhx_arm_obj = context.active_object
 
         # quit if no MHX rig selected or active object is wrong type
         if mhx_arm_obj is None or mhx_arm_obj.type != 'ARMATURE':
@@ -720,7 +720,7 @@ class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
         # get the animated armature (other_armature_obj) from the list of selected objects
         # (other_armature_obj will be joined to the MHX armature)
         other_armature_obj = None
-        for ob in bpy.context.selected_objects:
+        for ob in context.selected_objects:
             if ob.name != mhx_arm_obj.name:
                 if ob.type == 'ARMATURE':
                     other_armature_obj = ob
@@ -749,7 +749,7 @@ def do_toggle_preserve_volume(new_state):
 
 class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
     """Enable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
-    bl_idname = "amh2b.enable_mod_preserve_volume"
+    bl_idname = "amh2b.arm_enable_preserve_volume"
     bl_label = "Enable"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -759,7 +759,7 @@ class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
 
 class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
     """Disable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
-    bl_idname = "amh2b.disable_mod_preserve_volume"
+    bl_idname = "amh2b.arm_disable_preserve_volume"
     bl_label = "Disable"
     bl_options = {'REGISTER', 'UNDO'}
 

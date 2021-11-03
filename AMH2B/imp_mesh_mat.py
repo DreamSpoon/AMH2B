@@ -89,7 +89,7 @@ def do_swap_mats_with_file(shaderswap_blendfile):
 
 class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """Try to swap all materials (based on material name) on all selected objects with replacement materials from another Blend File"""
-    bl_idname = "amh2b.swap_mat_from_file"
+    bl_idname = "amh2b.mat_swap_from_file"
     bl_label = "From File"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -130,7 +130,7 @@ def do_mat_swaps_internal_single():
 
 class AMH2B_SwapMatIntSingle(bpy.types.Operator):
     """Try to swap material in object's active material slot with replacement material within this Blend file"""
-    bl_idname = "amh2b.swap_mat_int_single"
+    bl_idname = "amh2b.mat_swap_int_single"
     bl_label = "Internal Single"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -157,7 +157,7 @@ def do_mat_swaps_internal_multi():
 
 class AMH2B_SwapMatIntMulti(bpy.types.Operator):
     """Try to swap all materials of selected objects with replacement materials within this Blend file"""
-    bl_idname = "amh2b.swap_mat_int_multi"
+    bl_idname = "amh2b.mat_swap_int_multi"
     bl_label = "Internal Multi"
     bl_options = {'REGISTER', 'UNDO'}
 

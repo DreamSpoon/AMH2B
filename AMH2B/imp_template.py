@@ -74,7 +74,7 @@ def do_setup_mat_template_single(act_ob):
 
 class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
     """Rename active material slot of active object to make the material searchable re: swap material from file"""
-    bl_idname = "amh2b.setup_mat_swap_single"
+    bl_idname = "amh2b.temp_setup_mat_swap_single"
     bl_label = "Active Material Only"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -107,7 +107,7 @@ def do_setup_mat_template_multi():
 
 class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
     """Rename all materials on all selected objects to make them searchable re: swap material from file"""
-    bl_idname = "amh2b.setup_mat_swap_multi"
+    bl_idname = "amh2b.temp_setup_mat_swap_multi"
     bl_label = "All Material Slots"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -126,7 +126,7 @@ def do_rename_mhx_object_to_searchable(act_ob):
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
     """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
-    bl_idname = "amh2b.make_tailor_object_searchable"
+    bl_idname = "amh2b.temp_make_tailor_object_searchable"
     bl_label = "Make Object Searchable"
     bl_options = {'REGISTER', 'UNDO'}
 

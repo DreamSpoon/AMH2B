@@ -63,9 +63,9 @@ class AMH2B_MeshMat(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Swap Material")
-        box.operator("amh2b.swap_mat_from_file")
-        box.operator("amh2b.swap_mat_int_single")
-        box.operator("amh2b.swap_mat_int_multi")
+        box.operator("amh2b.mat_swap_from_file")
+        box.operator("amh2b.mat_swap_int_single")
+        box.operator("amh2b.mat_swap_int_multi")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
@@ -78,7 +78,7 @@ class AMH2B_MeshSize(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Clothing Size")
-        box.operator("amh2b.create_size_rig")
+        box.operator("amh2b.mesh_create_size_rig")
 
 class AMH2B_VertexGroup(bpy.types.Panel):
     bl_label = "Vertex Group"
@@ -92,15 +92,15 @@ class AMH2B_VertexGroup(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Functions")
-        box.operator("amh2b.search_file_for_auto_vgroups")
-        box.operator("amh2b.copy_vertex_groups_by_prefix")
-        box.operator("amh2b.delete_vertex_groups_by_prefix")
+        box.operator("amh2b.vg_copy_from_file")
+        box.operator("amh2b.vg_copy_by_prefix")
+        box.operator("amh2b.vg_delete_by_prefix")
         box.prop(scn, "Amh2bPropVGFunctionNamePrefix")
         box = layout.box()
         box.label(text="Auto Mask & Pin Group")
-        box.operator("amh2b.make_tailor_groups")
-        box.operator("amh2b.add_cuts_mask")
-        box.operator("amh2b.toggle_view_cuts_mask")
+        box.operator("amh2b.vg_make_auto_vgroups")
+        box.operator("amh2b.vg_add_maskout_modifier")
+        box.operator("amh2b.vg_toggle_auto_maskout")
 
 class AMH2B_WeightPaint(bpy.types.Panel):
     bl_label = "Weight Paint"
@@ -114,22 +114,22 @@ class AMH2B_WeightPaint(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Vertex Select")
-        box.operator("amh2b.select_vertex_by_weight")
-        box.prop(scn, "Amh2bPropSelectVertexMinW")
-        box.prop(scn, "Amh2bPropSelectVertexMaxW")
-        box.prop(scn, "Amh2bPropSelectVertexDeselect")
+        box.operator("amh2b.wp_select_vertex_by_weight")
+        box.prop(scn, "Amh2bPropWP_SelectVertexMinW")
+        box.prop(scn, "Amh2bPropWP_SelectVertexMaxW")
+        box.prop(scn, "Amh2bPropWP_SelectVertexDeselect")
         box = layout.box()
         box.label(text="Grow Selection Paint")
-        box.operator("amh2b.grow_paint")
-        box.prop(scn, "Amh2bPropGrowPaintIterations")
-        box.prop(scn, "Amh2bPropGrowPaintStartWeight")
-        box.prop(scn, "Amh2bPropGrowPaintEndWeight")
-        box.prop(scn, "Amh2bPropPaintInitialSelection")
-        box.prop(scn, "Amh2bPropTailFill")
+        box.operator("amh2b.wp_grow_paint")
+        box.prop(scn, "Amh2bPropWP_GrowPaintIterations")
+        box.prop(scn, "Amh2bPropWP_GrowPaintStartWeight")
+        box.prop(scn, "Amh2bPropWP_GrowPaintEndWeight")
+        box.prop(scn, "Amh2bPropWP_PaintInitialSelection")
+        box.prop(scn, "Amh2bPropWP_TailFill")
         sub = box.column()
-        sub.active = scn.Amh2bPropTailFill
-        sub.prop(scn, "Amh2bPropTailFillValue")
-        sub.prop(scn, "Amh2bPropTailFillConnected")
+        sub.active = scn.Amh2bPropWP_TailFill
+        sub.prop(scn, "Amh2bPropWP_TailFillValue")
+        sub.prop(scn, "Amh2bPropWP_TailFillConnected")
 
 class AMH2B_Simulation(bpy.types.Panel):
     bl_label = "Simulation"
@@ -141,7 +141,7 @@ class AMH2B_Simulation(bpy.types.Panel):
         layout = self.layout
         box = layout.box()
         box.label(text="Cloth Sim")
-        box.operator("amh2b.add_cloth_sim")
+        box.operator("amh2b.csim_add_sim")
 
 class AMH2B_ShapeKey(bpy.types.Panel):
     bl_label = "ShapeKey"
@@ -154,27 +154,27 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         scn = context.scene
         box = layout.box()
         box.label(text="ShapeKey Functions")
-        box.operator("amh2b.search_file_for_auto_sk")
+        box.operator("amh2b.sk_search_file_for_auto_sk")
         box.operator("amh2b.sk_func_copy")
         box.operator("amh2b.sk_func_delete")
-        box.prop(scn, "Amh2bPropShapeKeyFunctionsPrefix")
+        box.prop(scn, "Amh2bPropSK_FunctionPrefix")
         box = layout.box()
         box.label(text="Bake Deform ShapeKey")
-        box.operator("amh2b.bake_deform_shape_keys")
-        box.prop(scn, "Amh2bPropDeformShapeKeyAddPrefix")
-        box.prop(scn, "Amh2bPropDSK_BindFrame")
-        box.prop(scn, "Amh2bPropDSK_StartFrame")
-        box.prop(scn, "Amh2bPropDSK_EndFrame")
-        box.prop(scn, "Amh2bPropDSK_AnimateSK")
-        box.prop(scn, "Amh2bPropDSK_AddFrameToName")
-        box.prop(scn, "Amh2bPropDSK_Dynamic")
+        box.operator("amh2b.sk_bake_deform_shape_keys")
+        box.prop(scn, "Amh2bPropSK_DeformShapeKeyPrefix")
+        box.prop(scn, "Amh2bPropSK_BindFrame")
+        box.prop(scn, "Amh2bPropSK_StartFrame")
+        box.prop(scn, "Amh2bPropSK_EndFrame")
+        box.prop(scn, "Amh2bPropSK_Animate")
+        box.prop(scn, "Amh2bPropSK_AddFrameToName")
+        box.prop(scn, "Amh2bPropSK_Dynamic")
         sub = box.column()
-        sub.active = scn.Amh2bPropDSK_Dynamic
+        sub.active = scn.Amh2bPropSK_Dynamic
         sub.label(text="Extra Accuracy")
-        sub.prop(scn, "Amh2bPropDSK_ExtraAccuracy")
+        sub.prop(scn, "Amh2bPropSK_ExtraAccuracy")
         sub = box.column()
-        sub.active = not scn.Amh2bPropDSK_Dynamic
-        sub.operator("amh2b.deform_sk_view_toggle")
+        sub.active = not scn.Amh2bPropSK_Dynamic
+        sub.operator("amh2b.sk_deform_sk_view_toggle")
 
 class AMH2B_Armature(bpy.types.Panel):
     bl_label = "Armature"
@@ -187,18 +187,18 @@ class AMH2B_Armature(bpy.types.Panel):
         scn = context.scene
         box = layout.box()
         box.label(text="Retarget")
-        box.operator("amh2b.adjust_pose")
-        box.prop(scn, "Amh2bPropTextBlockName")
-        box.operator("amh2b.apply_scale")
-        box.operator("amh2b.bridge_repose")
-        box.operator("amh2b.bone_woven")
+        box.operator("amh2b.arm_adjust_pose")
+        box.prop(scn, "Amh2bPropArmTextBlockName")
+        box.operator("amh2b.arm_apply_scale")
+        box.operator("amh2b.arm_bridge_repose")
+        box.operator("amh2b.arm_bone_woven")
         box = layout.box()
         box.label(text="Retarget Multi-Function")
-        box.operator("amh2b.lucky")
+        box.operator("amh2b.arm_lucky")
         box = layout.box()
         box.label(text="Preserve Volume Toggle")
-        box.operator("amh2b.enable_mod_preserve_volume")
-        box.operator("amh2b.disable_mod_preserve_volume")
+        box.operator("amh2b.arm_enable_preserve_volume")
+        box.operator("amh2b.arm_disable_preserve_volume")
 
 class AMH2B_Animation(bpy.types.Panel):
     bl_label = "Animation"
@@ -210,7 +210,7 @@ class AMH2B_Animation(bpy.types.Panel):
         layout = self.layout
         box = layout.box()
         box.label(text="Object Location")
-        box.operator("amh2b.ratchet_hold")
+        box.operator("amh2b.anim_ratchet_hold")
 
 class AMH2B_Template(bpy.types.Panel):
     bl_label = "Template"
@@ -222,11 +222,11 @@ class AMH2B_Template(bpy.types.Panel):
         layout = self.layout
         box = layout.box()
         box.label(text="Material")
-        box.operator("amh2b.setup_mat_swap_single")
-        box.operator("amh2b.setup_mat_swap_multi")
+        box.operator("amh2b.temp_setup_mat_swap_single")
+        box.operator("amh2b.temp_setup_mat_swap_multi")
         box = layout.box()
         box.label(text="Vertex Group and ShapeKey")
-        box.operator("amh2b.make_tailor_object_searchable")
+        box.operator("amh2b.temp_make_tailor_object_searchable")
 
 classes = [
     AMH2B_SwapMatWithFile,
@@ -275,47 +275,47 @@ def register():
 
     bts = bpy.types.Scene
     bp = bpy.props
-    bts.Amh2bPropTextBlockName = bp.StringProperty(name="Text Editor Script Name",
+    bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
-    bts.Amh2bPropDSK_BindFrame = bp.IntProperty(name="Bind frame",
+    bts.Amh2bPropSK_BindFrame = bp.IntProperty(name="Bind frame",
         description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
-    bts.Amh2bPropDSK_StartFrame = bp.IntProperty(name="Start frame",
+    bts.Amh2bPropSK_StartFrame = bp.IntProperty(name="Start frame",
         description="Choose first frame of mesh animation to convert to Shape Key", default=1, min=0)
-    bts.Amh2bPropDSK_EndFrame = bp.IntProperty(name="End frame",
+    bts.Amh2bPropSK_EndFrame = bp.IntProperty(name="End frame",
         description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
-    bts.Amh2bPropDSK_AnimateSK = bp.BoolProperty(name="Animate Shape Keys",
+    bts.Amh2bPropSK_Animate = bp.BoolProperty(name="Animate Shape Keys",
         description="Keyframe shape key values to animate frames when Shape Keys were created", default=True)
-    bts.Amh2bPropDSK_AddFrameToName = bp.BoolProperty(name="Add Frame to Name",
+    bts.Amh2bPropSK_AddFrameToName = bp.BoolProperty(name="Add Frame to Name",
         description="Append frame number to key name (e.g. DSKey005, DSKey006)", default=True)
-    bts.Amh2bPropDSK_Dynamic = bp.BoolProperty(name="Dynamic",
+    bts.Amh2bPropSK_Dynamic = bp.BoolProperty(name="Dynamic",
         description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
-    bts.Amh2bPropDSK_ExtraAccuracy = bp.IntProperty(name="",
+    bts.Amh2bPropSK_ExtraAccuracy = bp.IntProperty(name="",
         description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
-    bts.Amh2bPropDeformShapeKeyAddPrefix = bp.StringProperty(name="Prefix",
+    bts.Amh2bPropSK_DeformShapeKeyPrefix = bp.StringProperty(name="Prefix",
         description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
-    bts.Amh2bPropShapeKeyFunctionsPrefix = bp.StringProperty(name="Prefix",
+    bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropVGFunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
-    bts.Amh2bPropSelectVertexMinW = bp.FloatProperty(name="Min Weight",
+    bts.Amh2bPropWP_SelectVertexMinW = bp.FloatProperty(name="Min Weight",
         description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
-    bts.Amh2bPropSelectVertexMaxW = bp.FloatProperty(name="Max Weight",
+    bts.Amh2bPropWP_SelectVertexMaxW = bp.FloatProperty(name="Max Weight",
         description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
-    bts.Amh2bPropSelectVertexDeselect = bp.BoolProperty(name="Deselect All First",
+    bts.Amh2bPropWP_SelectVertexDeselect = bp.BoolProperty(name="Deselect All First",
         description="Deselect all vertexes before selecting by weight", default=True)
-    bts.Amh2bPropGrowPaintIterations = bp.IntProperty(name="Iterations",
+    bts.Amh2bPropWP_GrowPaintIterations = bp.IntProperty(name="Iterations",
         description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=1)
-    bts.Amh2bPropGrowPaintStartWeight = bp.FloatProperty(name="Start Weight",
+    bts.Amh2bPropWP_GrowPaintStartWeight = bp.FloatProperty(name="Start Weight",
         description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
-    bts.Amh2bPropGrowPaintEndWeight = bp.FloatProperty(name="End Weight",
+    bts.Amh2bPropWP_GrowPaintEndWeight = bp.FloatProperty(name="End Weight",
         description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
-    bts.Amh2bPropPaintInitialSelection = bp.BoolProperty(name="Paint Initial Selection",
+    bts.Amh2bPropWP_PaintInitialSelection = bp.BoolProperty(name="Paint Initial Selection",
         description="Initial selection will be included when applying weight paints", default=True)
-    bts.Amh2bPropTailFill = bp.BoolProperty(name="Tail Fill",
+    bts.Amh2bPropWP_TailFill = bp.BoolProperty(name="Tail Fill",
         description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail fill value, after applying weights to vertexes during 'select more' iterations", default=False)
-    bts.Amh2bPropTailFillValue = bp.FloatProperty(name="Tail Value",
+    bts.Amh2bPropWP_TailFillValue = bp.FloatProperty(name="Tail Value",
         description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
-    bts.Amh2bPropTailFillConnected = bp.BoolProperty(name="Fill only linked",
+    bts.Amh2bPropWP_TailFillConnected = bp.BoolProperty(name="Fill only linked",
         description="Only linked vertexes will be included in the tail fill process", default=True)
 
 def unregister():

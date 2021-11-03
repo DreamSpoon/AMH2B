@@ -57,7 +57,7 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        delete_prefix = context.scene.Amh2bPropShapeKeyFunctionsPrefix
+        delete_prefix = context.scene.Amh2bPropSK_FunctionPrefix
         if delete_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix is blank")
             return {'CANCELLED'}
@@ -114,7 +114,7 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        copy_prefix = context.scene.Amh2bPropShapeKeyFunctionsPrefix
+        copy_prefix = context.scene.Amh2bPropSK_FunctionPrefix
         if copy_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix is blank")
             return {'CANCELLED'}
@@ -380,27 +380,27 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
 
 class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
-    bl_idname = "amh2b.bake_deform_shape_keys"
+    bl_idname = "amh2b.sk_bake_deform_shape_keys"
     bl_label = "Bake Deform Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
 
         scn = context.scene
-        if scn.Amh2bPropDeformShapeKeyAddPrefix == '':
+        if scn.Amh2bPropSK_DeformShapeKeyPrefix == '':
             self.report({'ERROR'}, "Shape key name prefix (add_prefix) is blank")
             return {'CANCELLED'}
-        if scn.Amh2bPropDSK_StartFrame > scn.Amh2bPropDSK_EndFrame:
+        if scn.Amh2bPropSK_StartFrame > scn.Amh2bPropSK_EndFrame:
             self.report({'ERROR'}, "Start Frame number is higher than End Frame number")
             return {'CANCELLED'}
 
-        do_bake_deform_shape_keys(act_ob, scn.Amh2bPropDeformShapeKeyAddPrefix, scn.Amh2bPropDSK_BindFrame,
-            scn.Amh2bPropDSK_StartFrame, scn.Amh2bPropDSK_EndFrame, scn.Amh2bPropDSK_AnimateSK,
-            scn.Amh2bPropDSK_AddFrameToName, scn.Amh2bPropDSK_Dynamic, scn.Amh2bPropDSK_ExtraAccuracy)
+        do_bake_deform_shape_keys(act_ob, scn.Amh2bPropSK_DeformShapeKeyPrefix, scn.Amh2bPropSK_BindFrame,
+            scn.Amh2bPropSK_StartFrame, scn.Amh2bPropSK_EndFrame, scn.Amh2bPropSK_Animate,
+            scn.Amh2bPropSK_AddFrameToName, scn.Amh2bPropSK_Dynamic, scn.Amh2bPropSK_ExtraAccuracy)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle(act_ob):
@@ -428,12 +428,12 @@ def do_deform_sk_view_toggle(act_ob):
 
 class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
     """Toggle visibility between shape keys and cloth/soft body sims on active object.\nIntended only for non-Dynamic deform shape keys"""
-    bl_idname = "amh2b.deform_sk_view_toggle"
+    bl_idname = "amh2b.sk_deform_sk_view_toggle"
     bl_label = "Deform SK View Toggle"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
@@ -491,10 +491,10 @@ def do_search_file_for_auto_sk(chosen_blend_file, name_prefix):
 
 class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
-    bl_idname = "amh2b.search_file_for_auto_sk"
+    bl_idname = "amh2b.sk_search_file_for_auto_sk"
     bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_search_file_for_auto_sk(self.filepath, context.scene.Amh2bPropShapeKeyFunctionsPrefix)
+        do_search_file_for_auto_sk(self.filepath, context.scene.Amh2bPropSK_FunctionPrefix)
         return {'FINISHED'}

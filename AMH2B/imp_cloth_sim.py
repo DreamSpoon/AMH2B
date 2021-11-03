@@ -24,6 +24,13 @@ import bpy
 
 from .imp_const import *
 
+if bpy.app.version < (2,80,0):
+    from .imp_v27 import *
+    Region = "TOOLS"
+else:
+    from .imp_v28 import *
+    Region = "UI"
+
 def do_add_cloth_sim(mesh_obj):
     original_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -48,12 +55,12 @@ def do_add_cloth_sim(mesh_obj):
 
 class AMH2B_AddClothSim(bpy.types.Operator):
     """Add CLOTH modifer to active object with settings auto-filled for Pinning"""
-    bl_idname = "amh2b.add_cloth_sim"
+    bl_idname = "amh2b.csim_add_sim"
     bl_label = "Add Cloth Sim"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}

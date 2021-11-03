@@ -102,7 +102,7 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
 
 class AMH2B_GrowPaint(bpy.types.Operator):
     """With active object, starting with currently selected vertexes, set weight paint in successive 'rings' by using 'select more' and weight painting only the newly selected vertexes - blending weight paint value by 'select more' iteration"""
-    bl_idname = "amh2b.grow_paint"
+    bl_idname = "amh2b.wp_grow_paint"
     bl_label = "Grow Paint"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -117,9 +117,9 @@ class AMH2B_GrowPaint(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_grow_paint(ob_act, vg_ai, scn.Amh2bPropGrowPaintIterations, scn.Amh2bPropGrowPaintStartWeight,
-            scn.Amh2bPropGrowPaintEndWeight, scn.Amh2bPropPaintInitialSelection, scn.Amh2bPropTailFill,
-            scn.Amh2bPropTailFillValue, scn.Amh2bPropTailFillConnected)
+        do_grow_paint(ob_act, vg_ai, scn.Amh2bPropWP_GrowPaintIterations, scn.Amh2bPropWP_GrowPaintStartWeight,
+            scn.Amh2bPropWP_GrowPaintEndWeight, scn.Amh2bPropWP_PaintInitialSelection, scn.Amh2bPropWP_TailFill,
+            scn.Amh2bPropWP_TailFillValue, scn.Amh2bPropWP_TailFillConnected)
         return {'FINISHED'}
 
 def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
@@ -145,7 +145,7 @@ def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, de
 
 class AMH2B_SelectVertexByWeight(bpy.types.Operator):
     """With active object, deselect all vertices (optional), then select only vertices with weights between min_weight and max_weight, inclusive"""
-    bl_idname = "amh2b.select_vertex_by_weight"
+    bl_idname = "amh2b.wp_select_vertex_by_weight"
     bl_label = "Select by Weight"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -160,5 +160,5 @@ class AMH2B_SelectVertexByWeight(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_select_vertex_by_weight(ob_act, vg_ai, scn.Amh2bPropSelectVertexMinW, scn.Amh2bPropSelectVertexMaxW, scn.Amh2bPropSelectVertexDeselect)
+        do_select_vertex_by_weight(ob_act, vg_ai, scn.Amh2bPropWP_SelectVertexMinW, scn.Amh2bPropWP_SelectVertexMaxW, scn.Amh2bPropWP_SelectVertexDeselect)
         return {'FINISHED'}

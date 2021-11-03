@@ -60,12 +60,12 @@ def do_add_cuts_mask(act_ob):
 
 class AMH2B_AddCutsMask(bpy.types.Operator):
     """Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to active object if needed"""
-    bl_idname = "amh2b.add_cuts_mask"
+    bl_idname = "amh2b.vg_add_maskout_modifier"
     bl_label = "Add MaskOut Modifier"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
@@ -88,12 +88,12 @@ def do_toggle_view_cuts_mask(act_ob):
 
 class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
     """Toggle the visibility of the Auto Mask modifier, in viewport and render"""
-    bl_idname = "amh2b.toggle_view_cuts_mask"
+    bl_idname = "amh2b.vg_toggle_auto_maskout"
     bl_label = "Toggle AutoMaskOut"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
@@ -114,7 +114,7 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, vg_name_prefix):
 
 class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
     """Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects.\nObject name does not need to be 'searchable' """
-    bl_idname = "amh2b.copy_vertex_groups_by_prefix"
+    bl_idname = "amh2b.vg_copy_by_prefix"
     bl_label = "Copy Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -143,7 +143,7 @@ def delete_prefixed_vertex_groups(delete_prefix):
 
 class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
     """With active object, delete vertex groups by prefix"""
-    bl_idname = "amh2b.delete_vertex_groups_by_prefix"
+    bl_idname = "amh2b.vg_delete_by_prefix"
     bl_label = "Delete Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -167,12 +167,12 @@ def do_make_tailor_vgroups(act_ob):
 
 class AMH2B_MakeTailorGroups(bpy.types.Operator):
     """Add AutoMaskOut and AutoClothPin vertex groups to the active object, if these groups don't already exist"""
-    bl_idname = "amh2b.make_tailor_groups"
+    bl_idname = "amh2b.vg_make_auto_vgroups"
     bl_label = "Add Groups"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = bpy.context.active_object
+        act_ob = context.active_object
         if act_ob is None or act_ob.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
@@ -219,10 +219,10 @@ def do_search_file_for_auto_vgroups(chosen_blend_file, name_prefix):
 
 class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
-    bl_idname = "amh2b.search_file_for_auto_vgroups"
+    bl_idname = "amh2b.vg_copy_from_file"
     bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_search_file_for_auto_vgroups(self.filepath, bpy.context.scene.Amh2bPropVGFunctionNamePrefix)
+        do_search_file_for_auto_vgroups(self.filepath, context.scene.Amh2bPropVGFunctionNamePrefix)
         return {'FINISHED'}
