@@ -208,9 +208,11 @@ class AMH2B_Animation(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scn = context.scene
         box = layout.box()
         box.label(text="Object Location")
         box.operator("amh2b.anim_ratchet_hold")
+        box.prop(scn, "Amh2bPropAnimRatchetFrameCount")
 
 class AMH2B_Template(bpy.types.Panel):
     bl_label = "Template"
@@ -317,6 +319,8 @@ def register():
         description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
     bts.Amh2bPropWP_TailFillConnected = bp.BoolProperty(name="Fill only linked",
         description="Only linked vertexes will be included in the tail fill process", default=True)
+    bts.Amh2bPropAnimRatchetFrameCount = bp.IntProperty(name="Frame Count",
+        description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
 
 def unregister():
     for cls in classes:

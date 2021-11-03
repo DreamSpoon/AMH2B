@@ -98,5 +98,6 @@ class AMH2B_RatchetHold(bpy.types.Operator):
             self.report({'ERROR'}, "Select exactly 2 objects and try again")
             return {'CANCELLED'}
 
-        do_ratchet_hold(context.active_object, context.selected_objects)
+        for i in range(0, context.scene.Amh2bPropAnimRatchetFrameCount):
+            do_ratchet_hold(context.active_object, context.selected_objects)
         return {'FINISHED'}
