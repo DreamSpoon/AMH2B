@@ -60,7 +60,7 @@ def is_mat_mhx_name(mat_name):
 # proper MHX convention format of mat_name
 
 def get_swappable_from_mhx_name(mat_name):
-    if mat_name.rfind(":") != -1:
+    if mat_name.find(":") != -1:
         return mat_name[ mat_name.find(":")+1 : len(mat_name) ]
     else:
         return mat_name

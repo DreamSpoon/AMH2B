@@ -766,3 +766,83 @@ class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
     def execute(self, context):
         do_toggle_preserve_volume(False, context.selected_objects)
         return {'FINISHED'}
+
+def get_generic_bone_name(bone_name, generic_prefix):
+    if bone_name.rfind(":") != -1:
+        return generic_prefix + bone_name[ bone_name.rfind(":") : len(bone_name) ]
+    else:
+        return generic_prefix + ":" + bone_name
+
+def rename_bones_generic(new_generic_prefix, include_mhx, rig_obj):
+    mhx_bone_names = amh2b_rig_type_bone_names["import_mhx"]
+
+    for ebone in rig_obj.data.edit_bones.data.bones:
+        old_name = ebone.name
+        if not include_mhx and old_name in mhx_bone_names:
+            continue
+
+        # change name of bone
+        ebone.name = get_generic_bone_name(old_name, new_generic_prefix)
+
+def do_rename_generic(new_generic_prefix, include_mhx, sel_obj_list):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    for ob in sel_obj_list:
+        if ob.type != 'ARMATURE':
+            continue
+
+        rename_bones_generic(new_generic_prefix, include_mhx, ob)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_RenameGeneric(bpy.types.Operator):
+    """Rename bones to match the format 'aaaa:bbbb', where 'aaaa' is the generic prefix."""
+    bl_idname = "amh2b.arm_rename_generic"
+    bl_label = "Rename Generic"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_rename_generic(context.scene.Amh2bPropArmGenericPrefix, context.scene.Amh2bPropArmGenericMHX, context.selected_objects)
+        return {'FINISHED'}
+
+def get_non_generic_bone_name(bone_name):
+    if bone_name.rfind(":") != -1:
+        return bone_name[ bone_name.rfind(":")+1 : len(bone_name) ]
+    else:
+        return bone_name
+
+def un_name_bones_generic(include_mhx, rig_obj):
+    mhx_bone_names = amh2b_rig_type_bone_names["import_mhx"]
+
+    for ebone in rig_obj.data.edit_bones.data.bones:
+        old_name = ebone.name
+        if not include_mhx and old_name in mhx_bone_names:
+            continue
+
+        # change name of bone, if needed
+        new_name = get_non_generic_bone_name(old_name)
+        if new_name != old_name:
+            ebone.name = new_name
+
+def do_un_name_generic(include_mhx, sel_obj_list):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    for ob in sel_obj_list:
+        if ob.type != 'ARMATURE':
+            continue
+
+        un_name_bones_generic(include_mhx, ob)
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_UnNameGeneric(bpy.types.Operator):
+    """Rename bones to remove any formating like 'aaaa:bbbb', where 'aaaa' is removed and the bones name becomes 'bbbb'"""
+    bl_idname = "amh2b.arm_un_name_generic"
+    bl_label = "Un-name Generic"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        do_un_name_generic(context.scene.Amh2bPropArmGenericMHX, context.selected_objects)
+        return {'FINISHED'}

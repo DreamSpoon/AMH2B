@@ -200,6 +200,12 @@ class AMH2B_Armature(bpy.types.Panel):
         box.label(text="Preserve Volume Toggle")
         box.operator("amh2b.arm_enable_preserve_volume")
         box.operator("amh2b.arm_disable_preserve_volume")
+        box = layout.box()
+        box.label(text="Bone Names")
+        box.operator("amh2b.arm_rename_generic")
+        box.prop(scn, "Amh2bPropArmGenericPrefix")
+        box.prop(scn, "Amh2bPropArmGenericMHX")
+        box.operator("amh2b.arm_un_name_generic")
 
 class AMH2B_Animation(bpy.types.Panel):
     bl_label = "Animation"
@@ -260,6 +266,8 @@ classes = [
     AMH2B_Lucky,
     AMH2B_EnableModPreserveVolume,
     AMH2B_DisableModPreserveVolume,
+    AMH2B_RenameGeneric,
+    AMH2B_UnNameGeneric,
     AMH2B_RatchetHold,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
@@ -280,6 +288,10 @@ def register():
     bp = bpy.props
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
+    bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
+        description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
+    bts.Amh2bPropArmGenericMHX = bp.BoolProperty(name="Include MHX bones",
+        description="Include MHX bones when renaming/un-naming", default=False)
     bts.Amh2bPropSK_BindFrame = bp.IntProperty(name="Bind frame",
         description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
     bts.Amh2bPropSK_StartFrame = bp.IntProperty(name="Start frame",
