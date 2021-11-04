@@ -73,30 +73,78 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
         do_sk_func_delete(context.selected_objects, delete_prefix)
         return {'FINISHED'}
 
-def copy_single_shapekey(src_obj, dest_obj, shape_key_index):
-    check_create_basis_shape_key(dest_obj)
+def v_distance(point1, point2) -> float:
+    return math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2 + (point2[2] - point1[2]) ** 2)
 
-    src_obj.active_shape_key_index = shape_key_index
-    src_obj.select = True
-    dest_obj.select = True
-    set_active_object(dest_obj)
-    bpy.ops.object.shape_key_transfer()
-    src_obj.select = False
-    dest_obj.select = False
+# returns [(vertex_index, vertex_scale), ...]
+# src_obj and dest_obj must have the same topology
+def get_vertex_difference_scales(src_obj, dst_obj):
+    src_vert_edg_len_sum = [0] * len(src_obj.data.vertices)
+    dst_vert_edg_len_sum = [0] * len(src_obj.data.vertices)
+    # iterate over all edges, adding each edge length to both of its vertices
+    for i in range(len(src_obj.data.edges)):
+        ed = src_obj.data.edges[i]
+        d = v_distance(src_obj.data.vertices[ed.vertices[0]].co, src_obj.data.vertices[ed.vertices[1]].co)
+        src_vert_edg_len_sum[ed.vertices[0]] = src_vert_edg_len_sum[ed.vertices[0]] + d
+        src_vert_edg_len_sum[ed.vertices[1]] = src_vert_edg_len_sum[ed.vertices[1]] + d
 
-def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix):
-    for dest_obj in dest_objects:
-        show_temp = dest_obj.show_only_shape_key
-        if src_obj.data.shape_keys is None:
+        ed = dst_obj.data.edges[i]
+        d = v_distance(dst_obj.data.vertices[ed.vertices[0]].co, dst_obj.data.vertices[ed.vertices[1]].co)
+        dst_vert_edg_len_sum[ed.vertices[0]] = dst_vert_edg_len_sum[ed.vertices[0]] + d
+        dst_vert_edg_len_sum[ed.vertices[1]] = dst_vert_edg_len_sum[ed.vertices[1]] + d
+
+    # get the difference in scales, per vertex
+    output_list = []
+    for i in range(len(src_vert_edg_len_sum)):
+        # if scale is same then ignore this vert
+        if src_vert_edg_len_sum[i] == dst_vert_edg_len_sum[i]:
             continue
+        # prevent divide by zero
+        if src_vert_edg_len_sum[i] == 0:
+            continue
+        # add to output list
+        output_list.append((i, dst_vert_edg_len_sum[i] / src_vert_edg_len_sum[i]))
+
+    return output_list
+
+def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size):
+    if src_obj.data.shape_keys is None:
+        return
+    for dest_obj in dest_objects:
+        # get the scaling needed, per vertex, to "fit" the shape key of the src_object to the dest_object
+        vert_diff_scales = get_vertex_difference_scales(src_obj, dest_obj)
+
+        show_temp = dest_obj.show_only_shape_key
+        src_obj.select = True
+        dest_obj.select = True
+        set_active_object(dest_obj)
+        check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
             if is_name_prefix_match(sk.name, copy_prefix):
-                copy_single_shapekey(src_obj, dest_obj, src_obj.data.shape_keys.key_blocks.find(sk.name))
+                src_obj.active_shape_key_index = src_obj.data.shape_keys.key_blocks.find(sk.name)
+                bpy.ops.object.shape_key_transfer()
 
+            # if not adapt size then skip start next iteration
+            if not adapt_size:
+                continue
+
+            # adjust for scale differences between source mesh and destination mesh, per vertex
+            sk_index = len(dest_obj.data.shape_keys.key_blocks)-1
+            for v_index, v_scale in vert_diff_scales:
+                sk_loc = dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co
+                original_loc = dest_obj.data.shape_keys.key_blocks[0].data[v_index].co
+                delta_loc = numpy.subtract(sk_loc, original_loc)
+                new_sk_loc = (v_scale * delta_loc[0] + original_loc[0], v_scale * delta_loc[1] + original_loc[1],
+                    v_scale * delta_loc[2] + original_loc[2])
+
+                dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = new_sk_loc
+
+        src_obj.select = False
+        dest_obj.select = False
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
         dest_obj.show_only_shape_key = show_temp
 
-def do_copy_shape_keys(src_object, dest_objects, copy_prefix):
+def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -104,7 +152,7 @@ def do_copy_shape_keys(src_object, dest_objects, copy_prefix):
     # and this requires exactly two specific objects be selected per shape key copy
     bpy.ops.object.select_all(action='DESELECT')
 
-    copy_shapekeys_by_name_prefix(src_object, dest_objects, copy_prefix)
+    copy_shapekeys_by_name_prefix(src_object, dest_objects, copy_prefix, adapt_size)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 # TODO copy animation keyframes too
@@ -130,10 +178,10 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
 
         other_obj_list = [ob for ob in context.selected_editable_objects if ob != ob_act]
         if len(other_obj_list) < 1:
-            self.report({'ERROR'}, ("No meshes were selected to receive copied shape keys"))
+            self.report({'ERROR'}, "No meshes were selected to receive copied shape keys")
             return {'CANCELLED'}
 
-        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix)
+        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix, context.scene.Amh2bPropSK_AdaptSize)
         return {'FINISHED'}
 
 def get_mod_verts(obj):
@@ -442,7 +490,7 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
         do_deform_sk_view_toggle(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix):
+def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size):
     # copy list of selected objects, minus the active object
     selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
 
@@ -472,7 +520,7 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix):
         # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
         # and this requires exactly two specific objects be selected per shape key copy
         bpy.ops.object.select_all(action='DESELECT')
-        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix)
+        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix, adapt_size)
         bpy.ops.object.select_all(action='DESELECT')
 
         # re-select the objects that were appended
@@ -495,5 +543,7 @@ class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operat
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_search_file_for_auto_sk(context.selected_objects, self.filepath, context.scene.Amh2bPropSK_FunctionPrefix)
+        scn = context.scene
+        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.Amh2bPropSK_FunctionPrefix,
+            scn.Amh2bPropSK_AdaptSize)
         return {'FINISHED'}

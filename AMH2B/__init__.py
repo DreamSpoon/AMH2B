@@ -156,6 +156,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         box.label(text="ShapeKey Functions")
         box.operator("amh2b.sk_search_file_for_auto_sk")
         box.operator("amh2b.sk_func_copy")
+        box.prop(scn, "Amh2bPropSK_AdaptSize")
         box.operator("amh2b.sk_func_delete")
         box.prop(scn, "Amh2bPropSK_FunctionPrefix")
         box = layout.box()
@@ -295,6 +296,8 @@ def register():
         description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
     bts.Amh2bPropSK_DeformShapeKeyPrefix = bp.StringProperty(name="Prefix",
         description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bts.Amh2bPropSK_AdaptSize = bp.BoolProperty(name="Adapt Size",
+        description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge lengths", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
