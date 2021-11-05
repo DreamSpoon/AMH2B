@@ -32,9 +32,6 @@ def add_vertex_group(mesh_obj, grp_name, vert_indexes):
     new_vert_grp.add(vert_indexes, 1.0, 'REPLACE')
     return new_vert_grp
 
-#def add_replace_vertex_grp(mesh_obj, vert_grp_name):
-#    delete_vertex_group(mesh_obj, vert_grp_name)
-#    add_vertex_group(mesh_obj, vert_grp_name, [])
 def add_ifnot_vertex_grp(mesh_obj, vert_grp_name):
     if mesh_obj.vertex_groups.get(vert_grp_name) is None:
         return add_vertex_group(mesh_obj, vert_grp_name, [])

@@ -116,6 +116,24 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
     # keep src_object selected throughout for loop, only switching dest_object select on and off
     select_object(src_obj)
     for dest_obj in dest_objects:
+        # skip destination mesh objects with different numbers of vertices
+        dvc = len(dest_obj.data.vertices)
+        svc = len(src_obj.data.vertices)
+        if dvc != svc:
+            print("copy_shapekeys_by_name_prefix(): Cannot copy shapekeys from source ("+src_obj.name+
+                ") to dest ("+dest_obj.name+"), source vertex count ("+str(svc)+
+                ") doesn't equal destination vertex count ("+str(dvc)+").")
+            continue
+
+        # skip destination mesh objects with different numbers of edges
+        dec = len(dest_obj.data.edges)
+        sec = len(src_obj.data.edges)
+        if dec != sec:
+            print("copy_shapekeys_by_name_prefix(): Cannot copy shapekeys from source ("+src_obj.name+
+                ") to dest ("+dest_obj.name+"), source edge count ("+str(sec)+
+                ") doesn't equal destination edge count ("+str(dec)+").")
+            continue
+
         # get the scaling needed, per vertex, to "fit" the shape key of the src_object to the dest_object
         vert_diff_scales = get_vertex_difference_scales(src_obj, dest_obj)
 
@@ -181,7 +199,7 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
             self.report({'ERROR'}, "Active object does not have enough shape keys to be copied")
             return {'CANCELLED'}
 
-        other_obj_list = [ob for ob in context.selected_editable_objects if ob != ob_act]
+        other_obj_list = [ob for ob in context.selected_editable_objects if ob.type == 'MESH' and ob != ob_act]
         if len(other_obj_list) < 1:
             self.report({'ERROR'}, "No meshes were selected to receive copied shape keys")
             return {'CANCELLED'}
@@ -463,18 +481,18 @@ def do_deform_sk_view_toggle(act_ob):
     # also the view state is "on" if any cloth or soft body sims have their viewport view set to visible
     sk_view_active = False
     for mod in act_ob.modifiers:
-        if mod.type == 'ARMATURE' and mod.vertex_group == SC_VGRP_CUTS:
+        if mod.type == 'ARMATURE' and mod.vertex_group == SC_VGRP_MASKOUT:
             sk_view_active = True
         elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
             sk_view_active = True
 
     # based on original view state, do toggle
     for mod in act_ob.modifiers:
-        if mod.type == 'ARMATURE' and (mod.vertex_group == SC_VGRP_CUTS or mod.vertex_group == ""):
+        if mod.type == 'ARMATURE' and (mod.vertex_group == SC_VGRP_MASKOUT or mod.vertex_group == ""):
             if sk_view_active:
                 mod.vertex_group = ""
             else:
-                mod.vertex_group = SC_VGRP_CUTS
+                mod.vertex_group = SC_VGRP_MASKOUT
                 mod.invert_vertex_group = False
         elif mod.type == 'CLOTH' or mod.type == 'SOFT_BODY':
             mod.show_viewport = sk_view_active

@@ -253,8 +253,8 @@ classes = [
     AMH2B_SwapMatIntMulti,
     AMH2B_SetupMatSwapSingle,
     AMH2B_SetupMatSwapMulti,
-    AMH2B_AddCutsMask,
-    AMH2B_ToggleViewCutsMask,
+    AMH2B_AddMaskOutMod,
+    AMH2B_ToggleViewMaskoutMod,
     AMH2B_CopyVertexGroupsByPrefix,
     AMH2B_DeleteVertexGroupsByPrefix,
     AMH2B_MakeTailorGroups,
@@ -298,7 +298,7 @@ def register():
     bp = bpy.props
 
     bts.Amh2bPropMatSwapAll = bp.BoolProperty(name="Swap All",
-        description="Swap all materials, including materials that have already been swapped", default=False)
+        description="When 'From File' is used, swap all materials, including materials that have already been swapped (based on name)", default=False)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
@@ -324,7 +324,7 @@ def register():
     bts.Amh2bPropSK_AdaptSize = bp.BoolProperty(name="Adapt Size",
         description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge lengths", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
-        description="Prefix use in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
+        description="Prefix used in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bts.Amh2bPropWP_SelectVertexMinW = bp.FloatProperty(name="Min Weight",

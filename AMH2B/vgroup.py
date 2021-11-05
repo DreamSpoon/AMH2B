@@ -35,14 +35,14 @@ else:
     from .imp_v28 import *
     Region = "UI"
 
-def do_add_cuts_mask(act_ob):
+def do_add_maskout_mod(act_ob):
     # add the Auto Mask vertex group if it does not exist
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_CUTS)
-    v_grp = act_ob.vertex_groups.get(SC_VGRP_CUTS)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_MASKOUT)
+    v_grp = act_ob.vertex_groups.get(SC_VGRP_MASKOUT)
 
-    # prevent duplicate masks: check for cuts mask in modifiers stack and quit if found
+    # prevent duplicate masks: check for MaskOut in modifiers stack and quit if found
     for mod in act_ob.modifiers:
-        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
+        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_MASKOUT:
             return None
 
     # add mask modifier and set it
@@ -58,7 +58,7 @@ def do_add_cuts_mask(act_ob):
 
     return None
 
-class AMH2B_AddCutsMask(bpy.types.Operator):
+class AMH2B_AddMaskOutMod(bpy.types.Operator):
     """Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to active object if needed"""
     bl_idname = "amh2b.vg_add_maskout_modifier"
     bl_label = "Add MaskOut Modifier"
@@ -70,23 +70,23 @@ class AMH2B_AddCutsMask(bpy.types.Operator):
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
 
-        err_str = do_add_cuts_mask(act_ob)
+        err_str = do_add_maskout_mod(act_ob)
         if err_str == None:
             return {'FINISHED'}
 
         self.report({'ERROR'}, err_str)
         return {'CANCELLED'}
 
-def do_toggle_view_cuts_mask(act_ob):
-    # find the cuts mask in the stack
+def do_toggle_view_maskout_mod(act_ob):
+    # find the MaskOut modifier in the stack
     for mod in act_ob.modifiers:
-        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_CUTS:
+        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_MASKOUT:
             # toggle and ensure that viewport and render visibility are the same
             mod.show_viewport = not mod.show_viewport
             mod.show_render = mod.show_viewport
             return
 
-class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
+class AMH2B_ToggleViewMaskoutMod(bpy.types.Operator):
     """Toggle the visibility of the Auto Mask modifier, in viewport and render"""
     bl_idname = "amh2b.vg_toggle_auto_maskout"
     bl_label = "Toggle AutoMaskOut"
@@ -98,7 +98,7 @@ class AMH2B_ToggleViewCutsMask(bpy.types.Operator):
             self.report({'ERROR'}, "Active object is not MESH type")
             return {'CANCELLED'}
 
-        do_toggle_view_cuts_mask(act_ob)
+        do_toggle_view_maskout_mod(act_ob)
         return {'FINISHED'}
 
 def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix):
@@ -107,6 +107,14 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix)
 
     # iterate over selected 'MESH' type objects that are not the active object
     for to_mesh_obj in (x for x in sel_obj_list if x.type == 'MESH' and x != from_mesh_obj):
+        # skip destination mesh objects with different numbers of vertices
+        dvc = len(to_mesh_obj.data.vertices)
+        svc = len(from_mesh_obj.data.vertices)
+        if dvc != svc:
+            print("do_copy_vertex_groups_by_prefix(): Cannot copy vertex groups from source ("+from_mesh_obj.name+
+                ") to dest ("+to_mesh_obj.name+"), source vertex count ("+str(svc)+
+                ") doesn't equal destination vertex count ("+str(dvc)+").")
+            continue
         copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
@@ -140,7 +148,7 @@ def delete_prefixed_vertex_groups(selection_list, delete_prefix):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
-    """With active object, delete vertex groups by prefix"""
+    """With all selected objects, delete vertex groups by prefix"""
     bl_idname = "amh2b.vg_delete_by_prefix"
     bl_label = "Delete Groups"
     bl_options = {'REGISTER', 'UNDO'}
@@ -158,8 +166,8 @@ def do_make_tailor_vgroups(act_ob):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_CUTS)
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_PINS)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_MASKOUT)
+    add_ifnot_vertex_grp(act_ob, SC_VGRP_CLOTH_PIN)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -207,7 +215,15 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
 
             continue
 
-        copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
+        # skip destination mesh objects with different numbers of vertices
+        dvc = len(sel.data.vertices)
+        svc = len(appended_obj.data.vertices)
+        if dvc == svc:
+            copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
+        else:
+            print("do_search_file_for_auto_vgroups(): Cannot copy vertex groups from source ("+appended_obj.name+
+                ") to dest ("+sel.name+"), source vertex count ("+str(svc)+
+                ") doesn't equal destination vertex count ("+str(dvc)+").")
 
         # all objects were deselected before starting this loop,
         # and any objects currently selected could only have come from the append process,

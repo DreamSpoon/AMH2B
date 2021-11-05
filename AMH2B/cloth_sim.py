@@ -41,7 +41,7 @@ def do_add_cloth_sim(mesh_obj):
 
     mod.settings.use_dynamic_mesh = True
 
-    vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_PINS)
+    vert_grp = mesh_obj.vertex_groups.get(SC_VGRP_CLOTH_PIN)
     if vert_grp is not None:
         cloth_sim_use_pin_group(mod, vert_grp.name)
 
