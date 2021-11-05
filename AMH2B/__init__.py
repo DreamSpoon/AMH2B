@@ -60,18 +60,21 @@ class AMH2B_MeshMat(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scn = context.scene
 
         box = layout.box()
         box.label(text="Swap Material")
         box.operator("amh2b.mat_swap_from_file")
         box.operator("amh2b.mat_swap_int_single")
         box.operator("amh2b.mat_swap_int_multi")
+        box.prop(scn, "Amh2bPropMatSwapAll")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -85,6 +88,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -107,6 +111,7 @@ class AMH2B_WeightPaint(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -136,6 +141,7 @@ class AMH2B_Simulation(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -148,6 +154,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -182,6 +189,7 @@ class AMH2B_Armature(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -212,6 +220,7 @@ class AMH2B_Animation(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -226,6 +235,7 @@ class AMH2B_Template(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
     bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -286,6 +296,9 @@ def register():
 
     bts = bpy.types.Scene
     bp = bpy.props
+
+    bts.Amh2bPropMatSwapAll = bp.BoolProperty(name="Swap All",
+        description="Swap all materials, including materials that have already been swapped", default=False)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
