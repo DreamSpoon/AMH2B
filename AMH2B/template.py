@@ -22,7 +22,7 @@
 
 import bpy
 
-from .imp_material_func import *
+from .material_func import *
 
 def get_mat_template_name(mh_name):
     # if name is in MH format then return trimmed name

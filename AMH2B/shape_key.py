@@ -27,10 +27,10 @@ import mathutils
 from mathutils import Vector
 import numpy
 
-from .imp_append_from_file import *
-from .imp_const import *
-from .imp_object_func import *
-from .imp_template import *
+from .append_from_file_func import *
+from .const import *
+from .object_func import *
+from .template import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -114,13 +114,13 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
         return
 
     # keep src_object selected throughout for loop, only switching dest_object select on and off
-    src_obj.select = True
+    select_object(src_obj)
     for dest_obj in dest_objects:
         # get the scaling needed, per vertex, to "fit" the shape key of the src_object to the dest_object
         vert_diff_scales = get_vertex_difference_scales(src_obj, dest_obj)
 
         show_temp = dest_obj.show_only_shape_key
-        dest_obj.select = True
+        select_object(dest_obj)
         set_active_object(dest_obj)
         check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
@@ -143,11 +143,11 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
                 dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = (v_scale * delta_loc[0] + original_loc[0],
                     v_scale * delta_loc[1] + original_loc[1], v_scale * delta_loc[2] + original_loc[2])
 
-        dest_obj.select = False
+        deselect_object(dest_obj)
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
         dest_obj.show_only_shape_key = show_temp
 
-    src_obj.select = False
+    deselect_object(src_obj)
 
 def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     old_3dview_mode = bpy.context.object.mode
@@ -496,6 +496,9 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
         return {'FINISHED'}
 
 def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     # copy list of selected objects, minus the active object
     selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
 
@@ -530,7 +533,7 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
 
         # re-select the objects that were appended
         for ob in appended_selection_list:
-            ob.select = True
+            select_object(ob)
 
         # all objects were deselected before starting this loop,
         # and any objects currently selected could only have come from the append process,
@@ -540,6 +543,8 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
         # if an object was named in order to do appending then fix name
         if test_obj is not None:
             test_obj.name = search_name
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""

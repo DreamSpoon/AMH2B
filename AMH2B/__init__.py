@@ -33,15 +33,15 @@ bl_info = {
 
 import bpy
 
-from .imp_mesh_mat import *
-from .imp_mesh_size import *
-from .imp_vgroup import *
-from .imp_weight_paint import *
-from .imp_cloth_sim import *
-from .imp_shape_key import *
-from .imp_armature import *
-from .imp_animation import *
-from .imp_const import *
+from .material import *
+from .mesh_size import *
+from .vgroup import *
+from .weight_paint import *
+from .cloth_sim import *
+from .shape_key import *
+from .armature import *
+from .animation import *
+from .const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -65,9 +65,9 @@ class AMH2B_MeshMat(bpy.types.Panel):
         box = layout.box()
         box.label(text="Swap Material")
         box.operator("amh2b.mat_swap_from_file")
+        box.prop(scn, "Amh2bPropMatSwapAll")
         box.operator("amh2b.mat_swap_int_single")
         box.operator("amh2b.mat_swap_int_multi")
-        box.prop(scn, "Amh2bPropMatSwapAll")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"

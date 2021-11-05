@@ -24,7 +24,7 @@
 import bpy
 import math
 
-from .imp_items import *
+from .items import *
 
 def cloth_sim_use_sew_group(mod, vert_grp_name):
     mod.settings.use_sewing_springs = True

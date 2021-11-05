@@ -23,10 +23,10 @@
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
-from .imp_append_from_file import *
-from .imp_const import *
-from .imp_template import *
-from .imp_vgroup_func import *
+from .append_from_file_func import *
+from .const import *
+from .template import *
+from .vgroup_func import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -179,6 +179,9 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         return {'FINISHED'}
 
 def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     # copy list of selected objects, minus the active object
     other_obj_list = []
     for ob in sel_obj_list:
@@ -214,6 +217,8 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
         # if an object was named in order to do appending then fix name
         if test_obj is not None:
             test_obj.name = search_name
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""

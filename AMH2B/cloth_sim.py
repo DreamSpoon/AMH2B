@@ -22,7 +22,7 @@
 
 import bpy
 
-from .imp_const import *
+from .const import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *

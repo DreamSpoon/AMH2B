@@ -23,9 +23,9 @@
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
-from .imp_append_from_file import *
-from .imp_material_func import *
-from .imp_template import get_mat_template_name, is_mat_mhx_name, is_mat_template_name
+from .append_from_file_func import *
+from .material_func import *
+from .template import (get_mat_template_name, is_mat_mhx_name, is_mat_template_name)
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
@@ -46,6 +46,9 @@ else:
 # current material, and then append the new material.
 
 def do_swap_mats_with_file(shaderswap_blendfile, selection_list, swap_all):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
     mats_loaded_from_file = []
 
     # do the material swaps for each selected object
@@ -86,6 +89,8 @@ def do_swap_mats_with_file(shaderswap_blendfile, selection_list, swap_all):
             # swap material
             mat_slot.material = bpy.data.materials[swatch_mat_name]
 
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
 class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
     """Try to swap all materials (based on material name) on all selected objects with replacement materials from another Blend File"""
     bl_idname = "amh2b.mat_swap_from_file"
@@ -107,7 +112,7 @@ class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportH
 #     Multi
 # Search and swap materials for all material slots on all selected objects.
 
-def do_mat_swaps_internal_single(sel_obj_list, swap_all):
+def do_mat_swaps_internal_single(sel_obj_list):
     for obj in sel_obj_list:
         if len(obj.material_slots) < 1:
             continue
@@ -115,12 +120,8 @@ def do_mat_swaps_internal_single(sel_obj_list, swap_all):
         if mat_slot is None:
             continue
 
-        if swap_all:
-            if not is_mat_mhx_name(mat_slot.material.name) and not is_mat_template_name():
-                continue
-        else:
-            if not is_mat_mhx_name(mat_slot.material.name):
-                continue
+        if not is_mat_mhx_name(mat_slot.material.name):
+            continue
 
         # get potential name of swap material and check for its existence
         temp_mat_name = get_mat_template_name(mat_slot.material.name)
@@ -138,20 +139,16 @@ class AMH2B_SwapMatIntSingle(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_mat_swaps_internal_single(context.selected_objects, context.scene.Amh2bPropMatSwapAll)
+        do_mat_swaps_internal_single(context.selected_objects)
         return {'FINISHED'}
 
-def do_mat_swaps_internal_multi(sel_obj_list, swap_all):
+def do_mat_swaps_internal_multi(sel_obj_list):
     # fix materials on all selected objects, swapping to correct materials if available
     for obj in sel_obj_list:
         # iterate over the material slots and check/swap the materials
         for mat_slot in (s for s in obj.material_slots if s.material is not None):
-            if swap_all:
-                if not is_mat_mhx_name(mat_slot.material.name) and not is_mat_template_name():
-                    continue
-            else:
-                if not is_mat_mhx_name(mat_slot.material.name):
-                    continue
+            if not is_mat_mhx_name(mat_slot.material.name):
+                continue
 
             # get potential name of swap material and check for its existence
             temp_mat_name = get_mat_template_name(mat_slot.material.name)
@@ -169,5 +166,5 @@ class AMH2B_SwapMatIntMulti(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_mat_swaps_internal_multi(context.selected_objects, context.scene.Amh2bPropMatSwapAll)
+        do_mat_swaps_internal_multi(context.selected_objects)
         return {'FINISHED'}
