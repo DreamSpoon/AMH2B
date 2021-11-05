@@ -53,7 +53,7 @@ def do_setup_mat_template_single(selection_list):
             rename_material(active_mat_name, new_mat_name)
 
 class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
-    """Rename active material slot of active object to make the material searchable re: swap material from file"""
+    """Rename active material slot on all selected objects to make the materials searchable re: swap material from file"""
     bl_idname = "amh2b.temp_setup_mat_swap_single"
     bl_label = "Active Material Only"
     bl_options = {'REGISTER', 'UNDO'}
@@ -89,19 +89,18 @@ def get_searchable_object_name(object_name):
     else:
         return object_name
 
-def do_rename_mhx_object_to_searchable(act_ob):
-    act_ob.name = get_searchable_object_name(act_ob.name)
+def do_rename_mhx_object_to_searchable(selection_list):
+    for obj in selection_list:
+        if obj.type != 'MESH':
+            continue
+        obj.name = get_searchable_object_name(obj.name)
 
 class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
-    """Rename active object, if needed, to make it searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
+    """Rename selected objects, as needed, to make them searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
     bl_idname = "amh2b.temp_make_tailor_object_searchable"
-    bl_label = "Make Object Searchable"
+    bl_label = "Make Objects Searchable"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-        do_rename_mhx_object_to_searchable(act_ob)
+        do_rename_mhx_object_to_searchable(context.selected_objects)
         return {'FINISHED'}

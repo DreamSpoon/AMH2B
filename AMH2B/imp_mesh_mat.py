@@ -132,7 +132,7 @@ def do_mat_swaps_internal_single(sel_obj_list, swap_all):
         mat_slot.material = sm
 
 class AMH2B_SwapMatIntSingle(bpy.types.Operator):
-    """Try to swap material in object's active material slot with replacement material within this Blend file"""
+    """Try to swap active material slot of all selected objects with replacement materials contained within this Blend file"""
     bl_idname = "amh2b.mat_swap_int_single"
     bl_label = "Internal Single"
     bl_options = {'REGISTER', 'UNDO'}
@@ -163,7 +163,7 @@ def do_mat_swaps_internal_multi(sel_obj_list, swap_all):
             mat_slot.material = sm
 
 class AMH2B_SwapMatIntMulti(bpy.types.Operator):
-    """Try to swap all materials of selected objects with replacement materials within this Blend file"""
+    """Try to swap all materials of all selected objects with replacement materials contained within this Blend file"""
     bl_idname = "amh2b.mat_swap_int_multi"
     bl_label = "Internal Multi"
     bl_options = {'REGISTER', 'UNDO'}

@@ -47,6 +47,8 @@ def is_name_prefix_match(name, prefix):
 
 def delete_shapekeys_by_prefix(obj, delete_prefix):
     for sk in obj.data.shape_keys.key_blocks:
+        if sk.name == 'Basis':
+                continue
         if is_name_prefix_match(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
 
@@ -110,16 +112,20 @@ def get_vertex_difference_scales(src_obj, dst_obj):
 def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size):
     if src_obj.data.shape_keys is None:
         return
+
+    # keep src_object selected throughout for loop, only switching dest_object select on and off
+    src_obj.select = True
     for dest_obj in dest_objects:
         # get the scaling needed, per vertex, to "fit" the shape key of the src_object to the dest_object
         vert_diff_scales = get_vertex_difference_scales(src_obj, dest_obj)
 
         show_temp = dest_obj.show_only_shape_key
-        src_obj.select = True
         dest_obj.select = True
         set_active_object(dest_obj)
         check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
+            if sk.name == 'Basis':
+                    continue
             if is_name_prefix_match(sk.name, copy_prefix):
                 src_obj.active_shape_key_index = src_obj.data.shape_keys.key_blocks.find(sk.name)
                 bpy.ops.object.shape_key_transfer()
@@ -134,15 +140,14 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
                 sk_loc = dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co
                 original_loc = dest_obj.data.shape_keys.key_blocks[0].data[v_index].co
                 delta_loc = numpy.subtract(sk_loc, original_loc)
-                new_sk_loc = (v_scale * delta_loc[0] + original_loc[0], v_scale * delta_loc[1] + original_loc[1],
-                    v_scale * delta_loc[2] + original_loc[2])
+                dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = (v_scale * delta_loc[0] + original_loc[0],
+                    v_scale * delta_loc[1] + original_loc[1], v_scale * delta_loc[2] + original_loc[2])
 
-                dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = new_sk_loc
-
-        src_obj.select = False
         dest_obj.select = False
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
         dest_obj.show_only_shape_key = show_temp
+
+    src_obj.select = False
 
 def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     old_3dview_mode = bpy.context.object.mode
