@@ -101,7 +101,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_delete_by_prefix")
         box.prop(scn, "Amh2bPropVG_FunctionNamePrefix")
         box = layout.box()
-        box.label(text="Auto Mask & Pin Group")
+        box.label(text="AutoMask & Pin Group")
         box.operator("amh2b.vg_make_auto_vgroups")
         box.operator("amh2b.vg_add_maskout_modifier")
         box.operator("amh2b.vg_toggle_auto_maskout")
@@ -160,7 +160,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
         box = layout.box()
-        box.label(text="ShapeKey Functions")
+        box.label(text="Functions")
         box.operator("amh2b.sk_search_file_for_auto_sk")
         box.operator("amh2b.sk_func_copy")
         box.prop(scn, "Amh2bPropSK_AdaptSize")
@@ -297,8 +297,9 @@ def register():
     bts = bpy.types.Scene
     bp = bpy.props
 
-    bts.Amh2bPropMatSwapAll = bp.BoolProperty(name="Swap All",
-        description="When 'From File' is used, swap all materials, including materials that have already been swapped (based on name)", default=False)
+    bts.Amh2bPropMatSwapAll = bp.BoolProperty(name="Re-Swap",
+        description="When 'From File' is used, include materials that have already been swapped (based on name)" +
+        " - 're-swap' the already swapped materials", default=False)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
@@ -306,7 +307,8 @@ def register():
     bts.Amh2bPropArmGenericMHX = bp.BoolProperty(name="Include MHX bones",
         description="Include MHX bones when renaming/un-naming", default=False)
     bts.Amh2bPropSK_BindFrame = bp.IntProperty(name="Bind frame",
-        description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
+        description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original " +
+        "locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
     bts.Amh2bPropSK_StartFrame = bp.IntProperty(name="Start frame",
         description="Choose first frame of mesh animation to convert to Shape Key", default=1, min=0)
     bts.Amh2bPropSK_EndFrame = bp.IntProperty(name="End frame",
@@ -316,17 +318,20 @@ def register():
     bts.Amh2bPropSK_AddFrameToName = bp.BoolProperty(name="Add Frame to Name",
         description="Append frame number to key name (e.g. DSKey005, DSKey006)", default=True)
     bts.Amh2bPropSK_Dynamic = bp.BoolProperty(name="Dynamic",
-        description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
+        description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to " +
+        "run than not-Dynamic", default=True)
     bts.Amh2bPropSK_ExtraAccuracy = bp.IntProperty(name="",
         description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
     bts.Amh2bPropSK_DeformShapeKeyPrefix = bp.StringProperty(name="Prefix",
         description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropSK_AdaptSize = bp.BoolProperty(name="Adapt Size",
-        description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge lengths", default=True)
+        description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge " +
+        "lengths", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix used in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
-        description="Perform functions on selected MESH type objects, but only vertex groups with names beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+        description="Perform functions on selected MESH type objects, but only vertex groups with names " +
+        "beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bts.Amh2bPropWP_SelectVertexMinW = bp.FloatProperty(name="Min Weight",
         description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bts.Amh2bPropWP_SelectVertexMaxW = bp.FloatProperty(name="Max Weight",
@@ -334,15 +339,18 @@ def register():
     bts.Amh2bPropWP_SelectVertexDeselect = bp.BoolProperty(name="Deselect All First",
         description="Deselect all vertexes before selecting by weight", default=True)
     bts.Amh2bPropWP_GrowPaintIterations = bp.IntProperty(name="Iterations",
-        description="Number of growth iterations - 'select more' is used each iteration to select more vertexes before applying weight paint", default=1, min=1)
+        description="Number of growth iterations - 'select more' is used each iteration to select more vertexes " +
+        "before applying weight paint", default=1, min=1)
     bts.Amh2bPropWP_GrowPaintStartWeight = bp.FloatProperty(name="Start Weight",
         description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
     bts.Amh2bPropWP_GrowPaintEndWeight = bp.FloatProperty(name="End Weight",
-        description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0, min=0.0, max=1.0)
+        description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0,
+        min=0.0, max=1.0)
     bts.Amh2bPropWP_PaintInitialSelection = bp.BoolProperty(name="Paint Initial Selection",
         description="Initial selection will be included when applying weight paints", default=True)
     bts.Amh2bPropWP_TailFill = bp.BoolProperty(name="Tail Fill",
-        description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail fill value, after applying weights to vertexes during 'select more' iterations", default=False)
+        description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail " +
+        "fill value, after applying weights to vertexes during 'select more' iterations", default=False)
     bts.Amh2bPropWP_TailFillValue = bp.FloatProperty(name="Tail Value",
         description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
     bts.Amh2bPropWP_TailFillConnected = bp.BoolProperty(name="Fill only linked",
