@@ -20,6 +20,7 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
+import re
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
@@ -45,7 +46,7 @@ else:
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
 
-def do_swap_mats_with_file(shaderswap_blendfile, selection_list, swap_all):
+def do_swap_mats_with_file(shaderswap_blendfile, selection_list, swap_all, swap_autoname_ext):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -78,10 +79,15 @@ def do_swap_mats_with_file(shaderswap_blendfile, selection_list, swap_all):
 
             # if cannot load material from file...
             if not append_material_from_blend_file(shaderswap_blendfile, swatch_mat_name):
-                # if rename occurred, then undo rename
-                if test_swap_mat is not None:
-                    test_swap_mat.name = swatch_mat_name
-                continue
+                # if "swap autoname ext" is enabled then check material name, and if it follows the
+                # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+                if swap_autoname_ext and re.match(".*\.[0-9]{3}", swatch_mat_name) and append_material_from_blend_file(shaderswap_blendfile, swatch_mat_name[0:len(swatch_mat_name)-4]):
+                    swatch_mat_name = swatch_mat_name[0:len(swatch_mat_name)-4]
+                else:
+                    # if rename occurred, then undo rename
+                    if test_swap_mat is not None:
+                        test_swap_mat.name = swatch_mat_name
+                    continue
 
             # include the newly loaded material in the list of loaded materials
             mats_loaded_from_file.append(swatch_mat_name)
@@ -98,7 +104,9 @@ class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportH
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_swap_mats_with_file(self.filepath, context.selected_objects, context.scene.Amh2bPropMatSwapAll)
+        scn = context.scene
+        do_swap_mats_with_file(self.filepath, context.selected_objects, scn.Amh2bPropMatReSwap,
+            scn.Amh2bPropMatSwapAutonameExt)
         return {'FINISHED'}
 
 #####################################################
@@ -112,14 +120,13 @@ class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportH
 #     Multi
 # Search and swap materials for all material slots on all selected objects.
 
-def do_mat_swaps_internal_single(sel_obj_list):
+def do_mat_swaps_internal_single(sel_obj_list, swap_autoname_ext):
     for obj in sel_obj_list:
         if len(obj.material_slots) < 1:
             continue
         mat_slot = obj.material_slots[obj.active_material_index]
         if mat_slot is None:
             continue
-
         if not is_mat_mhx_name(mat_slot.material.name):
             continue
 
@@ -127,10 +134,18 @@ def do_mat_swaps_internal_single(sel_obj_list):
         temp_mat_name = get_mat_template_name(mat_slot.material.name)
         sm = bpy.data.materials.get(temp_mat_name)
         if sm is None:
-            continue
+            # if "swap autoname ext" is enabled then check material name, and if it follows the
+            # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+            if swap_autoname_ext and re.match(".*\.[0-9]{3}", temp_mat_name):
+                temp_mat_name = temp_mat_name[0:len(temp_mat_name)-4]
+                sm = bpy.data.materials.get(temp_mat_name)
+                if sm is None:
+                    continue
+            else:
+                continue
 
         # swap material
-        mat_slot.material = sm
+        obj.material_slots[obj.active_material_index].material = sm
 
 class AMH2B_SwapMatIntSingle(bpy.types.Operator):
     """Try to swap active material slot of all selected objects with replacement materials contained within this Blend file"""
@@ -139,10 +154,10 @@ class AMH2B_SwapMatIntSingle(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_mat_swaps_internal_single(context.selected_objects)
+        do_mat_swaps_internal_single(context.selected_objects, context.scene.Amh2bPropMatSwapAutonameExt)
         return {'FINISHED'}
 
-def do_mat_swaps_internal_multi(sel_obj_list):
+def do_mat_swaps_internal_multi(sel_obj_list, swap_autoname_ext):
     # fix materials on all selected objects, swapping to correct materials if available
     for obj in sel_obj_list:
         # iterate over the material slots and check/swap the materials
@@ -154,7 +169,15 @@ def do_mat_swaps_internal_multi(sel_obj_list):
             temp_mat_name = get_mat_template_name(mat_slot.material.name)
             sm = bpy.data.materials.get(temp_mat_name)
             if sm is None:
-                continue
+                # if "swap autoname ext" is enabled then check material name, and if it follows the
+                # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+                if swap_autoname_ext and re.match(".*\.[0-9]{3}", temp_mat_name):
+                    temp_mat_name = temp_mat_name[0:len(temp_mat_name)-4]
+                    sm = bpy.data.materials.get(temp_mat_name)
+                    if sm is None:
+                        continue
+                else:
+                    continue
 
             # swap material
             mat_slot.material = sm
@@ -166,5 +189,5 @@ class AMH2B_SwapMatIntMulti(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_mat_swaps_internal_multi(context.selected_objects)
+        do_mat_swaps_internal_multi(context.selected_objects, context.scene.Amh2bPropMatSwapAutonameExt)
         return {'FINISHED'}

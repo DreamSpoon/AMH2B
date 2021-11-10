@@ -20,6 +20,7 @@
 #   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
+import re
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
@@ -186,7 +187,7 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix):
+def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -209,11 +210,17 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
         append_object_from_blend_file(chosen_blend_file, search_name)
         appended_obj = bpy.data.objects.get(search_name)
         if appended_obj is None:
-            # if rename occurred, then undo rename
-            if test_obj is not None:
-                test_obj.name = search_name
-
-            continue
+            # if "swap autoname ext" is enabled then check object name, and if it follows the
+            # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+            if swap_autoname_ext and re.match(".*\.[0-9]{3}", search_name):
+                no_ext_search_name = search_name[0:len(search_name)-4]
+                append_object_from_blend_file(chosen_blend_file, no_ext_search_name)
+                appended_obj = bpy.data.objects.get(no_ext_search_name)
+            else:
+                # if rename occurred, then undo rename
+                if test_obj is not None:
+                    test_obj.name = search_name
+                continue
 
         # skip destination mesh objects with different numbers of vertices
         dvc = len(sel.data.vertices)
@@ -243,6 +250,7 @@ class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+        scn = context.scene
         do_search_file_for_auto_vgroups(context.selected_objects, self.filepath,
-            context.scene.Amh2bPropVG_FunctionNamePrefix)
+            scn.Amh2bPropVG_FunctionNamePrefix, scn.Amh2bPropVG_SwapAutonameExt)
         return {'FINISHED'}

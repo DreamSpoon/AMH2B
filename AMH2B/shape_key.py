@@ -47,9 +47,7 @@ def is_name_prefix_match(name, prefix):
 
 def delete_shapekeys_by_prefix(obj, delete_prefix):
     for sk in obj.data.shape_keys.key_blocks:
-        if sk.name == 'Basis':
-                continue
-        if is_name_prefix_match(sk.name, delete_prefix):
+        if sk.name != 'Basis' and is_name_prefix_match(sk.name, delete_prefix):
             obj.shape_key_remove(sk)
 
 def do_sk_func_delete(sel_obj_list, delete_prefix):
@@ -68,10 +66,6 @@ class AMH2B_SKFuncDelete(bpy.types.Operator):
 
     def execute(self, context):
         delete_prefix = context.scene.Amh2bPropSK_FunctionPrefix
-        if delete_prefix == '':
-            self.report({'ERROR'}, "Shape key name prefix is blank")
-            return {'CANCELLED'}
-
         do_sk_func_delete(context.selected_objects, delete_prefix)
         return {'FINISHED'}
 
@@ -187,10 +181,6 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
 
     def execute(self, context):
         copy_prefix = context.scene.Amh2bPropSK_FunctionPrefix
-        if copy_prefix == '':
-            self.report({'ERROR'}, "Shape key name prefix is blank")
-            return {'CANCELLED'}
-
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
@@ -513,7 +503,7 @@ class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
         do_deform_sk_view_toggle(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size):
+def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -533,11 +523,17 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
         append_object_from_blend_file(chosen_blend_file, search_name)
         appended_obj = bpy.data.objects.get(search_name)
         if appended_obj is None:
-            # if rename occurred, then undo rename
-            if test_obj is not None:
-                test_obj.name = search_name
-
-            continue
+            # if "swap autoname ext" is enabled then check object name, and if it follows the
+            # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+            if swap_autoname_ext and re.match(".*\.[0-9]{3}", search_name):
+                no_ext_search_name = search_name[0:len(search_name)-4]
+                append_object_from_blend_file(chosen_blend_file, no_ext_search_name)
+                appended_obj = bpy.data.objects.get(no_ext_search_name)
+            else:
+                # if rename occurred, then undo rename
+                if test_obj is not None:
+                    test_obj.name = search_name
+                continue
 
         # use bpy.context.selected_objects instead of sel_obj_list because bpy.context.selected_objects will change
         # as objects are selected/deselected
@@ -573,5 +569,5 @@ class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operat
     def execute(self, context):
         scn = context.scene
         do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.Amh2bPropSK_FunctionPrefix,
-            scn.Amh2bPropSK_AdaptSize)
+            scn.Amh2bPropSK_AdaptSize, scn.Amh2bPropSK_SwapAutonameExt)
         return {'FINISHED'}

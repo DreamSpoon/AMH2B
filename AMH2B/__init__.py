@@ -65,9 +65,10 @@ class AMH2B_MeshMat(bpy.types.Panel):
         box = layout.box()
         box.label(text="Swap Material")
         box.operator("amh2b.mat_swap_from_file")
-        box.prop(scn, "Amh2bPropMatSwapAll")
+        box.prop(scn, "Amh2bPropMatReSwap")
         box.operator("amh2b.mat_swap_int_single")
         box.operator("amh2b.mat_swap_int_multi")
+        box.prop(scn, "Amh2bPropMatSwapAutonameExt")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
@@ -100,6 +101,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_copy_by_prefix")
         box.operator("amh2b.vg_delete_by_prefix")
         box.prop(scn, "Amh2bPropVG_FunctionNamePrefix")
+        box.prop(scn, "Amh2bPropVG_SwapAutonameExt")
         box = layout.box()
         box.label(text="AutoMask & Pin Group")
         box.operator("amh2b.vg_make_auto_vgroups")
@@ -164,6 +166,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         box.operator("amh2b.sk_search_file_for_auto_sk")
         box.operator("amh2b.sk_func_copy")
         box.prop(scn, "Amh2bPropSK_AdaptSize")
+        box.prop(scn, "Amh2bPropSK_SwapAutonameExt")
         box.operator("amh2b.sk_func_delete")
         box.prop(scn, "Amh2bPropSK_FunctionPrefix")
         box = layout.box()
@@ -297,9 +300,12 @@ def register():
     bts = bpy.types.Scene
     bp = bpy.props
 
-    bts.Amh2bPropMatSwapAll = bp.BoolProperty(name="Re-Swap",
+    bts.Amh2bPropMatReSwap = bp.BoolProperty(name="Re-Swap",
         description="When 'From File' is used, include materials that have already been swapped (based on name)" +
         " - 're-swap' the already swapped materials", default=False)
+    bts.Amh2bPropMatSwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
+        description="If material swap function is tried and fails, re-try swap with materials 'auto-name' extension removed." +
+        "\ne.g. Mass0007:Eyebrow010:Eyebrow010.003 material may be replaced with Mass0007:Eyebrow010:Eyebrow010", default=True)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
@@ -327,11 +333,17 @@ def register():
     bts.Amh2bPropSK_AdaptSize = bp.BoolProperty(name="Adapt Size",
         description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge " +
         "lengths", default=True)
+    bts.Amh2bPropSK_SwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
+        description="If shapekey copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
+        "\ne.g. Object Mass0007:Eyebrow010.003 shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix used in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names " +
         "beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+    bts.Amh2bPropVG_SwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
+        description="If vertex group copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
+        "\ne.g. Object Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups", default=True)
     bts.Amh2bPropWP_SelectVertexMinW = bp.FloatProperty(name="Min Weight",
         description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     bts.Amh2bPropWP_SelectVertexMaxW = bp.FloatProperty(name="Max Weight",
