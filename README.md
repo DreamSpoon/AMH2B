@@ -29,6 +29,8 @@ Brief Overview:
 2) Go to User Preferences -> Addons -> Install addon from file
 3) Choose AMH2B.zip file you downloaded (available for download from 'Releases' section of this website)
 
+Done! The addon is now installed, but **you need to enable it by clicking the checkbox beside it's name**, in the addons window.
+
 ## Use Addon in Blender
 - Look for 'AMH2B' button in View 3D:
   - Blender 2.7x: Tools menu (left-side of View 3D)
@@ -141,6 +143,12 @@ Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to a
 Toggle the visibility of the Auto Mask modifier, in viewport and render.
 
 ## Weight Paint
+These functions make it easier to add realistic cloths sims to clothes and hair, with faster and better weight painting.
+
+The Grow Selection Paint function creates a gradient from the selected vertexes outward (using the Grow Selection operation). E.g. top of a pair of pants would likely have weight = 1.0 for full strength pin, while the bottoms of the pant legs should have weight = 0.1 for minimal pinning. To use Grow Selection Paint in this case - select the top rows of pants' vertexes, estimate the number of "grow" operations to select the rest of the pants, and hit Grow Paint.
+
+Result: Rainbow Pants (literally!)
+
 ### Vertex Select by Weight
 With active object, deselect all vertices (optional), then select only vertices with weights between 'Min Weight' and 'Max Weight', inclusive.
 'Deselect all first' is enabled by default, if enabled then all mesh vertexes are deselected before Select by Weight operation is applied.

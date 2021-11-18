@@ -262,6 +262,7 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         box.prop(scn, "Amh2bPropEBlinkRndPeriod")
         box.prop(scn, "Amh2bPropEBlinkEnableLeft")
         box.prop(scn, "Amh2bPropEBlinkEnableRight")
+        box.prop(scn, "Amh2bPropEBlinkShapekeyName")
         box = layout.box()
         box.label(text="Basis")
         box.prop(scn, "Amh2bPropEBlinkClosingTime")
@@ -466,6 +467,8 @@ def register():
         default=0, min=0)
     bts.Amh2bPropEBlinkEnableLeft = bp.BoolProperty(name="Enable Left", description="Enable left eye blink", default=True)
     bts.Amh2bPropEBlinkEnableRight = bp.BoolProperty(name="Enable Right", description="Enable right eye blink", default=True)
+    bts.Amh2bPropEBlinkShapekeyName = bp.StringProperty(name="Closed Shapekey",
+        description="Name of shapekey for closed eyes (leave blank to ignore)", default="")
     bts.Amh2bPropEBlinkClosingTime = bp.FloatProperty(name="Closing Time",
         description="Time, in seconds, for eyelid to change from opened to closed", default=0.1, min=0.0001)
     bts.Amh2bPropEBlinkClosedTime = bp.FloatProperty(name="Closed Time",
