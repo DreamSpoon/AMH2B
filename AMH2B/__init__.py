@@ -40,7 +40,9 @@ from .weight_paint import *
 from .cloth_sim import *
 from .shape_key import *
 from .armature import *
-from .animation import *
+from .animation import AMH2B_RatchetHold
+from .blink import (AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV, AMH2B_ResetEyeOpened,
+    AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
 from .const import *
 
 if bpy.app.version < (2,80,0):
@@ -233,6 +235,62 @@ class AMH2B_Animation(bpy.types.Panel):
         box.operator("amh2b.anim_ratchet_hold")
         box.prop(scn, "Amh2bPropAnimRatchetFrameCount")
 
+class AMH2B_EyeBlink(bpy.types.Panel):
+    bl_label = "Eye Blink"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+        box = layout.box()
+        box.operator("amh2b.eblink_add_blink_track")
+        box = layout.box()
+        box.label(text="Options")
+        box.prop(scn, "Amh2bPropEBlinkFrameRate")
+        box.prop(scn, "Amh2bPropEBlinkStartFrame")
+        box.prop(scn, "Amh2bPropEBlinkRndStartFrame")
+        box.prop(scn, "Amh2bPropEBlinkAllowRndDrift")
+        box.prop(scn, "Amh2bPropEBlinkFrameCount")
+        box.prop(scn, "Amh2bPropEBlinkUseMaxCount")
+        box.prop(scn, "Amh2bPropEBlinkMaxCount")
+        box.prop(scn, "Amh2bPropEBlinkBlinksPerMinute")
+        box.prop(scn, "Amh2bPropEBlinkUseBlinkPeriod")
+        box.prop(scn, "Amh2bPropEBlinkPeriod")
+        box.prop(scn, "Amh2bPropEBlinkRndPeriod")
+        box.prop(scn, "Amh2bPropEBlinkEnableLeft")
+        box.prop(scn, "Amh2bPropEBlinkEnableRight")
+        box = layout.box()
+        box.label(text="Basis")
+        box.prop(scn, "Amh2bPropEBlinkClosingTime")
+        box.prop(scn, "Amh2bPropEBlinkClosedTime")
+        box.prop(scn, "Amh2bPropEBlinkOpeningTime")
+        box = layout.box()
+        box.label(text="Random")
+        box.prop(scn, "Amh2bPropEBlinkRndClosingTime")
+        box.prop(scn, "Amh2bPropEBlinkRndClosedTime")
+        box.prop(scn, "Amh2bPropEBlinkRndOpeningTime")
+        box = layout.box()
+        box.label(text="Template Set/Reset")
+        box.operator("amh2b.eblink_set_opened")
+        box.operator("amh2b.eblink_reset_opened")
+        box.operator("amh2b.eblink_set_closed")
+        box.operator("amh2b.eblink_reset_closed")
+        box = layout.box()
+        box.label(text="Template Bone Names")
+        box.prop(scn, "Amh2bPropEBlinkBNameLeftLower")
+        box.prop(scn, "Amh2bPropEBlinkBNameLeftUpper")
+        box.prop(scn, "Amh2bPropEBlinkBNameRightLower")
+        box.prop(scn, "Amh2bPropEBlinkBNameRightUpper")
+        box = layout.box()
+        box.label(text="Template Save/Load")
+        box.operator("amh2b.eblink_save_csv")
+        box.prop(scn, "Amh2bPropEBlinkTextSaveName")
+        box.operator("amh2b.eblink_load_csv")
+        box.prop(scn, "Amh2bPropEBlinkTextLoadName")
+
 class AMH2B_Template(bpy.types.Panel):
     bl_label = "Template"
     bl_space_type = "VIEW_3D"
@@ -282,6 +340,13 @@ classes = [
     AMH2B_RenameGeneric,
     AMH2B_UnNameGeneric,
     AMH2B_RatchetHold,
+    AMH2B_AddBlinkTrack,
+    AMH2B_SaveBlinkCSV,
+    AMH2B_LoadBlinkCSV,
+    AMH2B_ResetEyeOpened,
+    AMH2B_ResetEyeClosed,
+    AMH2B_SetEyeOpened,
+    AMH2B_SetEyeClosed,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
     AMH2B_VertexGroup,
@@ -290,6 +355,7 @@ classes = [
     AMH2B_ShapeKey,
     AMH2B_Armature,
     AMH2B_Animation,
+    AMH2B_EyeBlink,
     AMH2B_Template,
 ]
 
@@ -365,10 +431,65 @@ def register():
         "fill value, after applying weights to vertexes during 'select more' iterations", default=False)
     bts.Amh2bPropWP_TailFillValue = bp.FloatProperty(name="Tail Value",
         description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
-    bts.Amh2bPropWP_TailFillConnected = bp.BoolProperty(name="Fill only linked",
+    bts.Amh2bPropWP_TailFillConnected = bp.BoolProperty(name="Fill Only Linked",
         description="Only linked vertexes will be included in the tail fill process", default=True)
     bts.Amh2bPropAnimRatchetFrameCount = bp.IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
+    bts.Amh2bPropEBlinkFrameRate = bp.FloatProperty(name="Frame Rate", description="Frames per second." +
+        "Input can be floating point, so e.g. the number 6.35 is allowed", default=30, min=0.001)
+    bts.Amh2bPropEBlinkStartFrame = bp.IntProperty(name="Start Frame",
+        description="First frame of first blink, before any random timing is applied", default=1)
+    bts.Amh2bPropEBlinkRndStartFrame = bp.FloatProperty(name="Random Start Frame",
+        description="Max number of frames (not seconds) to add randomly to start frame. " +
+        "Input can be floating point, so e.g. the number 6.35 is allowed", default=0, min=0)
+    bts.Amh2bPropEBlinkAllowRndDrift = bp.BoolProperty(name="Allow Random Drift",
+        description="Allow any random period timing difference to accumulate, instead of trying to maintain a " +
+        "constant period with variation", default=True)
+    bts.Amh2bPropEBlinkFrameCount = bp.IntProperty(name="Frame Count",
+        description="Maximum number of frames to fill with blinking, final blink may go over this count though " +
+        "(debug this)", default=250)
+    bts.Amh2bPropEBlinkUseMaxCount = bp.BoolProperty(name="Use Max Blink Count",
+        description="Use maximum number of blinks to create the blink track", default=False)
+    bts.Amh2bPropEBlinkMaxCount = bp.IntProperty(name="Max Blink Count",
+        description="Maximum number of blinks to keyframe", default=10)
+    bts.Amh2bPropEBlinkBlinksPerMinute = bp.FloatProperty(name="Blinks Per Minute",
+        description="Number of blinks per minute. Input can be floating point, so e.g. the number 6.35 is allowed",
+        default=10, min=0)
+    bts.Amh2bPropEBlinkUseBlinkPeriod = bp.BoolProperty(name="Use Blink Period",
+        description="Instead of using Blinks Per Minute, use time (in seconds) between start of blink and start of " +
+        "next blink", default=False)
+    bts.Amh2bPropEBlinkPeriod = bp.FloatProperty(name="Blink Period",
+        description="Time, in seconds, between the start of a blink and the start of the next blink",
+        default=6, min=0.001)
+    bts.Amh2bPropEBlinkRndPeriod = bp.FloatProperty(name="Period Random",
+        description="Add a random amount of time, in seconds, between the start of a blink and the start of the next blink",
+        default=0, min=0)
+    bts.Amh2bPropEBlinkEnableLeft = bp.BoolProperty(name="Enable Left", description="Enable left eye blink", default=True)
+    bts.Amh2bPropEBlinkEnableRight = bp.BoolProperty(name="Enable Right", description="Enable right eye blink", default=True)
+    bts.Amh2bPropEBlinkClosingTime = bp.FloatProperty(name="Closing Time",
+        description="Time, in seconds, for eyelid to change from opened to closed", default=0.1, min=0.0001)
+    bts.Amh2bPropEBlinkClosedTime = bp.FloatProperty(name="Closed Time",
+        description="Time, in seconds, that eyelid remains closed", default=0, min=0)
+    bts.Amh2bPropEBlinkOpeningTime = bp.FloatProperty(name="Opening Time",
+        description="Time, in seconds, for eyelid to change from closed to opened", default=0.475, min=0.0001)
+    bts.Amh2bPropEBlinkRndClosingTime = bp.FloatProperty(name="Closing Time",
+        description="Add a random amount of time, in seconds, to eyelid closing time", default=0, min=0)
+    bts.Amh2bPropEBlinkRndClosedTime = bp.FloatProperty(name="Closed Time",
+        description="Add a random amount of time, in seconds, to eyelid closed time", default=0, min=0)
+    bts.Amh2bPropEBlinkRndOpeningTime = bp.FloatProperty(name="Opening Time",
+        description="Add a random amount of time, in seconds, to eyelid opening time", default=0, min=0)
+    bts.Amh2bPropEBlinkBNameLeftLower = bp.StringProperty(name="Left Lower",
+        description="Name of bone for left lower eyelid", default="lolid.L")
+    bts.Amh2bPropEBlinkBNameLeftUpper = bp.StringProperty(name="Left Upper",
+        description="Name of bone for left upper eyelid", default="uplid.L")
+    bts.Amh2bPropEBlinkBNameRightLower = bp.StringProperty(name="Right Lower",
+        description="Name of bone for right lower eyelid", default="lolid.R")
+    bts.Amh2bPropEBlinkBNameRightUpper = bp.StringProperty(name="Right Upper",
+        description="Name of bone for right upper eyelid", default="uplid.R")
+    bts.Amh2bPropEBlinkTextSaveName = bp.StringProperty(name="Write Text",
+        description="Name of textblock in text editor where blink settings will be written (saved)", default="Text")
+    bts.Amh2bPropEBlinkTextLoadName = bp.StringProperty(name="Read Text",
+        description="Name of textblock in text editor from which blink settings will be read (loaded)", default="Text")
 
 def unregister():
     for cls in classes:
