@@ -11,12 +11,12 @@ Note: The words Rig and Armature are used interchangeably. Also, the words Mater
 Includes convenience functions for use with any armature type, e.g. Ratchet Hold, Re-Size Clothes Rig.
 
 Brief Overview:
+- Add eye blink track with one button
+- LidLook - so eyelids will move when eyes rotate to look up/down
 - Auto swap Materials(Shaders), Vertex Groups (with Weight Paint), shape Keys from any Blender file
 - Re-target MakeHuman MHX rig to CMU or Mixamo rigs to get accurate animation - including fingers
 - Transition between different animations easily with Ratchet Hold
   - e.g. Keyframe rig movements to hold a foot in place while transitioning from standing to walk animations
-- Easily adjust clothing size, before cloth sim, with Create Size Rig - temporary copy of MHX rig attached only to selected clothes
-  - Re-size with rig, apply re-size rig modifier, delete re-size rig - or keep re-size rig for non-destructive cloth re-sizing
 - Bake cloth and soft-body sims to dynamic Shape Keys - with Bake Deform Shape Keys
   - Mask out vertexes to reduce simulation time, bake sim to Shape Keys, then remove mask and mesh looks perfect
     - avoids use of Surface Deform and Mesh Deform, which are difficult/delicate to use with armatures and cloth/soft-body sims
@@ -84,6 +84,10 @@ Done! The addon is now installed, but **you need to enable it by clicking the ch
 - Animation
   - Object Location
     - Ratchet hold
+- Eyelid
+  - Lid Look
+- Eye Blink
+  - Add Blink Track
 - Template
   - Material
     - Rename Single
@@ -371,6 +375,20 @@ Result: Two keyframes created on object B, such that object A appears motionless
 Repeat operation a number of times to get an animation, e.g. of a person walking.
 
 'Frame Count' can be increased to automatically apply Ratchet Hold multiple times.
+
+## Eyelid
+### Add Lid Look
+Use the settings given (e.g. eye bone names, rotation limits) to automatically add bone constraints to eyelids so that eyelids will move as eyes rotate up/down.
+
+The MHX rig has a "gaze" bone, which lets the user easily adjust eye rotations to "look at" a point in space. "Copy Rotation" bone constraints are added to eyelid bones to copy some of the rotation from the eye bones, so eyelid movement matches eye movement.
+
+## Eye Blink
+### Add Blink Track
+Use the blink settings (timing, bone names, and bone positions/rotations) to add "blink track" to active object. If a second object is also selected (must be a MESH type object), then a Shapekey on the MESH object can be keyframed for the "blink track", in addition to eye bone blink keyframes.
+
+The "closed" and "opened" states of the bones can be Set and Reset, independently.
+
+Blink settings can also be written (saved) to a textblock (view with the Text Editor within Blender). Blink settings can also be read (loaded) from a textblock in the Text Editor.
 
 ## Template
 ### Setup Material Swap - Rename Single

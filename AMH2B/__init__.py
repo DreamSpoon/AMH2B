@@ -286,10 +286,14 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         box.prop(scn, "Amh2bPropEBlinkAllowRndDrift")
         box.prop(scn, "Amh2bPropEBlinkFrameCount")
         box.prop(scn, "Amh2bPropEBlinkUseMaxCount")
-        box.prop(scn, "Amh2bPropEBlinkMaxCount")
+        sub = box.column()
+        sub.active = scn.Amh2bPropEBlinkUseMaxCount
+        sub.prop(scn, "Amh2bPropEBlinkMaxCount")
         box.prop(scn, "Amh2bPropEBlinkBlinksPerMinute")
         box.prop(scn, "Amh2bPropEBlinkUseBlinkPeriod")
-        box.prop(scn, "Amh2bPropEBlinkPeriod")
+        sub = box.column()
+        sub.active = scn.Amh2bPropEBlinkUseBlinkPeriod
+        sub.prop(scn, "Amh2bPropEBlinkPeriod")
         box.prop(scn, "Amh2bPropEBlinkRndPeriod")
         box.prop(scn, "Amh2bPropEBlinkEnableLeft")
         box.prop(scn, "Amh2bPropEBlinkEnableRight")
@@ -469,7 +473,7 @@ def register():
         description="Only linked vertexes will be included in the tail fill process", default=True)
     bts.Amh2bPropAnimRatchetFrameCount = bp.IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
-    bts.Amh2bPropEBlinkFrameRate = bp.FloatProperty(name="Frame Rate", description="Frames per second." +
+    bts.Amh2bPropEBlinkFrameRate = bp.FloatProperty(name="Frame Rate", description="Frames per second. " +
         "Input can be floating point, so e.g. the number 6.35 is allowed", default=30, min=0.001)
     bts.Amh2bPropEBlinkStartFrame = bp.IntProperty(name="Start Frame",
         description="First frame of first blink, before any random timing is applied", default=1)

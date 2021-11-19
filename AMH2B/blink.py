@@ -538,7 +538,7 @@ def set_current_en_settings(scn):
     current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
 
 class AMH2B_AddBlinkTrack(bpy.types.Operator):
-    """Add blink track to active object, active object must be ARMATURE"""
+    """Add blink track to active object, active object must be ARMATURE.\nSelect a MESH as a second object, so that a MESH's Shapekey can be keyframed with blink track"""
     bl_idname = "amh2b.eblink_add_blink_track"
     bl_label = "Add Blink Track"
     bl_options = {'REGISTER', 'UNDO'}
@@ -773,7 +773,7 @@ def load_blink_data_from_csv(datablock_textname):
                 current_eye_opened_closed_settings[i][lu][oc] = temp_eye_opened_closed_settings[i][lu][oc]
 
 class AMH2B_LoadBlinkCSV(bpy.types.Operator):
-    """Load blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""
+    """Read blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""
     bl_idname = "amh2b.eblink_load_csv"
     bl_label = "Read Settings"
     bl_options = {'REGISTER', 'UNDO'}
@@ -817,7 +817,7 @@ def reset_eye_opened_settings():
                 copy.deepcopy(default_eye_opened_closed_settings[i][lu][I_OPENED])
 
 class AMH2B_ResetEyeOpened(bpy.types.Operator):
-    """Reset eye opened blink data (locations/rotations)"""
+    """Reset eye opened blink data (locations/rotations) to defaults"""
     bl_idname = "amh2b.eblink_reset_opened"
     bl_label = "Reset Opened"
     bl_options = {'REGISTER', 'UNDO'}
@@ -833,7 +833,7 @@ def reset_eye_closed_settings():
                 copy.deepcopy(default_eye_opened_closed_settings[i][lu][I_CLOSED])
 
 class AMH2B_ResetEyeClosed(bpy.types.Operator):
-    """Reset eye closed blink data (locations/rotations)"""
+    """Reset eye closed blink data (locations/rotations) to defaults"""
     bl_idname = "amh2b.eblink_reset_closed"
     bl_label = "Reset Closed"
     bl_options = {'REGISTER', 'UNDO'}
@@ -866,7 +866,7 @@ def set_eye_opened_settings(obj):
                     ((loc[0], loc[1], loc[2]), bone.rotation_mode, (rot[0], rot[1], rot[2]))
 
 class AMH2B_SetEyeOpened(bpy.types.Operator):
-    """Set eye opened blink data (locations/rotations)"""
+    """Set eye opened blink data (locations/rotations) from active object, active object must be ARMATURE type"""
     bl_idname = "amh2b.eblink_set_opened"
     bl_label = "Set Opened"
     bl_options = {'REGISTER', 'UNDO'}
@@ -904,7 +904,7 @@ def set_eye_closed_settings(obj):
 
 
 class AMH2B_SetEyeClosed(bpy.types.Operator):
-    """Set eye closed blink data (locations/rotations)"""
+    """Set eye closed blink data (locations/rotations) from active object, active object must be ARMATURE type"""
     bl_idname = "amh2b.eblink_set_closed"
     bl_label = "Set Closed"
     bl_options = {'REGISTER', 'UNDO'}
