@@ -169,7 +169,9 @@ def bone_insert_keyframes(obj, bone_name, kf_type, axis_index, kf_data):
     except:
         return
     fc = None
-    action = obj.animation_data.action
+    action = None
+    if obj.animation_data is not None:
+        action = obj.animation_data.action
     # if keyframe data exists then try to get f-curve for given keyframe type and axis
     if action is not None:
         fc = action.fcurves.find(data_path=dp, index=axis_index)
@@ -182,6 +184,40 @@ def bone_insert_keyframes(obj, bone_name, kf_type, axis_index, kf_data):
         # get the f-curve for the shapekey value
         action = obj.animation_data.action
         fc = action.fcurves.find(data_path=dp, index=axis_index)
+        if fc is None:
+            return
+        # get the first point on the f-curve, and set it, then set flag to ignore the first point
+        kp = fc.keyframe_points[0]
+        set_keyframe_point_from_data(kp, kf_data[0])
+        skip_first = True
+    # insert point into the f-curve
+    for data_point in kf_data:
+        if skip_first:
+            skip_first = False
+            continue
+        # insert the point and set it's keyframe data (e.g. Bezier handles)
+        kp = fc.keyframe_points.insert(frame=data_point[0], value=data_point[1])
+        set_keyframe_point_from_data(kp, data_point)
+
+def bone_constraint_insert_keyframes(obj, datapath, kf_data):
+    if len(kf_data) < 1:
+        return
+    fc = None
+    action = None
+    if obj.animation_data is not None:
+        action = obj.animation_data.action
+    # if keyframe data exists then try to get f-curve for given keyframe type and axis
+    if action is not None:
+        fc = action.fcurves.find(data_path=datapath)
+    # if f-curve does not exist then insert a keyframe to initialize it
+    skip_first = False
+    if fc is None:
+        # create the f-curve by inserting the first keyframe
+        if not obj.keyframe_insert(data_path=datapath, frame=kf_data[0][0]):
+            return
+        # get the f-curve for the shapekey value
+        action = obj.animation_data.action
+        fc = action.fcurves.find(data_path=datapath)
         if fc is None:
             return
         # get the first point on the f-curve, and set it, then set flag to ignore the first point
@@ -448,9 +484,25 @@ def generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_star
                 opened_value, closed_value)
             # insert bone keyframes
             bone_insert_keyframes(arm_obj, bone_name, data_type, axis_index, kf_data)
-            # insert shapekey keyframes, if needed
-            if mesh_obj is not None and b_settings["shapekey_name"] != "":
-                shapekey_insert_keyframes(mesh_obj, b_settings["shapekey_name"], kf_data)
+
+        # insert shapekey keyframes, if needed
+        if mesh_obj is not None and b_settings["shapekey_name"] != "":
+            # get keyframe data for the shapekey blink
+            kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time, 0, 1)
+            shapekey_insert_keyframes(mesh_obj, b_settings["shapekey_name"], kf_data)
+
+        # generate keyframes for every 'Copy Rotation' bone constraint on every eye bone
+        for i in range(2):
+            for lu in range(2):
+                bone = arm_obj.pose.bones.get(current_eye_name_settings[i][lu])
+                for b_constraint in bone.constraints:
+                    if b_constraint.type != 'COPY_ROTATION':
+                        continue
+                    dp = b_constraint.path_from_id() + ".influence"
+                    # get keyframe data for the 'bone constraint' blink
+                    kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time,
+                                             b_constraint.influence, 0)
+                    bone_constraint_insert_keyframes(arm_obj, dp, kf_data)
 
         # allow random drift of beat timing, or ...
         if b_settings["allow_random_drift"]:

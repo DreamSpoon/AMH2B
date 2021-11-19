@@ -236,6 +236,36 @@ class AMH2B_Animation(bpy.types.Panel):
         box.operator("amh2b.anim_ratchet_hold")
         box.prop(scn, "Amh2bPropAnimRatchetFrameCount")
 
+class AMH2B_Eyelid(bpy.types.Panel):
+    bl_label = "Eyelid"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        scn = context.scene
+        box = layout.box()
+        box.operator("amh2b.eyelid_lidlook")
+        box.label(text="Eyelid Bone Names")
+        box.prop(scn, "Amh2bPropEyelidNameLeftLower")
+        box.prop(scn, "Amh2bPropEyelidNameLeftUpper")
+        box.prop(scn, "Amh2bPropEyelidNameRightLower")
+        box.prop(scn, "Amh2bPropEyelidNameRightUpper")
+        box.label(text="Eye Bone Names")
+        box.prop(scn, "Amh2bPropEyelidNameLeftEye")
+        box.prop(scn, "Amh2bPropEyelidNameRightEye")
+        box.label(text="Influence Amounts")
+        box.prop(scn, "Amh2bPropEyelidInfluenceLower")
+        box.prop(scn, "Amh2bPropEyelidInfluenceUpper")
+        box.label(text="Min/Max Rotation Lower")
+        box.prop(scn, "Amh2bPropEyelidMinXLower")
+        box.prop(scn, "Amh2bPropEyelidMaxXLower")
+        box.label(text="Min/Max Rotation Upper")
+        box.prop(scn, "Amh2bPropEyelidMinXUpper")
+        box.prop(scn, "Amh2bPropEyelidMaxXUpper")
+
 class AMH2B_EyeBlink(bpy.types.Panel):
     bl_label = "Eye Blink"
     bl_space_type = "VIEW_3D"
@@ -292,18 +322,6 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         box.prop(scn, "Amh2bPropEBlinkTextSaveName")
         box.operator("amh2b.eblink_load_csv")
         box.prop(scn, "Amh2bPropEBlinkTextLoadName")
-
-class AMH2B_Eyelid(bpy.types.Panel):
-    bl_label = "Eyelid"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = Region
-    bl_category = "AMH2B"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        box = layout.box()
-        box.operator("amh2b.eyelid_lidlook")
 
 class AMH2B_Template(bpy.types.Panel):
     bl_label = "Template"
@@ -370,8 +388,8 @@ classes = [
     AMH2B_ShapeKey,
     AMH2B_Armature,
     AMH2B_Animation,
-    AMH2B_EyeBlink,
     AMH2B_Eyelid,
+    AMH2B_EyeBlink,
     AMH2B_Template,
 ]
 
@@ -508,6 +526,34 @@ def register():
         description="Name of textblock in text editor where blink settings will be written (saved)", default="Text")
     bts.Amh2bPropEBlinkTextLoadName = bp.StringProperty(name="Read Text",
         description="Name of textblock in text editor from which blink settings will be read (loaded)", default="Text")
+    bts.Amh2bPropEyelidNameLeftLower = bp.StringProperty(name="Left Lower",
+        description="Bone name for left lower eyelid", default="lolid.L")
+    bts.Amh2bPropEyelidNameLeftUpper = bp.StringProperty(name="Left Upper",
+        description="Bone name for left upper eyelid", default="uplid.L")
+    bts.Amh2bPropEyelidNameRightLower = bp.StringProperty(name="Right Lower",
+        description="Bone name for right lower eyelid", default="lolid.R")
+    bts.Amh2bPropEyelidNameRightUpper = bp.StringProperty(name="Right Upper",
+        description="Bone name for right upper eyelid", default="uplid.R")
+    bts.Amh2bPropEyelidNameLeftEye = bp.StringProperty(name="Left Eye",
+        description="Bone name for left eye (might need to use 'parent' of eye)", default="eye_parent.L")
+    bts.Amh2bPropEyelidNameRightEye = bp.StringProperty(name="Right Eye",
+        description="Bone name for right eye (might need to use 'parent' of eye)", default="eye_parent.R")
+    bts.Amh2bPropEyelidInfluenceLower = bp.FloatProperty(name="Influence Lower",
+        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.25, min=0, max=1)
+    bts.Amh2bPropEyelidInfluenceUpper = bp.FloatProperty(name="Influence Upper",
+        description="Upper eyelids bone constraint ('Copy Rotation') influence value", default=0.25, min=0, max=1)
+    bts.Amh2bPropEyelidMinXLower = bp.FloatProperty(name="Lower Min X",
+        description="Lower eyelids bone constraint ('Limit Rotation') minimum X rotation", subtype='ANGLE',
+        default=-0.244346)
+    bts.Amh2bPropEyelidMaxXLower = bp.FloatProperty(name="Lower Max X",
+        description="Lower eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
+        default=0.087266)
+    bts.Amh2bPropEyelidMinXUpper = bp.FloatProperty(name="Upper Min X",
+        description="Upper eyelids bone constraint ('Limit Rotation') minimum X rotation", subtype='ANGLE',
+        default=-0.087266)
+    bts.Amh2bPropEyelidMaxXUpper = bp.FloatProperty(name="Upper Max X",
+        description="Upper eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
+        default=0.349066)
 
 def unregister():
     for cls in classes:
