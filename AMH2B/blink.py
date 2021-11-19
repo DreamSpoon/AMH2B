@@ -26,6 +26,11 @@ import random
 from mathutils import Euler, Quaternion
 import bpy
 
+if bpy.app.version < (2,80,0):
+    from .imp_v27 import *
+else:
+    from .imp_v28 import *
+
 # basis, in seconds
 # format of kf_data = [ (time, value, handle_left_x, handle_left_y, handle_right_x, handle_right_y), ... ]
 basis_blink_closing_kf_data = [
@@ -177,6 +182,46 @@ def bone_insert_keyframes(obj, bone_name, kf_type, axis_index, kf_data):
         # get the f-curve for the shapekey value
         action = obj.animation_data.action
         fc = action.fcurves.find(data_path=dp, index=axis_index)
+        if fc is None:
+            return
+        # get the first point on the f-curve, and set it, then set flag to ignore the first point
+        kp = fc.keyframe_points[0]
+        set_keyframe_point_from_data(kp, kf_data[0])
+        skip_first = True
+    # insert point into the f-curve
+    for data_point in kf_data:
+        if skip_first:
+            skip_first = False
+            continue
+        # insert the point and set it's keyframe data (e.g. Bezier handles)
+        kp = fc.keyframe_points.insert(frame=data_point[0], value=data_point[1])
+        set_keyframe_point_from_data(kp, data_point)
+
+def shapekey_insert_keyframes(obj, shapekey_name, kf_data):
+    if len(kf_data) < 1:
+        return
+    if obj.data.shape_keys is None:
+        return
+    sk = obj.data.shape_keys.key_blocks.get(shapekey_name)
+    if sk is None:
+        return
+    dp = sk.path_from_id('value')
+    action = None
+    if obj.data.shape_keys.animation_data is not None:
+        action = obj.data.shape_keys.animation_data.action
+    fc = None
+    # if keyframe data exists then try to get f-curve for given keyframe type
+    if action is not None:
+        fc = action.fcurves.find(data_path=dp)
+    # if f-curve does not exist then insert a keyframe to initialize it
+    skip_first = False
+    if fc is None:
+        # create the f-curve by inserting the first keyframe
+        if not sk.keyframe_insert(data_path='value', frame=kf_data[0][0]):
+            return
+        # get the f-curve for the shapekey value
+        action = obj.data.shape_keys.animation_data.action
+        fc = action.fcurves.find(data_path=dp)
         if fc is None:
             return
         # get the first point on the f-curve, and set it, then set flag to ignore the first point
@@ -440,10 +485,10 @@ def set_current_b_settings(scn):
     current_blink_settings["shapekey_name"] = scn.Amh2bPropEBlinkShapekeyName
 
 def set_current_en_settings(scn):
-    current_eye_name_settings = [
-        [scn.Amh2bPropEBlinkBNameLeftLower, scn.Amh2bPropEBlinkBNameLeftUpper],
-        [scn.Amh2bPropEBlinkBNameRightLower, scn.Amh2bPropEBlinkBNameRightUpper]
-    ]
+    current_eye_name_settings[0][0] = scn.Amh2bPropEBlinkBNameLeftLower
+    current_eye_name_settings[0][1] = scn.Amh2bPropEBlinkBNameLeftUpper
+    current_eye_name_settings[1][0] = scn.Amh2bPropEBlinkBNameRightLower
+    current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
 
 class AMH2B_AddBlinkTrack(bpy.types.Operator):
     """Add blink track to active object, active object must be ARMATURE"""
@@ -653,17 +698,42 @@ def load_blink_data_from_csv(datablock_textname):
     # otherwise, use the settings
     current_blink_settings, current_eye_name_settings, current_eye_opened_closed_settings = temp
 
-class AMH2B_LoadBlinkCSV(bpy.types.Operator):
+class AMH2B_LoadBlinkCSV(AMH2B_LoadBlinkCSVInner, bpy.types.Operator):
     """Load blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""
     bl_idname = "amh2b.eblink_load_csv"
     bl_label = "Read Settings"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+        scn = context.scene
+
         temp = load_blink_data_from_csv(context.scene.Amh2bPropEBlinkTextLoadName)
         if isinstance(temp, str):
             self.report({'ERROR'}, "AMH2B_LoadBlinkCSV error: " + temp)
             return {'CANCELLED'}
+
+        scn.Amh2bPropEBlinkClosingTime = current_blink_settings["closing_time"]
+        scn.Amh2bPropEBlinkRndClosingTime = current_blink_settings["random_closing_time"]
+        scn.Amh2bPropEBlinkClosedTime = current_blink_settings["closed_time"]
+        scn.Amh2bPropEBlinkRndClosedTime = current_blink_settings["random_closed_time"]
+        scn.Amh2bPropEBlinkOpeningTime = current_blink_settings["opening_time"]
+        scn.Amh2bPropEBlinkRndOpeningTime = current_blink_settings["random_opening_time"]
+        scn.Amh2bPropEBlinkBlinksPerMinute = current_blink_settings["blinks_per_minute"]
+        scn.Amh2bPropEBlinkUseBlinkPeriod = current_blink_settings["use_period"]
+        scn.Amh2bPropEBlinkPeriod = current_blink_settings["blink_period"]
+        scn.Amh2bPropEBlinkRndPeriod = current_blink_settings["random_blink_period"]
+        scn.Amh2bPropEBlinkAllowRndDrift = current_blink_settings["allow_random_drift"]
+        scn.Amh2bPropEBlinkEnableLeft = current_blink_settings["enable_left"]
+        scn.Amh2bPropEBlinkEnableRight = current_blink_settings["enable_right"]
+        scn.Amh2bPropEBlinkShapekeyName = current_blink_settings["shapekey_name"]
+        scn.Amh2bPropEBlinkBNameLeftLower = current_eye_name_settings[0][0]
+        scn.Amh2bPropEBlinkBNameLeftUpper = current_eye_name_settings[0][1]
+        scn.Amh2bPropEBlinkBNameRightLower = current_eye_name_settings[1][0]
+        scn.Amh2bPropEBlinkBNameRightUpper = current_eye_name_settings[1][1]
+
+        # update the UI
+        self.__class__.refresh_ui = not self.__class__.refresh_ui
+        self.report({'INFO'}, str(self.__class__.refresh_ui))
 
         return {'FINISHED'}
 
@@ -774,44 +844,3 @@ class AMH2B_SetEyeClosed(bpy.types.Operator):
 
         set_eye_closed_settings(act_ob)
         return {'FINISHED'}
-
-def shapekey_insert_keyframes(obj, shapekey_name, kf_data):
-    if len(kf_data) < 1:
-        return
-    if obj.data.shape_keys is None:
-        return
-    sk = obj.data.shape_keys.key_blocks.get(shapekey_name)
-    if sk is None:
-        return
-    dp = sk.path_from_id('value')
-    action = None
-    if obj.data.shape_keys.animation_data is not None:
-        action = obj.data.shape_keys.animation_data.action
-    fc = None
-    # if keyframe data exists then try to get f-curve for given keyframe type
-    if action is not None:
-        fc = action.fcurves.find(data_path=dp)
-    # if f-curve does not exist then insert a keyframe to initialize it
-    skip_first = False
-    if fc is None:
-        # create the f-curve by inserting the first keyframe
-        if not sk.keyframe_insert(data_path='value', frame=kf_data[0][0]):
-            return
-        # get the f-curve for the shapekey value
-        action = obj.data.shape_keys.animation_data.action
-        fc = action.fcurves.find(data_path=dp)
-        if fc is None:
-            print("darn it!")
-            return
-        # get the first point on the f-curve, and set it, then set flag to ignore the first point
-        kp = fc.keyframe_points[0]
-        set_keyframe_point_from_data(kp, kf_data[0])
-        skip_first = True
-    # insert point into the f-curve
-    for data_point in kf_data:
-        if skip_first:
-            skip_first = False
-            continue
-        # insert the point and set it's keyframe data (e.g. Bezier handles)
-        kp = fc.keyframe_points.insert(frame=data_point[0], value=data_point[1])
-        set_keyframe_point_from_data(kp, data_point)
