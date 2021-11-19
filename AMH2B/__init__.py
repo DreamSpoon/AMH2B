@@ -539,9 +539,9 @@ def register():
     bts.Amh2bPropEyelidNameRightEye = bp.StringProperty(name="Right Eye",
         description="Bone name for right eye (might need to use 'parent' of eye)", default="eye_parent.R")
     bts.Amh2bPropEyelidInfluenceLower = bp.FloatProperty(name="Influence Lower",
-        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.25, min=0, max=1)
+        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.5, min=0, max=1)
     bts.Amh2bPropEyelidInfluenceUpper = bp.FloatProperty(name="Influence Upper",
-        description="Upper eyelids bone constraint ('Copy Rotation') influence value", default=0.25, min=0, max=1)
+        description="Upper eyelids bone constraint ('Copy Rotation') influence value", default=0.5, min=0, max=1)
     bts.Amh2bPropEyelidMinXLower = bp.FloatProperty(name="Lower Min X",
         description="Lower eyelids bone constraint ('Limit Rotation') minimum X rotation", subtype='ANGLE',
         default=-0.244346)

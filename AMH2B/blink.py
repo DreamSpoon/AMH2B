@@ -26,11 +26,6 @@ import random
 from mathutils import Euler, Quaternion
 import bpy
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
-else:
-    from .imp_v28 import *
-
 # basis, in seconds
 # format of kf_data = [ (time, value, handle_left_x, handle_left_y, handle_right_x, handle_right_y), ... ]
 basis_blink_closing_kf_data = [
@@ -749,14 +744,35 @@ def load_blink_data_from_csv(datablock_textname):
     temp = load_blink_data_from_csv_lines(blink_data_lines, datablock_textname)
     if isinstance(temp, str):
         return temp
-    # otherwise, use the settings
-    current_blink_settings, temp_eye_name_settings, current_eye_opened_closed_settings = temp
+    # otherwise, copy the settings
+    temp_blink_settings, temp_eye_name_settings, temp_eye_opened_closed_settings = temp
+    # blink timing settings, etc.
+    current_blink_settings["closing_time"] = temp_blink_settings["closing_time"]
+    current_blink_settings["random_closing_time"] = temp_blink_settings["random_closing_time"]
+    current_blink_settings["closed_time"] = temp_blink_settings["closed_time"]
+    current_blink_settings["random_closed_time"] = temp_blink_settings["random_closed_time"]
+    current_blink_settings["opening_time"] = temp_blink_settings["opening_time"]
+    current_blink_settings["random_opening_time"] = temp_blink_settings["random_opening_time"]
+    current_blink_settings["use_period"] = temp_blink_settings["use_period"]
+    current_blink_settings["allow_random_drift"] = temp_blink_settings["allow_random_drift"]
+    current_blink_settings["blink_period"] = temp_blink_settings["blink_period"]
+    current_blink_settings["blinks_per_minute"] = temp_blink_settings["blinks_per_minute"]
+    current_blink_settings["random_blink_period"] = temp_blink_settings["random_blink_period"]
+    current_blink_settings["enable_left"] = temp_blink_settings["enable_left"]
+    current_blink_settings["enable_right"] = temp_blink_settings["enable_right"]
+    current_blink_settings["shapekey_name"] = temp_blink_settings["shapekey_name"]
+    # eye bone name settings
     current_eye_name_settings[0][0] = temp_eye_name_settings[0][0]
     current_eye_name_settings[0][1] = temp_eye_name_settings[0][1]
     current_eye_name_settings[1][0] = temp_eye_name_settings[1][0]
     current_eye_name_settings[1][1] = temp_eye_name_settings[1][1]
+    # eye opened/closed settings
+    for i in range(2):
+        for lu in range(2):
+            for oc in range(2):
+                current_eye_opened_closed_settings[i][lu][oc] = temp_eye_opened_closed_settings[i][lu][oc]
 
-class AMH2B_LoadBlinkCSV(AMH2B_LoadBlinkCSVInner, bpy.types.Operator):
+class AMH2B_LoadBlinkCSV(bpy.types.Operator):
     """Load blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""
     bl_idname = "amh2b.eblink_load_csv"
     bl_label = "Read Settings"
@@ -790,8 +806,7 @@ class AMH2B_LoadBlinkCSV(AMH2B_LoadBlinkCSVInner, bpy.types.Operator):
         scn.Amh2bPropEBlinkBNameRightUpper = current_eye_name_settings[1][1]
 
         # update the UI
-        self.__class__.refresh_ui = not self.__class__.refresh_ui
-        self.report({'INFO'}, str(self.__class__.refresh_ui))
+        self.report({'INFO'}, "Read settings complete")
 
         return {'FINISHED'}
 

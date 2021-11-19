@@ -55,13 +55,6 @@ class AMH2B_LidLook(bpy.types.Operator):
         if arm_obj is None or arm_obj.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
-        # 20 degrees upper, and -14 lower
-        #bone_lidlook_data = [
-        #    ("lolid.L", "eye_parent.L", 0.25, -0.244346, 0.087266),
-        #    ("uplid.L", "eye_parent.L", 0.25, -0.087266, 0.349066),
-        #    ("lolid.R", "eye_parent.R", 0.25, -0.244346, 0.087266),
-        #    ("uplid.R", "eye_parent.R", 0.25, -0.087266, 0.349066),
-        #]
         scn = context.scene
         bone_lidlook_data = [
             (scn.Amh2bPropEyelidNameLeftLower, scn.Amh2bPropEyelidNameLeftEye, scn.Amh2bPropEyelidInfluenceLower, scn.Amh2bPropEyelidMinXLower, scn.Amh2bPropEyelidMaxXLower),
