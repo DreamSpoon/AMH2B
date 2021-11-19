@@ -43,6 +43,7 @@ from .armature import *
 from .animation import AMH2B_RatchetHold
 from .blink import (AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV, AMH2B_ResetEyeOpened,
     AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
+from .eyelid import AMH2B_LidLook
 from .const import *
 
 if bpy.app.version < (2,80,0):
@@ -292,6 +293,18 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         box.operator("amh2b.eblink_load_csv")
         box.prop(scn, "Amh2bPropEBlinkTextLoadName")
 
+class AMH2B_Eyelid(bpy.types.Panel):
+    bl_label = "Eyelid"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        box = layout.box()
+        box.operator("amh2b.eyelid_lidlook")
+
 class AMH2B_Template(bpy.types.Panel):
     bl_label = "Template"
     bl_space_type = "VIEW_3D"
@@ -348,6 +361,7 @@ classes = [
     AMH2B_ResetEyeClosed,
     AMH2B_SetEyeOpened,
     AMH2B_SetEyeClosed,
+    AMH2B_LidLook,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
     AMH2B_VertexGroup,
@@ -357,6 +371,7 @@ classes = [
     AMH2B_Armature,
     AMH2B_Animation,
     AMH2B_EyeBlink,
+    AMH2B_Eyelid,
     AMH2B_Template,
 ]
 
