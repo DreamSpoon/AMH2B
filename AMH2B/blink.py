@@ -544,7 +544,9 @@ def get_str_from_b_settings(b_settings):
     return ret_str + "\n"
 
 def get_str_from_en_settings(en_settings):
-    return str(en_settings[0][0]) + "," + str(en_settings[0][1]) + "," + str(en_settings[1][0]) + "," + str(en_settings[1][1]) + "\n"
+    # add quotes around shapekey_name, and use escape characters in it, so that commas don't cause problems with CSV
+    return "\""+en_settings[0][0].replace('"','\\"')+"\",\""+en_settings[0][1].replace('"','\\"')+"\",\""+ \
+        en_settings[1][0].replace('"','\\"')+"\",\""+en_settings[1][1].replace('"','\\"')+"\"\n"
 
 def get_str_from_eoc_settings(eoc_settings):
     ret_str = ""
@@ -696,7 +698,11 @@ def load_blink_data_from_csv(datablock_textname):
     if isinstance(temp, str):
         return temp
     # otherwise, use the settings
-    current_blink_settings, current_eye_name_settings, current_eye_opened_closed_settings = temp
+    current_blink_settings, temp_eye_name_settings, current_eye_opened_closed_settings = temp
+    current_eye_name_settings[0][0] = temp_eye_name_settings[0][0]
+    current_eye_name_settings[0][1] = temp_eye_name_settings[0][1]
+    current_eye_name_settings[1][0] = temp_eye_name_settings[1][0]
+    current_eye_name_settings[1][1] = temp_eye_name_settings[1][1]
 
 class AMH2B_LoadBlinkCSV(AMH2B_LoadBlinkCSVInner, bpy.types.Operator):
     """Load blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""

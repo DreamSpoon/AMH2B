@@ -68,10 +68,8 @@ def get_scripted_offsets(datablock_textname):
     bl_str = bl.as_string()
     if bl_str == '':
         return
-    # TODO: add
-    #          , quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL, skipinitialspace=True
-    # and change code for writer section as well!
-    csv_lines = csv.reader(bl_str.splitlines())
+    csv_lines = csv.reader(bl_str.splitlines(), quotechar='"', delimiter=',', quoting=csv.QUOTE_ALL,
+                           skipinitialspace=True)
     return list(csv_lines)
 
 def do_adjust_pose(mhx_arm_obj):
