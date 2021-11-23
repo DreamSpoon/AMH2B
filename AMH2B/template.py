@@ -24,63 +24,51 @@ import bpy
 
 from .material_func import *
 
-def get_mat_template_name(mh_name):
-    # if name is in MH format then return trimmed name
-    if mh_name.count(':') == 2:
-        return mh_name[ mh_name.find(":")+1 : len(mh_name) ]
-    # otherwise return original name
+def get_mat_template_name(orig_name, delim, delim_count):
+    pos = len(orig_name)
+    c = 0
+    while c < delim_count:
+        pos = orig_name.rfind(delim[0], 0, pos)
+        if pos < 0:
+            break
+        c = c + 1
+    if pos < 0 or pos == len(orig_name):
+        return orig_name
     else:
-        return mh_name
+        return orig_name[pos+1:len(orig_name)]
 
-def is_mat_mhx_name(mat_name):
-    if mat_name.count(':') == 2:
-        return True
-    return False
+#def is_mat_mhx_name(mat_name):
+#    if mat_name.count(':') == 2:
+#        return True
+#    return False
 
-def is_mat_template_name(mat_name):
-    if mat_name.count(':') == 1:
-        return True
-    return False
+#def is_mat_template_name(mat_name):
+#    if mat_name.count(':') == 1:
+#        return True
+#    return False
 
-def do_setup_mat_template_single(selection_list):
-    for obj in selection_list:
-        if len(obj.material_slots) < 1 or obj.material_slots[obj.active_material_index] is None:
-            continue
-
-        active_mat_name = obj.material_slots[obj.active_material_index].name
-        if is_mat_mhx_name(active_mat_name):
-            new_mat_name = get_mat_template_name(active_mat_name)
-            rename_material(active_mat_name, new_mat_name)
-
-class AMH2B_SetupMatSwapSingle(bpy.types.Operator):
-    """Rename active material slot on all selected objects to make the materials searchable re: swap material from file"""
-    bl_idname = "amh2b.temp_setup_mat_swap_single"
-    bl_label = "Active Material Only"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_setup_mat_template_single(context.selected_objects)
-        return {'FINISHED'}
-
-def do_setup_mat_template_multi(selection_list):
+def do_setup_mat_template(selection_list, active_slot_only, delimiter, delimiter_count):
     for obj in selection_list:
         # iterate over the material slots and check/rename the materials
-        for mat_slot in obj.material_slots:
-            if mat_slot.material is None:
+        for mat_slot in (s for s in obj.material_slots if s.material is not None):
+            # skip this slot if 'active slot only' is enabled and if this is not the active slot
+            if active_slot_only and mat_slot != obj.material_slots[obj.active_material_index]:
                 continue
             mat_name = mat_slot.material.name
-            if is_mat_mhx_name(mat_name):
-                new_mat_name = get_mat_template_name(mat_name)
-                rename_material(mat_name, new_mat_name)
+            new_mat_name = get_mat_template_name(mat_name, delimiter, delimiter_count+1)
+            print("new_mat_name = " + new_mat_name)
+            rename_material(mat_name, new_mat_name)
 
-class AMH2B_SetupMatSwapMulti(bpy.types.Operator):
-    """Rename all materials on all selected objects to make them searchable re: swap material from file"""
-    bl_idname = "amh2b.temp_setup_mat_swap_multi"
-    bl_label = "All Material Slots"
+class AMH2B_SetupMatSwap(bpy.types.Operator):
+    """Rename materials on all selected objects to make them searchable re: swap material from file"""
+    bl_idname = "amh2b.temp_setup_mat_swap"
+    bl_label = "Rename Materials"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_setup_mat_template_multi(context.selected_objects)
+        scn = context.scene
+        do_setup_mat_template(context.selected_objects, scn.Amh2bPropTempActiveSlotOnly, scn.Amh2bPropTempDelimiter,
+                              scn.Amh2bPropTempDelimCount)
         return {'FINISHED'}
 
 def get_searchable_object_name(object_name):

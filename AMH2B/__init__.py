@@ -41,7 +41,7 @@ from .cloth_sim import *
 from .shape_key import *
 from .armature import *
 from .animation import AMH2B_RatchetHold
-from .blink import (AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV, AMH2B_ResetEyeOpened,
+from .eyeblink import (AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV, AMH2B_ResetEyeOpened,
     AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
 from .eyelid import AMH2B_LidLook
 from .const import *
@@ -67,11 +67,18 @@ class AMH2B_MeshMat(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Swap Material")
-        box.operator("amh2b.mat_swap_from_file")
-        box.prop(scn, "Amh2bPropMatReSwap")
-        box.operator("amh2b.mat_swap_int_single")
-        box.operator("amh2b.mat_swap_int_multi")
-        box.prop(scn, "Amh2bPropMatSwapAutonameExt")
+        box.operator("amh2b.mat_search_file")
+        sub = box.column()
+        sub.active = not scn.Amh2bPropMatExactNameOnly
+        sub.operator("amh2b.mat_search_internal")
+        box.prop(scn, "Amh2bPropMatActiveSlotOnly")
+        box.prop(scn, "Amh2bPropMatExactNameOnly")
+        sub = box.column()
+        sub.active = not scn.Amh2bPropMatExactNameOnly
+        sub.prop(scn, "Amh2bPropMatIgnoreAutoname")
+        sub.prop(scn, "Amh2bPropMatKeepOriginalName")
+        sub.prop(scn, "Amh2bPropMatDelimiter")
+        sub.prop(scn, "Amh2bPropMatDelimCount")
 
 class AMH2B_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
@@ -336,20 +343,21 @@ class AMH2B_Template(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scn = context.scene
         box = layout.box()
         box.label(text="Material")
-        box.operator("amh2b.temp_setup_mat_swap_single")
-        box.operator("amh2b.temp_setup_mat_swap_multi")
+        box.operator("amh2b.temp_setup_mat_swap")
+        box.prop(scn, "Amh2bPropTempActiveSlotOnly")
+        box.prop(scn, "Amh2bPropTempDelimiter")
+        box.prop(scn, "Amh2bPropTempDelimCount")
         box = layout.box()
         box.label(text="Vertex Group and ShapeKey")
         box.operator("amh2b.temp_make_tailor_object_searchable")
 
 classes = [
     AMH2B_SwapMatWithFile,
-    AMH2B_SwapMatIntSingle,
-    AMH2B_SwapMatIntMulti,
-    AMH2B_SetupMatSwapSingle,
-    AMH2B_SetupMatSwapMulti,
+    AMH2B_SwapMatInternal,
+    AMH2B_SetupMatSwap,
     AMH2B_AddMaskOutMod,
     AMH2B_ToggleViewMaskoutMod,
     AMH2B_CopyVertexGroupsByPrefix,
@@ -404,12 +412,21 @@ def register():
     bts = bpy.types.Scene
     bp = bpy.props
 
-    bts.Amh2bPropMatReSwap = bp.BoolProperty(name="Re-Swap",
-        description="When 'From File' is used, include materials that have already been swapped (based on name)" +
-        " - 're-swap' the already swapped materials", default=False)
-    bts.Amh2bPropMatSwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
-        description="If material swap function is tried and fails, re-try swap with materials 'auto-name' extension removed." +
-        "\ne.g. Mass0007:Eyebrow010:Eyebrow010.003 material may be replaced with Mass0007:Eyebrow010:Eyebrow010", default=True)
+    bts.Amh2bPropMatActiveSlotOnly = bp.BoolProperty(name="Active Slot Only",
+        description="Try to swap out only the Active Slot material, instead of trying to swap all material slots",
+        default=False)
+    bts.Amh2bPropMatExactNameOnly = bp.BoolProperty(name="Exact Name Only",
+        description="Search for the exact same material name when trying to swap from another file", default=False)
+    bts.Amh2bPropMatIgnoreAutoname = bp.BoolProperty(name="Ignore Autoname",
+        description="If material swap function is tried and fails, re-try swap with materials 'auto-name' " +
+        "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
+        "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
+    bts.Amh2bPropMatKeepOriginalName = bp.BoolProperty(name="Keep Original Name",
+        description="Try to swap materials, but ensure material's name stays the same", default=False)
+    bts.Amh2bPropMatDelimiter = bp.StringProperty(name="Delimiter",
+        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
+    bts.Amh2bPropMatDelimCount = bp.IntProperty(name="Delim. Count",
+        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
@@ -476,7 +493,7 @@ def register():
     bts.Amh2bPropEBlinkFrameRate = bp.FloatProperty(name="Frame Rate", description="Frames per second. " +
         "Input can be floating point, so e.g. the number 6.35 is allowed", default=30, min=0.001)
     bts.Amh2bPropEBlinkStartFrame = bp.IntProperty(name="Start Frame",
-        description="First frame of first blink, before any random timing is applied", default=1)
+        description="First frame of first eyeblink, before any random timing is applied", default=1)
     bts.Amh2bPropEBlinkRndStartFrame = bp.FloatProperty(name="Random Start Frame",
         description="Max number of frames (not seconds) to add randomly to start frame. " +
         "Input can be floating point, so e.g. the number 6.35 is allowed", default=0, min=0)
@@ -484,26 +501,26 @@ def register():
         description="Allow any random period timing difference to accumulate, instead of trying to maintain a " +
         "constant period with variation", default=True)
     bts.Amh2bPropEBlinkFrameCount = bp.IntProperty(name="Frame Count",
-        description="Maximum number of frames to fill with blinking, final blink may go over this count though " +
+        description="Maximum number of frames to fill with blinking, final eyeblink may go over this count though " +
         "(debug this)", default=250)
     bts.Amh2bPropEBlinkUseMaxCount = bp.BoolProperty(name="Use Max Blink Count",
-        description="Use maximum number of blinks to create the blink track", default=False)
+        description="Use maximum number of blinks to create the eyeblink track", default=False)
     bts.Amh2bPropEBlinkMaxCount = bp.IntProperty(name="Max Blink Count",
         description="Maximum number of blinks to keyframe", default=10)
     bts.Amh2bPropEBlinkBlinksPerMinute = bp.FloatProperty(name="Blinks Per Minute",
         description="Number of blinks per minute. Input can be floating point, so e.g. the number 6.35 is allowed",
         default=10, min=0)
     bts.Amh2bPropEBlinkUseBlinkPeriod = bp.BoolProperty(name="Use Blink Period",
-        description="Instead of using Blinks Per Minute, use time (in seconds) between start of blink and start of " +
-        "next blink", default=False)
+        description="Instead of using Blinks Per Minute, use time (in seconds) between start of eyeblink and start of " +
+        "next eyeblink", default=False)
     bts.Amh2bPropEBlinkPeriod = bp.FloatProperty(name="Blink Period",
-        description="Time, in seconds, between the start of a blink and the start of the next blink",
+        description="Time, in seconds, between the start of a eyeblink and the start of the next eyeblink",
         default=6, min=0.001)
     bts.Amh2bPropEBlinkRndPeriod = bp.FloatProperty(name="Period Random",
-        description="Add a random amount of time, in seconds, between the start of a blink and the start of the next blink",
+        description="Add a random amount of time, in seconds, between the start of a eyeblink and the start of the next eyeblink",
         default=0, min=0)
-    bts.Amh2bPropEBlinkEnableLeft = bp.BoolProperty(name="Enable Left", description="Enable left eye blink", default=True)
-    bts.Amh2bPropEBlinkEnableRight = bp.BoolProperty(name="Enable Right", description="Enable right eye blink", default=True)
+    bts.Amh2bPropEBlinkEnableLeft = bp.BoolProperty(name="Enable Left", description="Enable left eye eyeblink", default=True)
+    bts.Amh2bPropEBlinkEnableRight = bp.BoolProperty(name="Enable Right", description="Enable right eye eyeblink", default=True)
     bts.Amh2bPropEBlinkShapekeyName = bp.StringProperty(name="Closed Shapekey",
         description="Name of shapekey for closed eyes (leave blank to ignore)", default="")
     bts.Amh2bPropEBlinkClosingTime = bp.FloatProperty(name="Closing Time",
@@ -527,9 +544,9 @@ def register():
     bts.Amh2bPropEBlinkBNameRightUpper = bp.StringProperty(name="Right Upper",
         description="Name of bone for right upper eyelid", default="uplid.R")
     bts.Amh2bPropEBlinkTextSaveName = bp.StringProperty(name="Write Text",
-        description="Name of textblock in text editor where blink settings will be written (saved)", default="Text")
+        description="Name of textblock in text editor where eyeblink settings will be written (saved)", default="Text")
     bts.Amh2bPropEBlinkTextLoadName = bp.StringProperty(name="Read Text",
-        description="Name of textblock in text editor from which blink settings will be read (loaded)", default="Text")
+        description="Name of textblock in text editor from which eyeblink settings will be read (loaded)", default="Text")
     bts.Amh2bPropEyelidNameLeftLower = bp.StringProperty(name="Left Lower",
         description="Bone name for left lower eyelid", default="lolid.L")
     bts.Amh2bPropEyelidNameLeftUpper = bp.StringProperty(name="Left Upper",
@@ -558,6 +575,13 @@ def register():
     bts.Amh2bPropEyelidMaxXUpper = bp.FloatProperty(name="Upper Max X",
         description="Upper eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
         default=0.349066)
+    bts.Amh2bPropTempActiveSlotOnly = bp.BoolProperty(name="Active Slot Only",
+        description="Rename only Active Slot material, instead of trying to rename all material slots",
+        default=False)
+    bts.Amh2bPropTempDelimiter = bp.StringProperty(name="Delimiter",
+        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
+    bts.Amh2bPropTempDelimCount = bp.IntProperty(name="Delim. Count",
+        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
 
 def unregister():
     for cls in classes:
