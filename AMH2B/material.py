@@ -163,13 +163,17 @@ def do_mat_swaps_internal(sel_obj_list, active_slot_only, ignore_autoname, keep_
                 mat_slot.material.name = original_mat_name
 
 class AMH2B_SwapMatInternal(bpy.types.Operator):
-    """Try to swap all materials of all selected objects with replacement materials contained within this Blend file"""
+    """Try to swap materials of all selected objects with replacement materials contained within this Blend file, based on following settings"""
     bl_idname = "amh2b.mat_search_internal"
     bl_label = "Search Internal"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         scn = context.scene
+        # cannot search internally for swap because "exact name only" causes a contradiction:
+        # replacing a material with itself!
+        if scn.Amh2bPropMatExactNameOnly:
+            return {'FINISHED'}
         do_mat_swaps_internal(context.selected_objects, scn.Amh2bPropMatActiveSlotOnly,
             scn.Amh2bPropMatIgnoreAutoname, scn.Amh2bPropMatKeepOriginalName, scn.Amh2bPropMatDelimiter,
             scn.Amh2bPropMatDelimCount)

@@ -471,33 +471,34 @@ def generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_star
         opening_time = b_settings["opening_time"] + random_plus_minus_half(b_settings["random_opening_time"])
         if opening_time < F_MIN_OPENING_TIME:
             opening_time = F_MIN_OPENING_TIME
+        # insert bone keyframes, if needed
+        if arm_obj is not None:
+            # generate keyframes for each used data type (i.e. location, rotation) and axis
+            for bone_name, data_type, axis_index, opened_value, closed_value in sub_eoc_settings:
+                # get keyframe data for the blink
+                kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time,
+                    opened_value, closed_value)
+                # insert bone keyframes
+                bone_insert_keyframes(arm_obj, bone_name, data_type, axis_index, kf_data)
 
-        # generate keyframes for each used data type (i.e. location, rotation) and axis
-        for bone_name, data_type, axis_index, opened_value, closed_value in sub_eoc_settings:
-            # get keyframe data for the blink
-            kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time,
-                opened_value, closed_value)
-            # insert bone keyframes
-            bone_insert_keyframes(arm_obj, bone_name, data_type, axis_index, kf_data)
+            # generate keyframes for every 'Copy Rotation' bone constraint on every eye bone
+            for i in range(2):
+                for lu in range(2):
+                    bone = arm_obj.pose.bones.get(current_eye_name_settings[i][lu])
+                    for b_constraint in bone.constraints:
+                        if b_constraint.type != 'COPY_ROTATION':
+                            continue
+                        dp = b_constraint.path_from_id() + ".influence"
+                        # get keyframe data for the 'bone constraint' blink
+                        kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time,
+                                                 b_constraint.influence, 0)
+                        bone_constraint_insert_keyframes(arm_obj, dp, kf_data)
 
         # insert shapekey keyframes, if needed
         if mesh_obj is not None and b_settings["shapekey_name"] != "":
             # get keyframe data for the shapekey blink
             kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time, 0, 1)
             shapekey_insert_keyframes(mesh_obj, b_settings["shapekey_name"], kf_data)
-
-        # generate keyframes for every 'Copy Rotation' bone constraint on every eye bone
-        for i in range(2):
-            for lu in range(2):
-                bone = arm_obj.pose.bones.get(current_eye_name_settings[i][lu])
-                for b_constraint in bone.constraints:
-                    if b_constraint.type != 'COPY_ROTATION':
-                        continue
-                    dp = b_constraint.path_from_id() + ".influence"
-                    # get keyframe data for the 'bone constraint' blink
-                    kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time,
-                                             b_constraint.influence, 0)
-                    bone_constraint_insert_keyframes(arm_obj, dp, kf_data)
 
         # allow random drift of beat timing, or ...
         if b_settings["allow_random_drift"]:
@@ -538,35 +539,40 @@ def set_current_en_settings(scn):
     current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
 
 class AMH2B_AddBlinkTrack(bpy.types.Operator):
-    """Add blink track to active object, active object must be ARMATURE.\nSelect a MESH as a second object, so that a MESH's Shapekey can be keyframed with blink track"""
+    """Add blink track to list of selected objects plus active object. Total list must include at least one MESH or ARMATURE object to receive the blink track.\nMESH object may receive Shapekey keyframes, ARMATURE object may receive bone keyframes"""
     bl_idname = "amh2b.eblink_add_blink_track"
     bl_label = "Add Blink Track"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        arm_obj = bpy.context.active_object
-        if arm_obj is None or arm_obj.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-        # get the first mesh object from the other selected objects
+        arm_obj = None
         mesh_obj = None
-        for obj in bpy.context.selected_objects:
-            if obj.type == 'MESH':
+        # create list of all selected objects and active object, without duplicates
+        o_bunch = bpy.context.selected_objects.copy()
+        if bpy.context.active_object not in o_bunch:
+            o_bunch.append(bpy.context.active_object)
+        # check selected objects, and active object, for ARMATURE or MESH
+        for obj in o_bunch:
+            if arm_obj is None and obj.type == 'ARMATURE':
+                arm_obj = obj
+            if mesh_obj is None and obj.type == 'MESH':
                 mesh_obj = obj
-                break
-
+        # exit if no object to work with
+        if arm_obj is None and mesh_obj is None:
+            self.report({'ERROR'}, "No ARMATURE or MESH selected to add Blink Track")
+            return {'CANCELLED'}
+        # get settings from UI
         scn = context.scene
         frame_rate = scn.Amh2bPropEBlinkFrameRate
         start_frame = scn.Amh2bPropEBlinkStartFrame
         random_start_frame = scn.Amh2bPropEBlinkRndStartFrame
         frame_count = scn.Amh2bPropEBlinkFrameCount
-
-        set_current_b_settings(scn)
-        set_current_en_settings(scn)
-
         max_blink_count = 0
         if scn.Amh2bPropEBlinkUseMaxCount:
             max_blink_count = scn.Amh2bPropEBlinkMaxCount
+        set_current_b_settings(scn)
+        set_current_en_settings(scn)
+        # do work
         generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_start_frame, frame_count, max_blink_count,
             current_blink_settings, current_eye_name_settings, current_eye_opened_closed_settings)
 

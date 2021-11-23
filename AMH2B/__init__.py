@@ -413,20 +413,21 @@ def register():
     bp = bpy.props
 
     bts.Amh2bPropMatActiveSlotOnly = bp.BoolProperty(name="Active Slot Only",
-        description="Try to swap out only the Active Slot material, instead of trying to swap all material slots",
+        description="Try to swap only the Active Slot material, instead of trying to swap all material slots",
         default=False)
     bts.Amh2bPropMatExactNameOnly = bp.BoolProperty(name="Exact Name Only",
         description="Search for the exact same material name when trying to swap from another file", default=False)
     bts.Amh2bPropMatIgnoreAutoname = bp.BoolProperty(name="Ignore Autoname",
-        description="If material swap function is tried and fails, re-try swap with materials 'auto-name' " +
+        description="If material swap function is tried and fails, re-try swap with material's 'auto-name' " +
         "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
         "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
     bts.Amh2bPropMatKeepOriginalName = bp.BoolProperty(name="Keep Original Name",
-        description="Try to swap materials, but ensure material's name stays the same", default=False)
+        description="Try to swap materials, and ensure that each material's name is the same before and after swap", default=False)
     bts.Amh2bPropMatDelimiter = bp.StringProperty(name="Delimiter",
-        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
+        description="Delimiter between sections of material names (MakeHuman uses the colon : )\n : is the default value", default=":")
     bts.Amh2bPropMatDelimCount = bp.IntProperty(name="Delim. Count",
-        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
+        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will " +
+        "be ignored.\nDefault value is 1", default=1, min=0)
     bts.Amh2bPropArmTextBlockName = bp.StringProperty(name="Text Editor Script Name",
         description="Script data-block name in text editor", default="Text")
     bts.Amh2bPropArmGenericPrefix = bp.StringProperty(name="G Prefix",
