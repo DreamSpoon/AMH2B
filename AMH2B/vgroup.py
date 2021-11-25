@@ -17,24 +17,23 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
+#   Blender 2.79 - 2.93 Addon
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import re
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
-from .append_from_file_func import *
+from .append_from_file_func import append_object_from_blend_file
 from .const import *
-from .template import *
-from .vgroup_func import *
+from .object_func import delete_all_objects_except
+from .template import get_searchable_object_name
+from .vgroup_func import (copy_vgroups_by_name_prefix, add_ifnot_vertex_grp, delete_vgroups_by_name_prefix)
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
-    Region = "TOOLS"
 else:
     from .imp_v28 import *
-    Region = "UI"
 
 def do_add_maskout_mod(act_ob):
     # add the Auto Mask vertex group if it does not exist
@@ -198,6 +197,9 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
             other_obj_list.append(ob)
     bpy.ops.object.select_all(action='DESELECT')
 
+    # keep a list of all objects in the Blend file, before objects are appended
+    all_objects_list_before = get_all_objects_list()
+
     for sel in other_obj_list:
         search_name = get_searchable_object_name(sel.name)
         # if the desired VGroups mesh object name is already used then rename it before appending from file,
@@ -232,10 +234,8 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
                 ") to dest ("+sel.name+"), source vertex count ("+str(svc)+
                 ") doesn't equal destination vertex count ("+str(dvc)+").")
 
-        # all objects were deselected before starting this loop,
-        # and any objects currently selected could only have come from the append process,
-        # so delete all selected objects
-        bpy.ops.object.delete()
+        # appended object may have pulled in other objects as dependencies, so delete all appended objects
+        delete_all_objects_except(all_objects_list_before)
 
         # if an object was named in order to do appending then fix name
         if test_obj is not None:

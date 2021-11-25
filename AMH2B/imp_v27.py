@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
+#   Blender 2.79 - 2.93 Addon
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
@@ -50,6 +50,13 @@ def deselect_object(ob):
 
 def link_object(ob):
     bpy.context.scene.objects.link(ob)
+
+# https://blender.stackexchange.com/questions/99664/how-can-i-select-all-objects-by-type-using-python
+def get_all_objects_list():
+    a_list = []
+    for i in range(len(bpy.context.scene.objects)):
+        a_list.append(bpy.context.scene.objects[i])
+    return a_list
 
 def do_global_translate(tg):
     bpy.ops.transform.translate(value=tg, constraint_orientation='GLOBAL')

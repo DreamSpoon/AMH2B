@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
+#   Blender 2.79 - 2.93 Addon
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import copy

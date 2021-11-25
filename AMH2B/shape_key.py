@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.xx Addon (tested and works with Blender 2.79b, 2.83, 2.93)
+#   Blender 2.79 - 2.93 Addon
 # A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
@@ -34,10 +34,8 @@ from .template import *
 
 if bpy.app.version < (2,80,0):
     from .imp_v27 import *
-    Region = "TOOLS"
 else:
     from .imp_v28 import *
-    Region = "UI"
 
 def is_name_prefix_match(name, prefix):
     if name == prefix or re.match(prefix + "\w*", name):
@@ -510,6 +508,9 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
     # copy list of selected objects, minus the active object
     selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
 
+    # keep a list of all objects in the Blend file, before objects are appended
+    all_objects_list_before = get_all_objects_list()
+
     bpy.ops.object.select_all(action='DESELECT')
     for sel in selection_list:
         search_name = get_searchable_object_name(sel.name)
@@ -549,10 +550,8 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
         for ob in appended_selection_list:
             select_object(ob)
 
-        # all objects were deselected before starting this loop,
-        # and any objects currently selected could only have come from the append process,
-        # so delete all selected objects
-        bpy.ops.object.delete()
+        # appended object may have pulled in other objects as dependencies, so delete all appended objects
+        delete_all_objects_except(all_objects_list_before)
 
         # if an object was named in order to do appending then fix name
         if test_obj is not None:
