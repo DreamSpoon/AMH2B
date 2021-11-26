@@ -46,6 +46,14 @@ def is_name_prefix_match(name, prefix):
 def delete_shapekeys_by_prefix(obj, delete_prefix):
     for sk in obj.data.shape_keys.key_blocks:
         if sk.name != 'Basis' and is_name_prefix_match(sk.name, delete_prefix):
+            # remove keyframes from shapekey, because Blender does'nt automatically remove them
+            dp = sk.path_from_id('value')
+            anim_data = obj.data.shape_keys.animation_data
+            if anim_data is not None and anim_data.action is not None:
+                fc = anim_data.action.fcurves.find(data_path=dp)
+                if fc is not None:
+                    anim_data.action.fcurves.remove(fc)
+            # finally, remove the shapekey
             obj.shape_key_remove(sk)
 
 def do_sk_func_delete(sel_obj_list, delete_prefix):
@@ -265,6 +273,9 @@ def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys
         # if animating keys then add keyframes before and after the current frame with value = 0, and
         # add keyframe on current frame with value = 1
         if animate_keys:
+            # switch the shapekey for it's key_blocks counter-part, so that keyframes will insert correctly
+            sk = obj.data.shape_keys.key_blocks[sk.name]
+            # set values and insert keyframes
             sk.value = 0
             sk.keyframe_insert(data_path='value', frame=frame-1)
             sk.keyframe_insert(data_path='value', frame=frame+1)
@@ -372,6 +383,9 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
                 skv.co.z = skv.co.z + d_offset[2]
 
         if animate_keys:
+            # switch the shapekey for it's key_blocks counter-part, so that keyframes will insert correctly
+            sk_offsets = obj.data.shape_keys.key_blocks[sk_offsets.name]
+            # set values and insert keyframes
             sk_offsets.value = 0
             sk_offsets.keyframe_insert(data_path='value', frame=frame-1)
             sk_offsets.keyframe_insert(data_path='value', frame=frame+1)

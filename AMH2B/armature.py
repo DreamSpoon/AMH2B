@@ -797,7 +797,7 @@ def do_rename_generic(new_generic_prefix, include_mhx, sel_obj_list):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_RenameGeneric(bpy.types.Operator):
-    """Rename armature bones to match the format 'aaaa:bbbb', where 'aaaa' is the generic prefix."""
+    """Rename armature bones to match the format 'aaaa:bbbb', where 'aaaa' is the generic prefix"""
     bl_idname = "amh2b.arm_rename_generic"
     bl_label = "Rename Generic"
     bl_options = {'REGISTER', 'UNDO'}
