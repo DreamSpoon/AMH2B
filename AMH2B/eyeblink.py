@@ -130,6 +130,124 @@ D_ROT = 2
 F_MIN_CLOSING_TIME = 0.0001
 F_MIN_OPENING_TIME = 0.0001
 
+def bone_data_path_match(bone_path, bone_name_match_list):
+    for b_name in bone_name_match_list:
+        b_match_path = "pose.bones[\"" + b_name + "\"]"
+        # check the first part of the bone_path for a match, up to the length of the "match path"
+        if b_match_path == bone_path[0:len(b_match_path)]:
+            # match found so return True
+            return True
+    # zero matches found so return False
+    return False
+
+def remove_blink_kf_points(action, fc, keyframe_points, start_frame, end_frame):
+    # iterate through keyframe points, and remove points based on start/end frame
+    # each time a point is removed, all the other points are shifted in the list
+    # so deleting a point will change the references to all other points -
+    # that's why the following "while" loop is used
+    i = 0
+    keep_going = True
+    while keep_going and i < len(fc.keyframe_points):
+        kp = fc.keyframe_points[i]
+        if start_frame is not None and kp.co.x < start_frame:
+            i = i + 1
+            continue
+        if end_frame is not None and kp.co.x > end_frame:
+            i = i + 1
+            continue
+        # if only one point remains on the f-curve, and the point needs to be removed,
+        # then remove the f-curve to prevent errors
+        if len(fc.keyframe_points) == 1:
+            action.fcurves.remove(fc)
+            keep_going = False
+        else:
+            fc.keyframe_points.remove(fc.keyframe_points[i])
+
+def remove_blink_track(arm_list, mesh_list, bone_name_list, shapekey_name, start_frame, end_frame):
+    fc_to_remove = []
+    for arm_obj in arm_list:
+        action = arm_obj.animation_data.action
+        if action is None:
+            continue
+        # get list of f-curves to remove
+        for fc in action.fcurves:
+            if bone_data_path_match(fc.data_path, bone_name_list):
+                fc_to_remove.append(fc)
+        for fc in fc_to_remove:
+            # remove bone f-curve if no start/end frames given
+            if start_frame is None and end_frame is None:
+                action.fcurves.remove(fc)
+                continue
+            # otherwise remove keyframe points
+            remove_blink_kf_points(action, fc, fc.keyframe_points, start_frame, end_frame)
+
+    for mesh_obj in mesh_list:
+        if mesh_obj.data.shape_keys is None:
+            continue
+        sk = mesh_obj.data.shape_keys.key_blocks.get(shapekey_name)
+        if sk is None:
+            continue
+        dp = sk.path_from_id('value')
+        if mesh_obj.data.shape_keys.animation_data is None or mesh_obj.data.shape_keys.animation_data.action is None:
+            continue
+        action = mesh_obj.data.shape_keys.animation_data.action
+        fc = action.fcurves.find(data_path=dp)
+        if fc is not None:
+            # remove shapekey f-curve if no start/end frame is given
+            if start_frame is None and end_frame is None:
+                action.fcurves.remove(fc)
+                continue
+            # otherwise remove keyframe points
+            remove_blink_kf_points(action, fc, fc.keyframe_points, start_frame, end_frame)
+
+class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
+    """Remove blink track from list of selected objects plus active object, based on following settings including bone names. Total list must include at least one MESH or ARMATURE object with blink keyframes"""
+    bl_idname = "amh2b.eblink_remove_blink_track"
+    bl_label = "Remove Blink Track"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        # create list of all selected objects and active object, without duplicates
+        o_bunch = bpy.context.selected_objects.copy()
+        if bpy.context.active_object not in o_bunch:
+            o_bunch.append(bpy.context.active_object)
+        # check selected objects, and active object, for ARMATURE or MESH
+        arm_list = []
+        mesh_list = []
+        for obj in o_bunch:
+            if obj.type == 'ARMATURE':
+                arm_list.append(obj)
+            elif obj.type == 'MESH':
+                mesh_list.append(obj)
+        # exit if zero objects to work with
+        if len(arm_list) == 0 and len(mesh_list) == 0:
+            self.report({'ERROR'}, "No ARMATURE or MESH selected to remove Blink Track")
+            return {'CANCELLED'}
+
+        scn = context.scene
+
+        bone_name_list = []
+        if scn.Amh2bPropEBlinkBNameLeftLower != "" and scn.Amh2bPropEBlinkRemoveLeft:
+            bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftLower)
+        if scn.Amh2bPropEBlinkBNameLeftUpper != "" and scn.Amh2bPropEBlinkRemoveLeft:
+            bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftUpper)
+        if scn.Amh2bPropEBlinkBNameRightLower != "" and scn.Amh2bPropEBlinkRemoveRight:
+            bone_name_list.append(scn.Amh2bPropEBlinkBNameRightLower)
+        if scn.Amh2bPropEBlinkBNameRightUpper != "" and scn.Amh2bPropEBlinkRemoveRight:
+            bone_name_list.append(scn.Amh2bPropEBlinkBNameRightUpper)
+
+        shapekey_name = scn.Amh2bPropEBlinkShapekeyName
+
+        start_frame = None
+        if scn.Amh2bPropEBlinkRemoveStart:
+            start_frame = scn.Amh2bPropEBlinkRemoveStartFrame
+        end_frame = None
+        if scn.Amh2bPropEBlinkRemoveEnd:
+            end_frame = scn.Amh2bPropEBlinkRemoveEndFrame
+        remove_blink_track(arm_list, mesh_list, bone_name_list, shapekey_name, start_frame, end_frame)
+
+        return {'FINISHED'}
+
 # linear interpolation from y1 to y2, as x varies from 0 to 1
 def d_lerp(y1, y2, x):
     if x < 0:
@@ -539,7 +657,7 @@ def set_current_en_settings(scn):
     current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
 
 class AMH2B_AddBlinkTrack(bpy.types.Operator):
-    """Add blink track to list of selected objects plus active object. Total list must include at least one MESH or ARMATURE object to receive the blink track.\nMESH object may receive Shapekey keyframes, ARMATURE object may receive bone keyframes"""
+    """Add blink track to armature and/or mesh object selected.\nMESH object may receive Shapekey keyframes, ARMATURE object may receive bone keyframes"""
     bl_idname = "amh2b.eblink_add_blink_track"
     bl_label = "Add Blink Track"
     bl_options = {'REGISTER', 'UNDO'}

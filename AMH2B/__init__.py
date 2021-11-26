@@ -41,8 +41,8 @@ from .cloth_sim import *
 from .shape_key import *
 from .armature import *
 from .animation import AMH2B_RatchetHold
-from .eyeblink import (AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV, AMH2B_ResetEyeOpened,
-    AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
+from .eyeblink import (AMH2B_RemoveBlinkTrack, AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV,
+                       AMH2B_ResetEyeOpened, AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
 from .eyelid import AMH2B_LidLook
 from .const import *
 
@@ -284,6 +284,18 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
         box = layout.box()
+        box.operator("amh2b.eblink_remove_blink_track")
+        box.prop(scn, "Amh2bPropEBlinkRemoveStart")
+        sub = box.column()
+        sub.active = scn.Amh2bPropEBlinkRemoveStart
+        sub.prop(scn, "Amh2bPropEBlinkRemoveStartFrame")
+        box.prop(scn, "Amh2bPropEBlinkRemoveEnd")
+        sub = box.column()
+        sub.active = scn.Amh2bPropEBlinkRemoveEnd
+        sub.prop(scn, "Amh2bPropEBlinkRemoveEndFrame")
+        box.prop(scn, "Amh2bPropEBlinkRemoveLeft")
+        box.prop(scn, "Amh2bPropEBlinkRemoveRight")
+        box = layout.box()
         box.operator("amh2b.eblink_add_blink_track")
         box = layout.box()
         box.label(text="Options")
@@ -296,7 +308,9 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         sub = box.column()
         sub.active = scn.Amh2bPropEBlinkUseMaxCount
         sub.prop(scn, "Amh2bPropEBlinkMaxCount")
-        box.prop(scn, "Amh2bPropEBlinkBlinksPerMinute")
+        sub = box.column()
+        sub.active = not scn.Amh2bPropEBlinkUseBlinkPeriod
+        sub.prop(scn, "Amh2bPropEBlinkBlinksPerMinute")
         box.prop(scn, "Amh2bPropEBlinkUseBlinkPeriod")
         sub = box.column()
         sub.active = scn.Amh2bPropEBlinkUseBlinkPeriod
@@ -384,6 +398,7 @@ classes = [
     AMH2B_RenameGeneric,
     AMH2B_UnNameGeneric,
     AMH2B_RatchetHold,
+    AMH2B_RemoveBlinkTrack,
     AMH2B_AddBlinkTrack,
     AMH2B_SaveBlinkCSV,
     AMH2B_LoadBlinkCSV,
@@ -491,6 +506,20 @@ def register():
         description="Only linked vertexes will be included in the tail fill process", default=True)
     bts.Amh2bPropAnimRatchetFrameCount = bp.IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
+    bts.Amh2bPropEBlinkRemoveStart = bp.BoolProperty(name="Remove Start",
+        description="Enable removal of eyeblink keyframes starting at given frame number"+
+        "\nKeyframes before the given frame number will not be affected by this operation", default=False)
+    bts.Amh2bPropEBlinkRemoveStartFrame = bp.IntProperty(name="Start Frame",
+        description="First frame to use in keyframe removal operation", default=1)
+    bts.Amh2bPropEBlinkRemoveEnd = bp.BoolProperty(name="Remove End",
+        description="Enable removal of eyeblink keyframes ending at given frame number"+
+        "\nKeyframes after the given frame number will not be affected by this operation", default=False)
+    bts.Amh2bPropEBlinkRemoveEndFrame = bp.IntProperty(name="End Frame",
+        description="Last frame to use in keyframe removal operation", default=250)
+    bts.Amh2bPropEBlinkRemoveLeft = bp.BoolProperty(name="Remove Left",
+        description="Enable removal of eyeblink keyframes from left eye bones", default=True)
+    bts.Amh2bPropEBlinkRemoveRight = bp.BoolProperty(name="Remove Right",
+        description="Enable removal of eyeblink keyframes from right eye bones", default=True)
     bts.Amh2bPropEBlinkFrameRate = bp.FloatProperty(name="Frame Rate", description="Frames per second. " +
         "Input can be floating point, so e.g. the number 6.35 is allowed", default=30, min=0.001)
     bts.Amh2bPropEBlinkStartFrame = bp.IntProperty(name="Start Frame",
@@ -561,7 +590,7 @@ def register():
     bts.Amh2bPropEyelidNameRightEye = bp.StringProperty(name="Right Eye",
         description="Bone name for right eye (might need to use 'parent' of eye)", default="eye_parent.R")
     bts.Amh2bPropEyelidInfluenceLower = bp.FloatProperty(name="Influence Lower",
-        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.5, min=0, max=1)
+        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.35, min=0, max=1)
     bts.Amh2bPropEyelidInfluenceUpper = bp.FloatProperty(name="Influence Upper",
         description="Upper eyelids bone constraint ('Copy Rotation') influence value", default=0.5, min=0, max=1)
     bts.Amh2bPropEyelidMinXLower = bp.FloatProperty(name="Lower Min X",
