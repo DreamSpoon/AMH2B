@@ -51,6 +51,9 @@ def deselect_object(ob):
 def link_object(ob):
     bpy.context.scene.objects.link(ob)
 
+def set_object_hide(obj, hide_val):
+    obj.hide = hide_val
+
 # https://blender.stackexchange.com/questions/99664/how-can-i-select-all-objects-by-type-using-python
 def get_all_objects_list():
     a_list = []

@@ -51,11 +51,15 @@ def deselect_object(ob):
 def link_object(ob):
     bpy.context.scene.collection.objects.link(ob)
 
+def set_object_hide(obj, hide_val):
+    obj.hide_set(hide_val)
+
 # https://blender.stackexchange.com/questions/144928/how-to-list-all-collections-and-their-objects
 def get_all_objects_list():
     a_list = []
-    for i in range(len(bpy.data.collections.all_objects)):
-        a_list.append(bpy.data.collections.all_objects[i])
+    for c in range(len(bpy.data.collections)):
+        for i in range(len(bpy.data.collections[c].all_objects)):
+            a_list.append(bpy.data.collections[c].all_objects[i])
     return a_list
 
 def do_global_translate(tg):

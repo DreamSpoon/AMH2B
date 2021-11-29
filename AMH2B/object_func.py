@@ -23,9 +23,9 @@
 import bpy
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import (get_all_objects_list, select_object)
+    from .imp_v27 import (get_all_objects_list, select_object, set_object_hide)
 else:
-    from .imp_v28 import (get_all_objects_list, select_object)
+    from .imp_v28 import (get_all_objects_list, select_object, set_object_hide)
 
 # duplicate selected objects, return active object afterwards
 def dup_selected():
@@ -42,7 +42,7 @@ def delete_all_objects_except(except_objects):
     bpy.ops.object.select_all(action='DESELECT')
     for delete_obj in (ob for ob in all_objs_current if ob not in except_objects):
         # un-hide
-        delete_obj.hide = False
+        set_object_hide(delete_obj, False)
         delete_obj.hide_select = False
         # select for deletion
         select_object(delete_obj)
