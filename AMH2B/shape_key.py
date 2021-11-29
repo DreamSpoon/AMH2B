@@ -284,7 +284,7 @@ def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys
 
 def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
     vert_matches, extra_accuracy):
-    # create a shape key for each axis, with offsets of +1.0 in for respective axis
+    # create a shape key for each axis, with offset of +1.0 along respective axis
     check_create_basis_shape_key(obj)
     sk_x = obj.shape_key_add(name=SC_TEMP_SK_X)
     sk_x.interpolation = 'KEY_LINEAR'

@@ -130,17 +130,17 @@ D_ROT = 2
 F_MIN_CLOSING_TIME = 0.0001
 F_MIN_OPENING_TIME = 0.0001
 
-def bone_data_path_match(bone_path, bone_name_match_list):
+def blink_bone_data_path_match(bone_path, bone_name_match_list):
     for b_name in bone_name_match_list:
         b_match_path = "pose.bones[\"" + b_name + "\"]"
         # check the first part of the bone_path for a match, up to the length of the "match path"
-        if b_match_path == bone_path[0:len(b_match_path)]:
+        if bone_path.startswith(b_match_path + '.location') or bone_path.startswith(b_match_path + '.rotation'):
             # match found so return True
             return True
     # zero matches found so return False
     return False
 
-def remove_blink_kf_points(action, fc, keyframe_points, start_frame, end_frame):
+def remove_blink_kf_points(action, fc, start_frame, end_frame):
     # iterate through keyframe points, and remove points based on start/end frame
     # each time a point is removed, all the other points are shifted in the list
     # so deleting a point will change the references to all other points -
@@ -163,24 +163,38 @@ def remove_blink_kf_points(action, fc, keyframe_points, start_frame, end_frame):
         else:
             fc.keyframe_points.remove(fc.keyframe_points[i])
 
-def remove_blink_track(arm_list, mesh_list, bone_name_list, shapekey_name, start_frame, end_frame):
+def remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_name_list, shapekey_name,
+                       start_frame, end_frame):
     fc_to_remove = []
     for arm_obj in arm_list:
         action = arm_obj.animation_data.action
         if action is None:
             continue
-        # get list of f-curves to remove
+        # get list of LidLook f-curves to remove
+        for ll_bone_name in lidlook_bone_name_list:
+            ll_bone = arm_obj.pose.bones.get(ll_bone_name)
+            if ll_bone is None:
+                continue
+            # search through constraints for 'influence' f-curve
+            for const in ll_bone.constraints:
+                if const.type == 'COPY_ROTATION':
+                    dp = const.path_from_id('influence')
+                    fc = action.fcurves.find(dp)
+                    if fc is not None:
+                        fc_to_remove.append(fc)
+        # get list of Eyeblink f-curves to remove
         for fc in action.fcurves:
-            if bone_data_path_match(fc.data_path, bone_name_list):
+            if blink_bone_data_path_match(fc.data_path, blink_bone_name_list):
                 fc_to_remove.append(fc)
+        # remove collected f-curves
         for fc in fc_to_remove:
             # remove bone f-curve if no start/end frames given
             if start_frame is None and end_frame is None:
                 action.fcurves.remove(fc)
                 continue
             # otherwise remove keyframe points
-            remove_blink_kf_points(action, fc, fc.keyframe_points, start_frame, end_frame)
-
+            remove_blink_kf_points(action, fc, start_frame, end_frame)
+    # check meshes for shapekey f-curve to remove
     for mesh_obj in mesh_list:
         if mesh_obj.data.shape_keys is None:
             continue
@@ -198,10 +212,10 @@ def remove_blink_track(arm_list, mesh_list, bone_name_list, shapekey_name, start
                 action.fcurves.remove(fc)
                 continue
             # otherwise remove keyframe points
-            remove_blink_kf_points(action, fc, fc.keyframe_points, start_frame, end_frame)
+            remove_blink_kf_points(action, fc, start_frame, end_frame)
 
 class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
-    """Remove blink track from list of selected objects plus active object, based on following settings including bone names. Total list must include at least one MESH or ARMATURE object with blink keyframes"""
+    """Remove blink track from list of selected objects plus active object, based on EyeBlink and LidLook settings - e.g. bone names"""
     bl_idname = "amh2b.eblink_remove_blink_track"
     bl_label = "Remove Blink Track"
     bl_options = {'REGISTER', 'UNDO'}
@@ -226,15 +240,24 @@ class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
 
         scn = context.scene
 
-        bone_name_list = []
+        blink_bone_name_list = []
         if scn.Amh2bPropEBlinkBNameLeftLower != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftLower)
+            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftLower)
         if scn.Amh2bPropEBlinkBNameLeftUpper != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftUpper)
+            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftUpper)
         if scn.Amh2bPropEBlinkBNameRightLower != "" and scn.Amh2bPropEBlinkRemoveRight:
-            bone_name_list.append(scn.Amh2bPropEBlinkBNameRightLower)
+            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameRightLower)
         if scn.Amh2bPropEBlinkBNameRightUpper != "" and scn.Amh2bPropEBlinkRemoveRight:
-            bone_name_list.append(scn.Amh2bPropEBlinkBNameRightUpper)
+            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameRightUpper)
+        lidlook_bone_name_list = []
+        if scn.Amh2bPropEyelidNameLeftLower != "" and scn.Amh2bPropEBlinkRemoveLeft:
+            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameLeftLower)
+        if scn.Amh2bPropEyelidNameLeftUpper != "" and scn.Amh2bPropEBlinkRemoveLeft:
+            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameLeftUpper)
+        if scn.Amh2bPropEyelidNameRightLower != "" and scn.Amh2bPropEBlinkRemoveRight:
+            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameRightLower)
+        if scn.Amh2bPropEyelidNameRightUpper != "" and scn.Amh2bPropEBlinkRemoveRight:
+            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameRightUpper)
 
         shapekey_name = scn.Amh2bPropEBlinkShapekeyName
 
@@ -244,7 +267,8 @@ class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
         end_frame = None
         if scn.Amh2bPropEBlinkRemoveEnd:
             end_frame = scn.Amh2bPropEBlinkRemoveEndFrame
-        remove_blink_track(arm_list, mesh_list, bone_name_list, shapekey_name, start_frame, end_frame)
+        remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_name_list, shapekey_name,
+                           start_frame, end_frame)
 
         return {'FINISHED'}
 
