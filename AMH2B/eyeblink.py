@@ -215,7 +215,7 @@ def remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_n
             remove_blink_kf_points(action, fc, start_frame, end_frame)
 
 class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
-    """Remove blink track from list of selected objects plus active object, based on EyeBlink and LidLook settings - e.g. bone names"""
+    """Remove blink track from list of selected objects plus active object, based on EyeBlink and LidLook settings.\ni.e. Template Bone Bames in Eye Blink tab and Eyelid Bone Names in Eyelid tab"""
     bl_idname = "amh2b.eblink_remove_blink_track"
     bl_label = "Remove Blink Track"
     bl_options = {'REGISTER', 'UNDO'}

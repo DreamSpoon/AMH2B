@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 3, 1),
+    "version": (1, 3, 2),
     "blender": (2, 80, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -439,7 +439,7 @@ def register():
         "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
         "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
     bts.Amh2bPropMatKeepOriginalName = bp.BoolProperty(name="Keep Original Name",
-        description="Try to swap materials, and ensure that each material's name is the same before and after swap", default=False)
+        description="Ensure that the material name in each material slot is the same before and after swap", default=False)
     bts.Amh2bPropMatDelimiter = bp.StringProperty(name="Delimiter",
         description="Delimiter between sections of material names (MakeHuman uses the colon : )\n : is the default value", default=":")
     bts.Amh2bPropMatDelimCount = bp.IntProperty(name="Delim. Count",
@@ -468,7 +468,7 @@ def register():
     bts.Amh2bPropSK_ExtraAccuracy = bp.IntProperty(name="",
         description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
     bts.Amh2bPropSK_DeformShapeKeyPrefix = bp.StringProperty(name="Prefix",
-        description="Prefix for naming mesh deform shape keys. Default value is "+SC_DSKEY, default=SC_DSKEY)
+        description="Prefix for naming mesh deform shape keys. Default value is " + SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropSK_AdaptSize = bp.BoolProperty(name="Adapt Size",
         description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge " +
         "lengths", default=True)
@@ -476,17 +476,17 @@ def register():
         description="If shapekey copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
         "\ne.g. Object Mass0007:Eyebrow010.003 shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
-        description="Prefix used in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
+        description="Prefix used in shape key functions. Default value is " + SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropSK_MaskVGroupName = bp.StringProperty(name="Mask VGroup",
-        description="Name of vertex group to use as a mask when baking shapekeys.\nFaster deform shapekey bakes - "+
-        "use this feature to reduce shapekey bake times", default="")
+        description="Name of vertex group to use as a mask when baking shapekeys.\nOptional: Use this feature for " +
+        "finer control over which vertexes are used to bake the shapekeys", default="")
     bts.Amh2bPropSK_MaskInclude = bp.BoolProperty(name="Mask Include",
-        description="If vertex group is given, and 'Include' is enabled, then only mask vertex group vertexes "+
-        "are included when baking shapekey(s).\nIf vertex group is given, and 'Include' is not enabled, "+
+        description="If vertex group is given, and 'Include' is enabled, then only mask vertex group vertexes " +
+        "are included when baking shapekey(s).\nIf vertex group is given, and 'Include' is not enabled, " +
         "then mask vertex group vertexes are excluded when baking shapekey(s)", default=False)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names " +
-        "beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+        "beginning with this prefix. Default value is " + SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
     bts.Amh2bPropVG_SwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
         description="If vertex group copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
         "\ne.g. Object Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups", default=True)
@@ -516,12 +516,12 @@ def register():
     bts.Amh2bPropAnimRatchetFrameCount = bp.IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
     bts.Amh2bPropEBlinkRemoveStart = bp.BoolProperty(name="Remove Start",
-        description="Enable removal of eyeblink keyframes starting at given frame number"+
+        description="Enable removal of eyeblink keyframes starting at given frame number" +
         "\nKeyframes before the given frame number will not be affected by this operation", default=False)
     bts.Amh2bPropEBlinkRemoveStartFrame = bp.IntProperty(name="Start Frame",
         description="First frame to use in keyframe removal operation", default=1)
     bts.Amh2bPropEBlinkRemoveEnd = bp.BoolProperty(name="Remove End",
-        description="Enable removal of eyeblink keyframes ending at given frame number"+
+        description="Enable removal of eyeblink keyframes ending at given frame number" +
         "\nKeyframes after the given frame number will not be affected by this operation", default=False)
     bts.Amh2bPropEBlinkRemoveEndFrame = bp.IntProperty(name="End Frame",
         description="Last frame to use in keyframe removal operation", default=250)

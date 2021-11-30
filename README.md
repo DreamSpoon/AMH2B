@@ -11,8 +11,8 @@ Note: The words Rig and Armature are used interchangeably. Also, the words Mater
 Includes convenience functions for use with any armature type, e.g. Ratchet Hold, Re-Size Clothes Rig.
 
 Brief Overview:
-- Add eye blink track with one button
-- LidLook - so eyelids will move when eyes rotate to look up/down
+- Eye Blink track with one button
+- Lid Look, so eyelids will move when eyes rotate to look up/down
 - Auto swap Materials(Shaders), Vertex Groups (with Weight Paint), shape Keys from any Blender file
 - Re-target MakeHuman MHX rig to CMU or Mixamo rigs to get accurate animation - including fingers
 - Transition between different animations easily with Ratchet Hold
@@ -21,7 +21,8 @@ Brief Overview:
   - Mask out vertexes to reduce simulation time, bake sim to Shape Keys, then remove mask and mesh looks perfect
     - avoids use of Surface Deform and Mesh Deform, which are difficult/delicate to use with armatures and cloth/soft-body sims
     - Avoid wasting time manually creating mesh cages to run cloth/soft-body sims - just use vertex mask with original mesh
-  - Simulations can be baked to shape keys, and simulation can be run again!
+  - Simulations can be baked to shape keys, and then
+    - Slow-motion of cloth sim without wasting time calculating extra simulation frames - bake shape keys and adjust keyframe timing in dope sheet
     - Shape keys from first simulation can be used to guide re-simulation, or add fine details
 
 ## Install Addon in Blender
@@ -39,9 +40,8 @@ Done! The addon is now installed, but **you need to enable it by clicking the ch
 ## Function List:
 - Mesh Material
   - Swap material
-    - From file
-    - Internal single
-    - Internal multiple
+    - Search File
+    - Search Internal
 - Mesh Size
   - Create Size Rig
 - Vertex Group
@@ -87,6 +87,7 @@ Done! The addon is now installed, but **you need to enable it by clicking the ch
 - Eyelid
   - Lid Look
 - Eye Blink
+  - Remove Blink Track
   - Add Blink Track
 - Template
   - Material
@@ -96,36 +97,32 @@ Done! The addon is now installed, but **you need to enable it by clicking the ch
     - Make Objects Searchable
 
 ## Mesh Material
-### Swap Material - From File
-Automatically swap materials from another Blend file. Other functions in this addon (see Setup Material Swap -> Rename Single / Rename Multi) are used to make materials "searchable" by this function. Custom materials for clothing can be maintained in one folder/file and easily re-used. Before usig this function, user needs to find or create a materials dictionary file. Creation of said file will be explained elsewhere in this readme.
+### Swap Material - Search File
+Automatically swap materials from another Blend file. See Template -> Rename Materials to make materials "searchable" by this function. Custom material templates for clothing can be maintained in one folder/file and easily re-used. Before applying this function, user needs to find or create a materials template file.
 
 Script will do:
 - User chooses source file with source materials
 - Materials are appended from source file by name, and names are "guessed" by trimming names of materials and trying to append said materials from blend file chosen by user
   - e.g. Material named 'Mass0010:Uniform_jacket:Uniform_jacket' will be swapped with material named 'Uniform_jacket:Uniform_jacket' from user selected file (material dictionary file)
-- If 'Re-Swap' is enabled then 'Copy from File' will try to swap materials that have already been swapped (based on name format)
-  - e.g. Material named 'Mass0010:Uniform_jacket:Uniform_jacket', and 'Uniform_jacket:Uniform_jacket', in current Blend file will be replaced with 'Uniform_jacket:Uniform_jacket' from user-selected Blend file
-    - operation is non-destructive, so old 'Uniform_jacket:Uniform_jacket' material will be renamed to 'A1:Uniform_jacket:Uniform_jacket', instead of being deleted
 
 #### Instructions to use script:
 Select all objects with materials that need to be swapped. Select meshes, armature objects, curves, etc. - meshes will have their materials swapped and any objects without materials (e.g. armatures) will be ignored.
 
-Press button AMH2B -> Mesh Material -> Swap Material - From File
+Press button AMH2B -> Mesh Material -> Swap Material - Search File
 
 File selection window will be shown, and user selects one file with preferred materials in it. Run this command multiple times if materials are located across many files:
-  - e.g. Run Swap Materials from File and choose file with clothes materials to swap only clothes materials (other materials will be ignored), then re-run this command and choose file with hair materials to swap only hair materials, etc.
+  - e.g. Run Swap Material from File and choose file with clothes materials to swap only clothes materials (other materials will be ignored), then re-run this command and choose file with hair materials to swap only hair materials, etc.
 
-Result: All selected object's material slots will be swapped, if possible, with materials in user selected file.
+Result: All selected object's material slots (or just Active Slot, depending) will be swapped, if possible, with materials in file selected by user.
 
-### Swap Material - Internal Single
-Try to swap active material slot of all selected objects with replacement materials contained within this Blend file
-
-### Swap Material - Internal Multiple
-Try to swap all materials of all selected objects with replacement materials contained within this Blend file
+### Swap Material - Search Internal
+Try to swap material slot(s) of all selected objects with replacement materials contained within this Blend file.
 
 ## Mesh Size
 ### Clothing Size - Create Size Rig
-Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature. Select mesh objects first and select armature object last
+Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature. Select mesh objects first and select armature object last.
+
+Intended to be used to quickly up-size clothing, using MHX rig, before running cloth sim. i.e. begin with over-sized clothes so cloth sim can "shrink" clothing to body at start of simulation.
 
 ## Vertex Group
 ### Functions - Copy from File
@@ -193,6 +190,10 @@ With active object, copy shape keys by prefix to all other selected objects
 
 ### Bake Deform Shape Key - Bake Deform Keys
 Bake active object's mesh deformations to shape keys.
+
+'Mask VGroup' - Name of vertex group to use as a mask when baking shapekeys. Optional: Use this feature for finer control over which vertexes are used to bake the shapekeys.
+
+'Mask Include' - If vertex group is given, and 'Include' is enabled, then only mask vertex group vertexes are included when baking shapekey(s). If vertex group is given, and 'Include' is not enabled, then mask vertex group vertexes are excluded when baking shapekey(s).
 
 'Bind frame' - frame when object's vertexes must be in same position as 'deformation'.
 Hint: vertexes should be in same position in 'Edit Mode' as they are in 'Object Mode' - zero deformation.
@@ -383,6 +384,17 @@ Use the settings given (e.g. eye bone names, rotation limits) to automatically a
 The MHX rig has a "gaze" bone, which lets the user easily adjust eye rotations to "look at" a point in space. "Copy Rotation" bone constraints are added to eyelid bones to copy some of the rotation from the eye bones, so eyelid movement matches eye movement.
 
 ## Eye Blink
+### Remove Blink Track
+Remove blink track from list of selected objects plus active object, based on EyeBlink and LidLook settings. Both eyeblink and "Lid Look" keyframes are removed.
+
+Keyframes are removed from the bones with names given in the following tabs:
+1) Eyelid tab -> Eyelid Bone Names
+2) Eye Blink tab -> Template Bone Bames
+
+Start and End Frames can be specified, so that certain sections of blink track can be kept while others are removed.
+
+If no Start/End Frame is given then all Eye Blink and Lid Look keyframes are removed.
+
 ### Add Blink Track
 Use the blink settings (timing, bone names, and bone positions/rotations) to add "blink track" to active object. If a second object is also selected (must be a MESH type object), then a Shapekey on the MESH object can be keyframed for the "blink track", in addition to eye bone blink keyframes.
 
@@ -390,17 +402,21 @@ The "closed" and "opened" states of the bones can be Set and Reset, independentl
 
 Blink settings can also be written (saved) to a textblock (view with the Text Editor within Blender). Blink settings can also be read (loaded) from a textblock in the Text Editor.
 
+#### Template Save/Load
+Settings for eyeblink open/closed state and eyeblink timing can be saved in CSV format to text data-blocks in Blender's internal text editor.
+
+Hint: Test this feature by pressing the "Write Settings" button, then open Blender's internal text editor and selecting the text block (default name is Text). Comma separated settings can be read and modified. Press the "Read Settings" button to read the settings back into the addon, then press the Add Blink Track Button to apply a blink track with the newly modifed settings. Eyeblink settings can be saved as templates for re-use later. e.g. eyeblink settings for each character in a series of scenes.
+
 ## Template
-### Setup Material Swap - Rename Single
-Rename active material slot of active object to make material searchable re: swap material from file.
+### Setup Material Swap - Rename Materials
+Rename materials in material slot(s) on all selected objects to make them searchable re: swap material from file.
 
-### Setup Material Swap - Rename Multiple
-Rename all materials on all selected objects to make them searchable re: swap material from file.
+'Active Slot Only' - only the currently selected material slot (Active Slot) of each object will be swapped
 
-### Notes re: creating materials dictionary file:
+### Notes re: creating materials template file:
 Export a MakeHuman model to MHX2 format (does not need to be MHX rig, or even have a rig, this works with any rig type - and no rig).
 
-Modify materials setup, i.e. shader nodes. Finally, use Rename Materials Single / Multi to change names of materials like so:
+Modify materials setup, i.e. shader nodes. Finally, use Rename Materials to change names of materials like so:
 
 'Mass0010:Uniform_jacket:Uniform_jacket'
 
@@ -408,10 +424,10 @@ would become:
 
 'Uniform_jacket:Uniform_jacket'
 
-Renaming materials in this way lets Swap Materials script find materials in materials library file that we're creating.
-Now material name will be found when script is run.
+Renaming materials in this way lets Swap Materials functions find materials in materials template file.
+Now material name will be found when Swap Material function is run.
 
-For reference, naming convention of MakeHuman materials seems to be:
+For reference, naming convention of materials imported from MHX2 seems to be:
 
 'HumanName:PartName:PartMaterialName'
 
@@ -427,5 +443,19 @@ e.g.
 
 ### Vertex Group and ShapeKey - Make Objects Searchable
 Rename active object, if needed, to make it searchable re: automatic search of file for vertex groups by object name and vertex group name prefix.
+
+For reference, naming convention of objects imported from MHX2 seems to be:
+
+'HumanName:PartName'
+
+e.g.
+
+'Mass0010:Uniform_jacket'
+
+'Shelagh:Uniform_jacket'
+
+'Mass0002:High-poly'
+
+'Floopy:High-poly'
 
 # Congratulations! You read me to the end.
