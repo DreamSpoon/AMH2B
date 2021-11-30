@@ -43,7 +43,7 @@ from .armature import *
 from .animation import AMH2B_RatchetHold
 from .eyeblink import (AMH2B_RemoveBlinkTrack, AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV,
                        AMH2B_ResetEyeOpened, AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
-from .eyelid import AMH2B_LidLook
+from .eyelid import (AMH2B_AddLidLook, AMH2B_RemoveLidLook)
 from .const import *
 
 if bpy.app.version < (2,80,0):
@@ -256,7 +256,8 @@ class AMH2B_Eyelid(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
         box = layout.box()
-        box.operator("amh2b.eyelid_lidlook")
+        box.operator("amh2b.eyelid_remove_lidlook")
+        box.operator("amh2b.eyelid_add_lidlook")
         box.label(text="Eyelid Bone Names")
         box.prop(scn, "Amh2bPropEyelidNameLeftLower")
         box.prop(scn, "Amh2bPropEyelidNameLeftUpper")
@@ -408,7 +409,8 @@ classes = [
     AMH2B_ResetEyeClosed,
     AMH2B_SetEyeOpened,
     AMH2B_SetEyeClosed,
-    AMH2B_LidLook,
+    AMH2B_AddLidLook,
+    AMH2B_RemoveLidLook,
     AMH2B_MeshMat,
     AMH2B_MeshSize,
     AMH2B_VertexGroup,

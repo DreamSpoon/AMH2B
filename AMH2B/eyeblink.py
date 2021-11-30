@@ -165,8 +165,8 @@ def remove_blink_kf_points(action, fc, start_frame, end_frame):
 
 def remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_name_list, shapekey_name,
                        start_frame, end_frame):
-    fc_to_remove = []
     for arm_obj in arm_list:
+        fc_to_remove = []
         action = arm_obj.animation_data.action
         if action is None:
             continue
@@ -581,7 +581,7 @@ def get_mod_eoc_settings(en_settings, eoc_settings, enable_left, enable_right):
 
     return result_mods
 
-def generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_start_frame, frame_count, max_blink_count,
+def generate_blink_track(arm_list, mesh_list, frame_rate, start_frame, random_start_frame, frame_count, max_blink_count,
                          b_settings, en_settings, eoc_settings):
     # get start frame of first blink
     rsf = random.uniform(0, random_start_frame)
@@ -613,8 +613,8 @@ def generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_star
         opening_time = b_settings["opening_time"] + random_plus_minus_half(b_settings["random_opening_time"])
         if opening_time < F_MIN_OPENING_TIME:
             opening_time = F_MIN_OPENING_TIME
-        # insert bone keyframes, if needed
-        if arm_obj is not None:
+        # insert bone keyframes into armature(s)
+        for arm_obj in arm_list:
             # generate keyframes for each used data type (i.e. location, rotation) and axis
             for bone_name, data_type, axis_index, opened_value, closed_value in sub_eoc_settings:
                 # get keyframe data for the blink
@@ -636,11 +636,12 @@ def generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_star
                                                  b_constraint.influence, 0)
                         bone_constraint_insert_keyframes(arm_obj, dp, kf_data)
 
-        # insert shapekey keyframes, if needed
-        if mesh_obj is not None and b_settings["shapekey_name"] != "":
-            # get keyframe data for the shapekey blink
-            kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time, 0, 1)
-            shapekey_insert_keyframes(mesh_obj, b_settings["shapekey_name"], kf_data)
+        # insert shapekey keyframes into mesh(es), if needed
+        if b_settings["shapekey_name"] != "":
+            for mesh_obj in mesh_list:
+                # get keyframe data for the shapekey blink
+                kf_data = generate_blink(frame_rate, cur_start_frame, closing_time, closed_time, opening_time, 0, 1)
+                shapekey_insert_keyframes(mesh_obj, b_settings["shapekey_name"], kf_data)
 
         # allow random drift of beat timing, or ...
         if b_settings["allow_random_drift"]:
@@ -681,26 +682,26 @@ def set_current_en_settings(scn):
     current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
 
 class AMH2B_AddBlinkTrack(bpy.types.Operator):
-    """Add blink track to armature and/or mesh object selected.\nMESH object may receive Shapekey keyframes, ARMATURE object may receive bone keyframes"""
+    """With all selected objects (including active object), add blink track(s).\nMESH objects may receive Shapekey keyframes, ARMATURE objects may receive pose bone keyframes"""
     bl_idname = "amh2b.eblink_add_blink_track"
     bl_label = "Add Blink Track"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        arm_obj = None
-        mesh_obj = None
         # create list of all selected objects and active object, without duplicates
         o_bunch = bpy.context.selected_objects.copy()
         if bpy.context.active_object not in o_bunch:
             o_bunch.append(bpy.context.active_object)
         # check selected objects, and active object, for ARMATURE or MESH
+        arm_list = []
+        mesh_list = []
         for obj in o_bunch:
-            if arm_obj is None and obj.type == 'ARMATURE':
-                arm_obj = obj
-            if mesh_obj is None and obj.type == 'MESH':
-                mesh_obj = obj
-        # exit if no object to work with
-        if arm_obj is None and mesh_obj is None:
+            if obj.type == 'ARMATURE':
+                arm_list.append(obj)
+            elif obj.type == 'MESH':
+                mesh_list.append(obj)
+        # exit if zero objects to work with
+        if len(arm_list) == 0 and len(mesh_list) == 0:
             self.report({'ERROR'}, "No ARMATURE or MESH selected to add Blink Track")
             return {'CANCELLED'}
         # get settings from UI
@@ -715,7 +716,7 @@ class AMH2B_AddBlinkTrack(bpy.types.Operator):
         set_current_b_settings(scn)
         set_current_en_settings(scn)
         # do work
-        generate_blink_track(arm_obj, mesh_obj, frame_rate, start_frame, random_start_frame, frame_count, max_blink_count,
+        generate_blink_track(arm_list, mesh_list, frame_rate, start_frame, random_start_frame, frame_count, max_blink_count,
             current_blink_settings, current_eye_name_settings, current_eye_opened_closed_settings)
 
         return {'FINISHED'}
