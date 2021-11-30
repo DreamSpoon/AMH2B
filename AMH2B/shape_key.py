@@ -209,7 +209,8 @@ def get_mod_verts(obj):
     bpy.data.meshes.remove(obj_mod_mesh)
     return verts
 
-def get_vert_matches(obj):
+# return list of (base_mesh_vert_index, modified_mesh_vert_index) tuples
+def get_vert_matches(obj, mask_vgroup_name, mask_include):
     # create a KDTree of the base vertices, to efficiently search for overlapping verts
     base_verts = obj.data.vertices
     kd = mathutils.kdtree.KDTree(len(base_verts))
@@ -229,8 +230,20 @@ def get_vert_matches(obj):
         if len(found_list) < 1:
             continue
 
+        found_vert_index = found_list[0][1]
+        if mask_vgroup_name != "":
+            mask_vgroup = obj.vertex_groups.get(mask_vgroup_name)
+            if mask_vgroup is not None:
+                vert_is_in_group = mask_vgroup.index in [i.group for i in obj.data.vertices[found_vert_index].groups]
+                # check if vertex is needed re: mask include
+                if mask_include and not vert_is_in_group:
+                    continue
+                # check if vertex is needed re: mask exclude
+                if not mask_include and vert_is_in_group:
+                    continue
+
         # append match tuple [base_mesh_vert_index, modified_mesh_vert_index]
-        matches.append([found_list[0][1], i])
+        matches.append([found_vert_index, i])
 
     return matches
 
@@ -406,7 +419,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_z)
 
 def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
-    append_frame_to_name, is_dynamic, extra_accuracy):
+    append_frame_to_name, is_dynamic, extra_accuracy, mask_vgroup_name, mask_include):
     old_current_frame = bpy.context.scene.frame_current
 
     # before binding, temporarily mute visibility of deform modifiers
@@ -431,7 +444,7 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
 
     # get "bind" vert matches, by location, in bind frame
     bpy.context.scene.frame_set(bind_frame_num)
-    vert_matches = get_vert_matches(obj)
+    vert_matches = get_vert_matches(obj, mask_vgroup_name, mask_include)
     print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
 
     # after binding, restore visibility of muted shape keys
@@ -474,7 +487,8 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
 
         do_bake_deform_shape_keys(act_ob, scn.Amh2bPropSK_DeformShapeKeyPrefix, scn.Amh2bPropSK_BindFrame,
             scn.Amh2bPropSK_StartFrame, scn.Amh2bPropSK_EndFrame, scn.Amh2bPropSK_Animate,
-            scn.Amh2bPropSK_AddFrameToName, scn.Amh2bPropSK_Dynamic, scn.Amh2bPropSK_ExtraAccuracy)
+            scn.Amh2bPropSK_AddFrameToName, scn.Amh2bPropSK_Dynamic, scn.Amh2bPropSK_ExtraAccuracy,
+            scn.Amh2bPropSK_MaskVGroupName, scn.Amh2bPropSK_MaskInclude)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle(act_ob):

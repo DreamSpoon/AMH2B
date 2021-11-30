@@ -182,6 +182,8 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         box = layout.box()
         box.label(text="Bake Deform ShapeKey")
         box.operator("amh2b.sk_bake_deform_shape_keys")
+        box.prop(scn, "Amh2bPropSK_MaskVGroupName")
+        box.prop(scn, "Amh2bPropSK_MaskInclude")
         box.prop(scn, "Amh2bPropSK_DeformShapeKeyPrefix")
         box.prop(scn, "Amh2bPropSK_BindFrame")
         box.prop(scn, "Amh2bPropSK_StartFrame")
@@ -475,6 +477,13 @@ def register():
         "\ne.g. Object Mass0007:Eyebrow010.003 shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix used in shape key functions. Default value is "+SC_DSKEY, default=SC_DSKEY)
+    bts.Amh2bPropSK_MaskVGroupName = bp.StringProperty(name="Mask VGroup",
+        description="Name of vertex group to use as a mask when baking shapekeys.\nFaster deform shapekey bakes - "+
+        "use this feature to reduce shapekey bake times", default="")
+    bts.Amh2bPropSK_MaskInclude = bp.BoolProperty(name="Mask Include",
+        description="If vertex group is given, and 'Include' is enabled, then only mask vertex group vertexes "+
+        "are included when baking shapekey(s).\nIf vertex group is given, and 'Include' is not enabled, "+
+        "then mask vertex group vertexes are excluded when baking shapekey(s)", default=False)
     bts.Amh2bPropVG_FunctionNamePrefix = bp.StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names " +
         "beginning with this prefix. Default value is "+SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
