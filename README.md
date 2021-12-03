@@ -40,6 +40,15 @@ Done! The addon is now installed, but **you need to enable it by clicking the ch
   - Blender 2.7x: Tools menu (left-side of View 3D)
   - Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
 
+## Import MHX2 format plugin for Blender from MakeHuman community
+Import MHX2 file format "plugin" for Blender
+
+http://download.tuxfamily.org/makehuman/plugins/mhx-blender-latest.zip
+
+Which is linked from this page:
+
+http://www.makehumancommunity.org/content/plugins.html
+
 ## Function List:
 - Mesh Material
   - Swap material
