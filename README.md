@@ -4,6 +4,9 @@ Automate as much as possible of MakeHuman to Blender workflow, e.g. materials, r
 
 Addon for Blender 2.7x through Blender 2.93
 
+YouTube video demo of addon:
+https://youtu.be/XkOtsTrHRPg
+
 Armature section of addon is centred around **MakeHuman MHX2 export format with MHX armature**, which offers fine control over animation with face and finger bones. **To get correct rig from import process, 'MHX' format must be selected when using MakeHuman Import MHX to Blender plugin/addon.**
 
 Note: The words Rig and Armature are used interchangeably. Also, the words Material and Shader are used interchangeably.
