@@ -152,7 +152,18 @@ Intended to be used to quickly up-size clothing, using MHX rig, before running c
 For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name. Note: Name of object from MHX import process is used to search for object in other selected file.
 
 ### Functions - Copy Groups
-Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects. Object name does not need to be 'searchable'.
+Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects.
+
+To **copy vertex groups between meshes with different numbers of vertexes**, enable 'Create Groups Only in Name' and set 'Prefix' = '', i.e. clear the 'Prefix' text box.
+Or, set the Prefix value to only create the vertex groups with names beginning with Prefix.
+Then add the 'Data Transfer' modifier to the destination mesh, so it copies vertex weights from all vertex groups on the active object to all other selected objects:
+- "Data Transfer" modifier options:
+  - With "Vertex Data" enabled, "Nearest Vertex" (or "Nearest Vertex Interpolated" for better quality)
+  - Then select "Vertex Group(s)", "All Layers", "By Name"
+
+Description of Swap Autoname Ext:
+- if vertex group copy function is tried and fails, re-try swap with objects 'auto-name' extension removed
+  - e.g. Object Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups
 
 ### Functions - Delete Groups
 With all selected objects, delete vertex groups by prefix.
