@@ -112,6 +112,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_delete_by_prefix")
         box.prop(scn, "Amh2bPropVG_FunctionNamePrefix")
         box.prop(scn, "Amh2bPropVG_SwapAutonameExt")
+        box.prop(scn, "Amh2bPropSK_CreateNameOnly")
         box = layout.box()
         box.label(text="AutoMask & Pin Group")
         box.operator("amh2b.vg_make_auto_vgroups")
@@ -477,6 +478,8 @@ def register():
     bts.Amh2bPropSK_SwapAutonameExt = bp.BoolProperty(name="Swap Autoname Ext",
         description="If shapekey copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
         "\ne.g. Object Mass0007:Eyebrow010.003 shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
+    bts.Amh2bPropSK_CreateNameOnly = bp.BoolProperty(name="Create Groups Only in Name",
+        description="Create vertex groups 'in name only' when copying.", default=False)
     bts.Amh2bPropSK_FunctionPrefix = bp.StringProperty(name="Prefix",
         description="Prefix used in shape key functions. Default value is " + SC_DSKEY, default=SC_DSKEY)
     bts.Amh2bPropSK_MaskVGroupName = bp.StringProperty(name="Mask VGroup",

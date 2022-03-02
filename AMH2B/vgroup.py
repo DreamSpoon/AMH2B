@@ -101,7 +101,7 @@ class AMH2B_ToggleViewMaskoutMod(bpy.types.Operator):
         do_toggle_view_maskout_mod(act_ob)
         return {'FINISHED'}
 
-def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix):
+def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix, create_name_only):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -110,12 +110,12 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix)
         # skip destination mesh objects with different numbers of vertices
         dvc = len(to_mesh_obj.data.vertices)
         svc = len(from_mesh_obj.data.vertices)
-        if dvc != svc:
+        if dvc != svc and create_name_only == False:
             print("do_copy_vertex_groups_by_prefix(): Cannot copy vertex groups from source ("+from_mesh_obj.name+
                 ") to dest ("+to_mesh_obj.name+"), source vertex count ("+str(svc)+
                 ") doesn't equal destination vertex count ("+str(dvc)+").")
             continue
-        copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix)
+        copy_vgroups_by_name_prefix(from_mesh_obj, to_mesh_obj, vg_name_prefix, create_name_only)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -134,7 +134,8 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
             self.report({'ERROR'}, "Less than two objects selected")
             return {'CANCELLED'}
 
-        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, context.scene.Amh2bPropVG_FunctionNamePrefix)
+        scn = context.scene
+        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, scn.Amh2bPropVG_FunctionNamePrefix, scn.Amh2bPropSK_CreateNameOnly)
         return {'FINISHED'}
 
 def delete_prefixed_vertex_groups(selection_list, delete_prefix):
@@ -186,7 +187,8 @@ class AMH2B_MakeTailorGroups(bpy.types.Operator):
         do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
-def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext):
+def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext,
+                                    create_name_only):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -224,11 +226,11 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
                     test_obj.name = search_name
                 continue
 
-        # skip destination mesh objects with different numbers of vertices
+        # skip destination mesh objects with different numbers of vertices, unless create name only
         dvc = len(sel.data.vertices)
         svc = len(appended_obj.data.vertices)
-        if dvc == svc:
-            copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix)
+        if dvc == svc or create_name_only == False:
+            copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix, create_name_only)
         else:
             print("do_search_file_for_auto_vgroups(): Cannot copy vertex groups from source ("+appended_obj.name+
                 ") to dest ("+sel.name+"), source vertex count ("+str(svc)+

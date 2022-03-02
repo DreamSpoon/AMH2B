@@ -2,7 +2,7 @@
 
 Automate as much as possible of MakeHuman to Blender workflow, e.g. materials, rig, cloth sim, animation, templates
 
-Addon for Blender 2.7x through Blender 2.93
+Addon for Blender 2.7x through Blender 3.0
 
 YouTube video demo of addon:
 https://youtu.be/XkOtsTrHRPg
@@ -35,13 +35,24 @@ Brief Overview:
 
 Done! The addon is now installed, but **you need to enable it by clicking the checkbox beside it's name**, in the addons window.
 
+And **make sure you have the Import MHX2 addon with link given later** in the document.
+
 ## Use Addon in Blender
 - Look for 'AMH2B' button in View 3D:
   - Blender 2.7x: Tools menu (left-side of View 3D)
-  - Blender 2.8x, 2.9x: Transforms menu (right-side of View 3D)
+  - Blender 2.8x, 3.x: Transforms menu (right-side of View 3D)
 
-## Import MHX2 format plugin for Blender from MakeHuman community
-Import MHX2 file format "plugin" for Blender
+## Import MHX2 addon for Blender 2.8+ (with bug fixes to enable Moho, and make compatible with Blender 2.8+)
+
+Download the following link for the fixed Import MHX Plugin, from author who did all the work to fix the bugs. This enables Moho support (text to mouth animation) in Blender version 2.83+. This github repo replaces the original Import MHX Plugin from the MakeHuman Community website. Fixed version:
+
+https://github.com/helour/mhx2-makehuman-exchange
+
+Blender installable zip file, just for convenience - this links to my repo, so use previous link and give repo traffic to original author, or use this and be lazy:
+
+https://github.com/DreamSpoon/mhx2-makehuman-exchange/releases/download/v1.1.1/mhx2-makehuman-exchange-master.zip
+
+## Original Import MHX2 Format plugin for Blender from MakeHuman community - use previous link instead
 
 http://download.tuxfamily.org/makehuman/plugins/mhx-blender-latest.zip
 
