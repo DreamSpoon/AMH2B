@@ -548,30 +548,32 @@ def stitch_set_parent_bone(rig_obj, stitch_from, stitch_to, bone_name_trans):
 
     rig_obj.data.edit_bones[stitch_from_trans].parent = rig_obj.data.edit_bones[stitch_to_trans]
 
-def detect_and_bridge_rigs(self, mhx_rig_obj, other_rig_obj):
+def detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj):
     # destination rig type
-    mhx_rig_type = "import_mhx"
+    #dest_rig_type = "import_mhx"
+    # auto-detect destination rig type
+    dest_rig_type = detect_rig_type(dest_rig_obj)
 
     # get source rig type, automatically detecting as needed
     if self.src_rig_type_enum == 'I_MIXAMO_NATIVE_FBX':
-        other_rig_type = "mixamo_native_fbx"
+        src_rig_type = "mixamo_native_fbx"
     elif self.src_rig_type_enum == 'I_MAKEHUMAN_CMU_MB':
-        other_rig_type = "makehuman_cmu_mb"
+        src_rig_type = "makehuman_cmu_mb"
     else:
         # auto-detect is last option, if nothing else matched
-        other_rig_type = detect_rig_type(other_rig_obj)
+        src_rig_type = detect_rig_type(src_rig_obj)
 
     mhx_rig_bone_names = []
-    for bone in mhx_rig_obj.data.bones:
+    for bone in dest_rig_obj.data.bones:
         mhx_rig_bone_names.append(bone.name)
     other_rig_bone_names = []
-    for bone in other_rig_obj.data.bones:
+    for bone in src_rig_obj.data.bones:
         other_rig_bone_names.append(bone.name)
-    bone_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(mhx_rig_type), mhx_rig_bone_names, "")
-    extra_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(other_rig_type), other_rig_bone_names, "")
+    bone_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(dest_rig_type), mhx_rig_bone_names, "")
+    extra_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(src_rig_type), other_rig_bone_names, "")
     bone_name_trans.update(extra_name_trans)
 
-    do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans)
+    do_bridge_rigs(self, dest_rig_obj, dest_rig_type, src_rig_obj, src_rig_type, bone_name_trans)
 
 # compare bone names to detect rig type
 def detect_rig_type(given_rig):
@@ -580,12 +582,18 @@ def detect_rig_type(given_rig):
     for bone in given_rig.data.bones:
         given_bone_names.append(bone.name)
 
-    # find a rig type with matching bone names
-    for test_typename, test_bone_names in amh2b_rig_type_bone_names.items():
-        if get_bone_name_match_count(test_bone_names, given_bone_names) >= amh2b_min_bones_for_rig_match:
-            return test_typename
-
-    return ""
+    # find a rig type with most matching bone names
+    best_typename_found = ""
+    best_bone_count_found = 0
+    for typename, bone_names in amh2b_rig_type_bone_names.items():
+        bn_match_count = get_bone_name_match_count(bone_names, given_bone_names)
+        # test current match count against best match count to find better, use better (more bone name matches) if found 
+        if bn_match_count >= amh2b_min_bones_for_rig_match and bn_match_count > best_bone_count_found:
+            print("possible match with count=" + str(bn_match_count) + ", name=" + typename)
+            best_typename_found = typename
+            best_bone_count_found = bn_match_count
+    print("best_typename_found=" + best_typename_found)
+    return best_typename_found
 
 def get_bone_name_translations(bone_name_list_A, bone_name_list_B, postfix):
     trans = {}

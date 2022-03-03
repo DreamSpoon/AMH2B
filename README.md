@@ -156,7 +156,7 @@ Copy vertex groups by name prefix from active object (must be selected last) to 
 
 To **copy vertex groups between meshes with different numbers of vertexes**, enable 'Create Groups Only in Name' and set 'Prefix' = '', i.e. clear the 'Prefix' text box.
 Or, set the Prefix value to only create the vertex groups with names beginning with Prefix.
-Then add the 'Data Transfer' modifier to the destination mesh, so it copies vertex weights from all vertex groups on the active object to all other selected objects:
+Then add the 'Data Transfer' modifier to the destination mesh, so it automatically copies vertex weights for all vertex groups:
 - "Data Transfer" modifier options:
   - With "Vertex Data" enabled, "Nearest Vertex" (or "Nearest Vertex Interpolated" for better quality)
   - Then select "Vertex Group(s)", "All Layers", "By Name"
