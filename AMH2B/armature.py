@@ -303,7 +303,8 @@ def stitchdata_concat_4(stitch_data1, stitch_data2):
 def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_type, bone_name_trans):
     dest_stitch = amh2b_rig_stitch_dest_list.get(mhx_rig_type).get(other_rig_type)
     if dest_stitch is None:
-        return
+        # return failure
+        return False
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -322,6 +323,9 @@ def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_typ
     bpy.ops.object.mode_set(mode='EDIT')
     stitch_bones(self, mhx_rig_obj, dest_stitch, bone_name_trans)
     bpy.ops.object.mode_set(mode='OBJECT')
+
+    # return success
+    return True
 
 def rename_bones_before_join(rig_obj, bone_rename_tuples):
     if bone_rename_tuples is not None:
@@ -563,6 +567,11 @@ def detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj):
         # auto-detect is last option, if nothing else matched
         src_rig_type = detect_rig_type(src_rig_obj)
 
+    # exit if unknown rig is either source or destination armature
+    if src_rig_type is None or src_rig_type is None:
+        # return failure
+        return False
+
     mhx_rig_bone_names = []
     for bone in dest_rig_obj.data.bones:
         mhx_rig_bone_names.append(bone.name)
@@ -573,7 +582,8 @@ def detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj):
     extra_name_trans = get_bone_name_translations(amh2b_rig_type_bone_names.get(src_rig_type), other_rig_bone_names, "")
     bone_name_trans.update(extra_name_trans)
 
-    do_bridge_rigs(self, dest_rig_obj, dest_rig_type, src_rig_obj, src_rig_type, bone_name_trans)
+    # return result of function, True for success or False for failure
+    return do_bridge_rigs(self, dest_rig_obj, dest_rig_type, src_rig_obj, src_rig_type, bone_name_trans)
 
 # compare bone names to detect rig type
 def detect_rig_type(given_rig):
@@ -593,6 +603,10 @@ def detect_rig_type(given_rig):
             best_typename_found = typename
             best_bone_count_found = bn_match_count
     print("best_typename_found=" + best_typename_found)
+    print("best_bone_count_found=" + str(best_bone_count_found))
+    # return failure if zero bone name matches were found - the armature configuration is unknown
+    if best_bone_count_found == 0:
+        return None
     return best_typename_found
 
 def get_bone_name_translations(bone_name_list_A, bone_name_list_B, postfix):
@@ -617,7 +631,9 @@ def do_bone_woven(self, dest_rig_obj, src_rig_obj):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj)
+    if detect_and_bridge_rigs(self, dest_rig_obj, src_rig_obj) == False:
+        self.report({'ERROR'}, "Unable to detect and/or bridge the selected armature configurations (e.g. unknown bone names)")
+        return {'CANCELLED'}
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
