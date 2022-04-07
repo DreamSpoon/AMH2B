@@ -55,7 +55,7 @@ else:
 
 #####################################################
 
-class AMH2B_MeshMat(bpy.types.Panel):
+class AMH2B_PT_MeshMat(bpy.types.Panel):
     bl_label = "Mesh Material"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -80,7 +80,7 @@ class AMH2B_MeshMat(bpy.types.Panel):
         sub.prop(scn, "Amh2bPropMatDelimiter")
         sub.prop(scn, "Amh2bPropMatDelimCount")
 
-class AMH2B_MeshSize(bpy.types.Panel):
+class AMH2B_PT_MeshSize(bpy.types.Panel):
     bl_label = "Mesh Size"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -94,7 +94,7 @@ class AMH2B_MeshSize(bpy.types.Panel):
         box.label(text="Clothing Size")
         box.operator("amh2b.mesh_create_size_rig")
 
-class AMH2B_VertexGroup(bpy.types.Panel):
+class AMH2B_PT_VertexGroup(bpy.types.Panel):
     bl_label = "Vertex Group"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -119,7 +119,7 @@ class AMH2B_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_add_maskout_modifier")
         box.operator("amh2b.vg_toggle_auto_maskout")
 
-class AMH2B_WeightPaint(bpy.types.Panel):
+class AMH2B_PT_WeightPaint(bpy.types.Panel):
     bl_label = "Weight Paint"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -149,7 +149,7 @@ class AMH2B_WeightPaint(bpy.types.Panel):
         sub.prop(scn, "Amh2bPropWP_TailFillValue")
         sub.prop(scn, "Amh2bPropWP_TailFillConnected")
 
-class AMH2B_Simulation(bpy.types.Panel):
+class AMH2B_PT_Simulation(bpy.types.Panel):
     bl_label = "Simulation"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -162,7 +162,7 @@ class AMH2B_Simulation(bpy.types.Panel):
         box.label(text="Cloth Sim")
         box.operator("amh2b.csim_add_sim")
 
-class AMH2B_ShapeKey(bpy.types.Panel):
+class AMH2B_PT_ShapeKey(bpy.types.Panel):
     bl_label = "ShapeKey"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -200,7 +200,7 @@ class AMH2B_ShapeKey(bpy.types.Panel):
         sub.active = not scn.Amh2bPropSK_Dynamic
         sub.operator("amh2b.sk_deform_sk_view_toggle")
 
-class AMH2B_Armature(bpy.types.Panel):
+class AMH2B_PT_Armature(bpy.types.Panel):
     bl_label = "Armature"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -231,7 +231,7 @@ class AMH2B_Armature(bpy.types.Panel):
         box.prop(scn, "Amh2bPropArmGenericMHX")
         box.operator("amh2b.arm_un_name_generic")
 
-class AMH2B_Animation(bpy.types.Panel):
+class AMH2B_PT_Animation(bpy.types.Panel):
     bl_label = "Animation"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -246,7 +246,7 @@ class AMH2B_Animation(bpy.types.Panel):
         box.operator("amh2b.anim_ratchet_hold")
         box.prop(scn, "Amh2bPropAnimRatchetFrameCount")
 
-class AMH2B_Eyelid(bpy.types.Panel):
+class AMH2B_PT_Eyelid(bpy.types.Panel):
     bl_label = "Eyelid"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -277,7 +277,7 @@ class AMH2B_Eyelid(bpy.types.Panel):
         box.prop(scn, "Amh2bPropEyelidMinXUpper")
         box.prop(scn, "Amh2bPropEyelidMaxXUpper")
 
-class AMH2B_EyeBlink(bpy.types.Panel):
+class AMH2B_PT_EyeBlink(bpy.types.Panel):
     bl_label = "Eye Blink"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -352,7 +352,7 @@ class AMH2B_EyeBlink(bpy.types.Panel):
         box.operator("amh2b.eblink_load_csv")
         box.prop(scn, "Amh2bPropEBlinkTextLoadName")
 
-class AMH2B_Template(bpy.types.Panel):
+class AMH2B_PT_Template(bpy.types.Panel):
     bl_label = "Template"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -412,17 +412,17 @@ classes = [
     AMH2B_SetEyeClosed,
     AMH2B_AddLidLook,
     AMH2B_RemoveLidLook,
-    AMH2B_MeshMat,
-    AMH2B_MeshSize,
-    AMH2B_VertexGroup,
-    AMH2B_WeightPaint,
-    AMH2B_Simulation,
-    AMH2B_ShapeKey,
-    AMH2B_Armature,
-    AMH2B_Animation,
-    AMH2B_Eyelid,
-    AMH2B_EyeBlink,
-    AMH2B_Template,
+    AMH2B_PT_MeshMat,
+    AMH2B_PT_MeshSize,
+    AMH2B_PT_VertexGroup,
+    AMH2B_PT_WeightPaint,
+    AMH2B_PT_Simulation,
+    AMH2B_PT_ShapeKey,
+    AMH2B_PT_Armature,
+    AMH2B_PT_Animation,
+    AMH2B_PT_Eyelid,
+    AMH2B_PT_EyeBlink,
+    AMH2B_PT_Template,
 ]
 
 def register():
