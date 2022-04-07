@@ -214,10 +214,12 @@ amh2b_rig_stitch_dest_list = {
             ],
 
             "blist_dup_swap_stitch_leg_L_ik": [("*:LeftUpLeg", "thigh_ik.L", 0, 0),
+                                               ("*:LeftToeBase", "toe.L", 0, 0),
             ],
             "blist_setparent_leg_L_ik": [("foot_ik.L", "*:LeftFoot"),
             ],
             "blist_dup_swap_stitch_leg_R_ik": [("*:RightUpLeg", "thigh_ik.R", 0, 0),
+                                               ("*:RightToeBase", "toe.R", 0, 0),
             ],
             "blist_setparent_leg_R_ik": [("foot_ik.R", "*:RightFoot"),
             ],

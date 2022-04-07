@@ -9,6 +9,11 @@ https://youtu.be/XkOtsTrHRPg
 
 Armature section of addon is centred around **MakeHuman MHX2 export format with MHX armature**, which offers fine control over animation with face and finger bones. **To get correct rig from import process, 'MHX' format must be selected when using MakeHuman Import MHX to Blender plugin/addon.**
 
+Armatures from Rigify addon are supported (mostly just the Inverse Kinematics (IK)).
+Blink doesn't easily work with Rigify armatures except by using Shapekeys (Shapekey for eye-closed).
+Support for Blink and LidLook with Rigify armatures may be added in a future release of AMH2B.
+To add Blink to a mesh parented to a Rigify armature, use Shapekeys with the Blink part of the addon.
+
 Note: The words Rig and Armature are used interchangeably. Also, the words Material and Shader are used interchangeably.
 
 Includes convenience functions for use with any armature type, e.g. Ratchet Hold, Re-Size Clothes Rig.
