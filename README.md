@@ -13,7 +13,6 @@ So... most of this help text is copy-pasted from the addon, with additions to cl
 - Eye Blink track with one button
 - Lid Look, so eyelids will move when eyes rotate to look up/down (MHX type armature only)
 - Easy copy of Vertex Groups from character mesh to clothes, great for adding clothes that move with the character like shoes (foot/toe bend), shorts, t-shirts, etc.
-  - ***************
 - Auto swap Materials(Shaders), Vertex Groups (with Weight Paint), shape Keys from any Blender file
 - Re-target MakeHuman MHX rig to CMU or Mixamo rigs to get accurate animation - including fingers
 - Transition between different animations easily with Ratchet Hold
@@ -25,7 +24,6 @@ So... most of this help text is copy-pasted from the addon, with additions to cl
   - Simulations can be baked to shape keys, and then
     - Slow-motion of cloth sim without wasting time calculating extra simulation frames - bake shape keys and adjust keyframe timing in dope sheet
     - Shape keys from first simulation can be used to guide re-simulation, or add fine details
-
 
 Armature section of addon is centred around **MakeHuman MHX2 export format with MHX armature**.
 The MHX type armature allows user control of finger and face animation.
@@ -46,7 +44,6 @@ Rigify armature and Blink function:
   - the mesh Shapekey will be animated to "blink" the character's eyes
 
 Note: The words Rig and Armature are used interchangeably. Also, the words Material and Shader are used interchangeably.
-
 
 ## Install Addon in Blender
 1) Start Blender
@@ -166,6 +163,11 @@ Try to swap material slot(s) of all selected objects with replacement materials 
 Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature. Select mesh objects first and select armature object last.
 
 Intended to be used to quickly up-size clothing, using MHX rig, before running cloth sim. i.e. begin with over-sized clothes so cloth sim can "shrink" clothing to body at start of simulation.
+
+Using this rig to change clothing sizes may be a bit difficult, the output depends a lot on the bones that are "scaled up" or "scaled down" to expand or shrink clothing.
+Try a few different combinations of bones, or "unhide" bone layers that are not visibile, and try playing around with different scales of the previously hidden bones.
+Also, parts of the clothing can be "re-located" by disabling the XYZ Location locks of bones and moving them around.
+Shirts can be stretched up and down, shorts can be made longer - or even shorter - shorter shorts?
 
 ## Vertex Group
 ### Functions - Copy from File
