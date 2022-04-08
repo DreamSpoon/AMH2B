@@ -2,25 +2,18 @@
 
 Automate as much as possible of MakeHuman to Blender workflow, e.g. materials, rig, cloth sim, animation, templates
 
-Addon for Blender 2.7x through Blender 3.0
+v2.79 - v3.1 Blender Addon
 
 YouTube video demo of addon:
 https://youtu.be/XkOtsTrHRPg
 
-Armature section of addon is centred around **MakeHuman MHX2 export format with MHX armature**, which offers fine control over animation with face and finger bones. **To get correct rig from import process, 'MHX' format must be selected when using MakeHuman Import MHX to Blender plugin/addon.**
-
-Armatures from Rigify addon are supported (mostly just the Inverse Kinematics (IK)).
-Blink doesn't easily work with Rigify armatures except by using Shapekeys (Shapekey for eye-closed).
-Support for Blink and LidLook with Rigify armatures may be added in a future release of AMH2B.
-To add Blink to a mesh parented to a Rigify armature, use Shapekeys with the Blink part of the addon.
-
-Note: The words Rig and Armature are used interchangeably. Also, the words Material and Shader are used interchangeably.
-
-Includes convenience functions for use with any armature type, e.g. Ratchet Hold, Re-Size Clothes Rig.
-
-Brief Overview:
+Summary:
+Most of the help text is included in the addon itself, in the popup tooltip texts.
+So... most of this help text is copy-pasted from the addon, with additions to clarify and suggest ways to use this addon.
 - Eye Blink track with one button
-- Lid Look, so eyelids will move when eyes rotate to look up/down
+- Lid Look, so eyelids will move when eyes rotate to look up/down (MHX type armature only)
+- Easy copy of Vertex Groups from character mesh to clothes, great for adding clothes that move with the character like shoes (foot/toe bend), shorts, t-shirts, etc.
+  - ***************
 - Auto swap Materials(Shaders), Vertex Groups (with Weight Paint), shape Keys from any Blender file
 - Re-target MakeHuman MHX rig to CMU or Mixamo rigs to get accurate animation - including fingers
 - Transition between different animations easily with Ratchet Hold
@@ -32,6 +25,28 @@ Brief Overview:
   - Simulations can be baked to shape keys, and then
     - Slow-motion of cloth sim without wasting time calculating extra simulation frames - bake shape keys and adjust keyframe timing in dope sheet
     - Shape keys from first simulation can be used to guide re-simulation, or add fine details
+
+
+Armature section of addon is centred around **MakeHuman MHX2 export format with MHX armature**.
+The MHX type armature allows user control of finger and face animation.
+To get correct rig from MHX Import process, use 'MHX' format armature/bones:
+- in the MHX Import file select window, "Import MHX2" panel
+  - choose Override Exported Data
+  - scroll down to the Rigging section
+  - make sure Add Rig is enabled,
+  - for Rig Type, choose: MHX
+
+Armatures from Rigify addon are supported (mostly just the Inverse Kinematics (IK)).
+Blink doesn't easily work with Rigify armatures except by using Shapekeys (Shapekey for eye-closed).
+Support for Blink and LidLook with Rigify armatures may be added in a future release of AMH2B.
+Rigify armature and Blink function:
+- make a mesh Shapekey with the character's eyes closed, and give the Shapekey name when using Blink
+  - enter Shapekey name in AMH2B panel, Eye Blink->Options->Closed Shapekey
+  - modify any other options as needed, and press the button Add Blink Track
+  - the mesh Shapekey will be animated to "blink" the character's eyes
+
+Note: The words Rig and Armature are used interchangeably. Also, the words Material and Shader are used interchangeably.
+
 
 ## Install Addon in Blender
 1) Start Blender
@@ -157,18 +172,39 @@ Intended to be used to quickly up-size clothing, using MHX rig, before running c
 For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name. Note: Name of object from MHX import process is used to search for object in other selected file.
 
 ### Functions - Copy Groups
-Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects.
+Function Description: Copy vertex groups (by name prefix) from active object to all other selected mesh objects.
+Many uses for this function, including easy copy of Vertex Groups from character to clothes.
+Character to clothes copying of vertex groups happens in two parts:
+1) Copy the Vertex Group Names (AMH2B->Vertex Group->Copy Groups function)
+2) Copy the Vertex Group Data (Data Transfer modifier)
+How to do it:
+1)
+  - Go to the AMH2B panel in the 3DView window: AMH2B panel -> Vertex Group -> Copy Vertex Group
+    - Enable the option "Create Groups Only in Name"
+    - set the Prefix to blank (i.e. clear the "Prefix" box), so that all group names are copied
+2)
+  - Add a Data Transfer modifier to the clothes mesh object, and use these settings in the modifier:
+    - enable Vertex Data
+	- use 'Nearest Vertex' or better (better = higher quality)
+	- select 'Vertex Group(s)', 'All Layers', 'By Name'
+    - set Mix mode: 'Replace'
+  - now look at the Vertex Groups in the "weight paint editing" mode of the 3DView, and check that the groups are transferring correctly
+  - some adjustments to the clothes mesh may be needed to get best results
+  - non-destructive changes to the character mesh are also possible
+    - create a copy of the character mesh
+	- modifying this new mesh to fix Vertex Group copying problems
+    - Data Transfer to clothes from the new mesh
+	- delete the copied-and-modified mesh
+  - if everything looks good, then apply the Data Transfer modifier
+  - **Data Transfer modifier must be applied before animating character/clothes, to prevent "tearing" / glitched vertex problems**
+Following these two steps will copy all the Vertex Groups from character mesh to clothes mesh.
 
-To **copy vertex groups between meshes with different numbers of vertexes**, enable 'Create Groups Only in Name' and set 'Prefix' = '', i.e. clear the 'Prefix' text box.
-Or, set the Prefix value to only create the vertex groups with names beginning with Prefix.
-Then add the 'Data Transfer' modifier to the destination mesh, so it automatically copies vertex weights for all vertex groups:
-- "Data Transfer" modifier options:
-  - With "Vertex Data" enabled, "Nearest Vertex" (or "Nearest Vertex Interpolated" for better quality)
-  - Then select "Vertex Group(s)", "All Layers", "By Name"
-
-Description of Swap Autoname Ext:
-- if vertex group copy function is tried and fails, re-try swap with objects 'auto-name' extension removed
+Description of Swap Autoname Ext option:
+- enable this to solve a problem when making copies of character mesh objects, because Blender automatically renames the copied objects
+  - when character's mesh objects are copied, Blender appends ".001", ".002", etc. to the name
+  - copying an entire character's meshes (including teeth, eyes, etc.) will change the names of the copied meshes
   - e.g. Object Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups
+- this options solves the problem by ignoring the end of the name if name ends with ".001", ".002", etc.
 
 ### Functions - Delete Groups
 With all selected objects, delete vertex groups by prefix.
