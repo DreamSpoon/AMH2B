@@ -15,24 +15,23 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
+from bpy.types import Operator
 import csv
 import fnmatch
 
-from .bone_strings import *
-from .armature_func import *
-from .object_func import *
+from .armature_func import add_armature_to_objects
+from .bone_strings import amh2b_rig_stitch_dest_list, amh2b_rig_type_bone_names
+from .object_func import dup_selected
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+    from .imp_v27 import (AMH2B_AdjustPoseInner, AMH2B_BoneWovenInner, AMH2B_LuckyInner, do_global_rotate,
+                          select_object, set_active_object)
     Region = "TOOLS"
 else:
-    from .imp_v28 import *
+    from .imp_v28 import (AMH2B_AdjustPoseInner, AMH2B_BoneWovenInner, AMH2B_LuckyInner, do_global_rotate,
+                          select_object, set_active_object)
     Region = "UI"
 
 #####################################################
@@ -88,7 +87,104 @@ def do_adjust_pose(mhx_arm_obj):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return err_str
 
-class AMH2B_AdjustPose(AMH2B_AdjustPoseInner, bpy.types.Operator):
+def get_csv_lines_from_textblock(datablock_textname):
+    bl = bpy.data.texts.get(datablock_textname)
+    if bl is None:
+        return None
+    bl_str = bl.as_string()
+    if bl_str == '':
+        return None
+    csv_lines = csv.reader(bl_str.splitlines(), quotechar='"', delimiter=',', quoting=csv.QUOTE_NONE,
+                           skipinitialspace=True)
+    return list(csv_lines)
+
+def parse_script_csv_lines(csv_lines_list):
+    # Dictionary linking rig type name to bone name list, so rig type names can be used as keywords later
+    # by other operations.
+    # Also, enables "auto-match" of script type for rig1/rig2/etc. combination, because names of bones in selected
+    # armature objects can be auto-searched for "best match" with script textblock, to find best script to apply to
+    # rigs. Would require one full pass through textblock, without running any operations, to find all
+    # (rig type name : bone name) lines in the textblock, then compare current selected armature objects against each
+    # rig type bone name list.
+
+    output_ops = []
+    # first iteration increases line_count to 0
+    line_count = -1
+    for csv_line in csv_lines_list:
+        line_count = line_count + 1
+        print("csv_line %d =" % line_count)
+        print(csv_line)
+        current_operation = None
+        rig_type_name = None
+        rig_bone_names = []
+        for item in csv_line:
+            print("item =")
+            print(item)
+
+            if current_operation is None:
+                # operation keywords are not encased in quotes, so end this line read early if quote is found
+                if item.startswith("\""):
+                    break
+                current_operation = item
+
+            if current_operation == "rig_bone_names":
+                if rig_type_name is None:
+                    # rig type names are not encased in quotes, so end this line read early if quote is found
+                    if item.startswith("\"") or item.endswith("\""):
+                        current_operation = None
+                        break
+                    rig_type_name = item
+                    continue
+                # each item that follows should start and end with a quote char, so end this line read early if
+                # quote is NOT found
+                if not item.startswith("\"") or not item.endswith("\""):
+                    current_operation = None
+                    break
+                # do add to list of bone names for current rig type
+                rig_bone_names.append(item)
+
+        if current_operation == "rig_type_bone_names" and rig_type_name != None and rig_bone_names > 0:
+            output_ops.append( ("rig_type_bone_names", { "type_name": rig_type_name,
+                                                         "bone_names": rig_bone_names }) )
+
+    return output_ops
+
+def run_script_textblock(datablock_textname):
+    csv_lines_list = get_csv_lines_from_textblock(datablock_textname)
+    if csv_lines_list is None:
+        print("csv lines are none")
+        return None
+
+    ops_to_run = parse_script_csv_lines(csv_lines_list)
+    if ops_to_run is None:
+        print("ops_to_run is none")
+        return None
+
+    all_rig_type_bone_names = {}
+    for oper in ops_to_run:
+        if oper.current_operation == "rig_bone_names":
+            all_rig_type_bone_names[oper.rig_type_name] = oper.rig_bone_names
+
+    # TODO change this return to something appropriate
+    return True
+
+# read a CSV text, and perform operations based on input
+class AMH2B_OT_RunBoneOpScript(Operator):
+    bl_idname = "amh2b.run_bone_script"
+    bl_label = "Run Bone Script"
+    bl_description = ""
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        scn = context.scene
+        result = run_script_textblock(scn.Amh2bPropArmTextBlockName)
+        if result is None:
+            self.report({'ERROR'}, "Unable to run scripted armature bone operations textblock: " +
+                        bpy.context.scene.Amh2bPropArmTextBlockName)
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+class AMH2B_OT_AdjustPose(AMH2B_AdjustPoseInner, Operator):
     """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
     bl_idname = "amh2b.arm_adjust_pose"
     bl_label = "Adjust Pose"
@@ -156,7 +252,7 @@ def do_apply_scale(act_ob):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_ApplyScale(bpy.types.Operator):
+class AMH2B_OT_ApplyScale(Operator):
     """Apply Scale to active object (ARMATURE type) without corrupting the armature pose data (i.e. location)"""
     bl_idname = "amh2b.arm_apply_scale"
     bl_label = "Apply Scale to Rig"
@@ -224,7 +320,7 @@ def do_bridge_repose_rig(act_ob, sel_obj_list):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_BridgeRepose(bpy.types.Operator):
+class AMH2B_OT_BridgeRepose(Operator):
     """Create a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
     bl_idname = "amh2b.arm_bridge_repose"
     bl_label = "Bridge Re-Pose"
@@ -637,7 +733,7 @@ def do_bone_woven(self, dest_rig_obj, src_rig_obj):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_BoneWoven(AMH2B_BoneWovenInner, bpy.types.Operator):
+class AMH2B_OT_BoneWoven(AMH2B_BoneWovenInner, Operator):
     """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
     bl_idname = "amh2b.arm_bone_woven"
     bl_label = "Bone Woven"
@@ -715,7 +811,7 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
 
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.
-class AMH2B_Lucky(AMH2B_LuckyInner, bpy.types.Operator):
+class AMH2B_OT_Lucky(AMH2B_LuckyInner, Operator):
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
     bl_idname = "amh2b.arm_lucky"
     bl_label = "Lucky"
@@ -771,7 +867,7 @@ def do_toggle_preserve_volume(new_state, sel_obj_list):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
+class AMH2B_OT_EnableModPreserveVolume(Operator):
     """Enable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
     bl_idname = "amh2b.arm_enable_preserve_volume"
     bl_label = "Enable"
@@ -781,7 +877,7 @@ class AMH2B_EnableModPreserveVolume(bpy.types.Operator):
         do_toggle_preserve_volume(True, context.selected_objects)
         return {'FINISHED'}
 
-class AMH2B_DisableModPreserveVolume(bpy.types.Operator):
+class AMH2B_OT_DisableModPreserveVolume(Operator):
     """Disable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
     bl_idname = "amh2b.arm_disable_preserve_volume"
     bl_label = "Disable"
@@ -820,7 +916,7 @@ def do_rename_generic(new_generic_prefix, include_mhx, sel_obj_list):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_RenameGeneric(bpy.types.Operator):
+class AMH2B_OT_RenameGeneric(Operator):
     """Rename armature bones to match the format 'aaaa:bbbb', where 'aaaa' is the generic prefix"""
     bl_idname = "amh2b.arm_rename_generic"
     bl_label = "Rename Generic"
@@ -861,7 +957,7 @@ def do_un_name_generic(include_mhx, sel_obj_list):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_UnNameGeneric(bpy.types.Operator):
+class AMH2B_OT_UnNameGeneric(Operator):
     """Rename bones to remove any formating like 'aaaa:bbbb', where 'aaaa' is removed and the bones name becomes 'bbbb'"""
     bl_idname = "amh2b.arm_un_name_generic"
     bl_label = "Un-name Generic"

@@ -18,7 +18,7 @@
 
 # Automate MakeHuman 2 Blender (AMH2B)
 #   Blender 2.79 - 3.x Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
+# A set of tools to automate repetitive tasks after importing data from MakeHuman, and enhance imported data.
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
@@ -32,30 +32,36 @@ bl_info = {
 }
 
 import bpy
+from bpy.types import (Panel, Scene)
 
-from .material import *
-from .mesh_size import *
-from .vgroup import *
-from .weight_paint import *
-from .cloth_sim import *
-from .shape_key import *
-from .armature import *
+from .cloth_sim import AMH2B_AddClothSim
+from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 from .animation import AMH2B_RatchetHold
+from .armature import (AMH2B_OT_RunBoneOpScript, AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BridgeRepose,
+    AMH2B_OT_BoneWoven, AMH2B_OT_Lucky, AMH2B_OT_EnableModPreserveVolume, AMH2B_OT_DisableModPreserveVolume,
+    AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric)
 from .eyeblink import (AMH2B_RemoveBlinkTrack, AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV,
                        AMH2B_ResetEyeOpened, AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
 from .eyelid import (AMH2B_AddLidLook, AMH2B_RemoveLidLook)
-from .const import *
+from .material import (AMH2B_SwapMatWithFile, AMH2B_SwapMatInternal)
+from .mesh_size import AMH2B_CreateSizeRig
+from .shape_key import (AMH2B_BakeDeformShapeKeys, AMH2B_SearchFileForAutoShapeKeys, AMH2B_SKFuncDelete,
+                        AMH2B_SKFuncCopy, AMH2B_DeformSK_ViewToggle)
+from .shrinkwrap import (AMH2B_CreateGeoNodesShrinkwrap, AMH2B_CreateGeoNodesThickShrinkwrap,
+    AMH2B_CreateGeoNodesDirectionalShrinkwrap, AMH2B_CreateGeoNodesDirectionalThickShrinkwrap)
+from .template import (AMH2B_MakeTailorObjectSearchable, AMH2B_SetupMatSwap)
+from .vgroup import (AMH2B_AddMaskOutMod, AMH2B_ToggleViewMaskoutMod, AMH2B_CopyVertexGroupsByPrefix,
+    AMH2B_DeleteVertexGroupsByPrefix, AMH2B_MakeTailorGroups, AMH2B_SearchFileForAutoVGroups)
+from .weight_paint import (AMH2B_GrowPaint, AMH2B_SelectVertexByWeight)
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+#    from .imp_v27 import *
     Region = "TOOLS"
 else:
-    from .imp_v28 import *
+#    from .imp_v28 import *
     Region = "UI"
 
-#####################################################
-
-class AMH2B_PT_MeshMat(bpy.types.Panel):
+class AMH2B_PT_MeshMat(Panel):
     bl_label = "Mesh Material"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -80,7 +86,7 @@ class AMH2B_PT_MeshMat(bpy.types.Panel):
         sub.prop(scn, "Amh2bPropMatDelimiter")
         sub.prop(scn, "Amh2bPropMatDelimCount")
 
-class AMH2B_PT_MeshSize(bpy.types.Panel):
+class AMH2B_PT_MeshSize(Panel):
     bl_label = "Mesh Size"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -94,7 +100,7 @@ class AMH2B_PT_MeshSize(bpy.types.Panel):
         box.label(text="Clothing Size")
         box.operator("amh2b.mesh_create_size_rig")
 
-class AMH2B_PT_VertexGroup(bpy.types.Panel):
+class AMH2B_PT_VertexGroup(Panel):
     bl_label = "Vertex Group"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -119,7 +125,7 @@ class AMH2B_PT_VertexGroup(bpy.types.Panel):
         box.operator("amh2b.vg_add_maskout_modifier")
         box.operator("amh2b.vg_toggle_auto_maskout")
 
-class AMH2B_PT_WeightPaint(bpy.types.Panel):
+class AMH2B_PT_WeightPaint(Panel):
     bl_label = "Weight Paint"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -149,7 +155,7 @@ class AMH2B_PT_WeightPaint(bpy.types.Panel):
         sub.prop(scn, "Amh2bPropWP_TailFillValue")
         sub.prop(scn, "Amh2bPropWP_TailFillConnected")
 
-class AMH2B_PT_Simulation(bpy.types.Panel):
+class AMH2B_PT_Simulation(Panel):
     bl_label = "Simulation"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -162,7 +168,7 @@ class AMH2B_PT_Simulation(bpy.types.Panel):
         box.label(text="Cloth Sim")
         box.operator("amh2b.csim_add_sim")
 
-class AMH2B_PT_ShapeKey(bpy.types.Panel):
+class AMH2B_PT_ShapeKey(Panel):
     bl_label = "ShapeKey"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -200,7 +206,7 @@ class AMH2B_PT_ShapeKey(bpy.types.Panel):
         sub.active = not scn.Amh2bPropSK_Dynamic
         sub.operator("amh2b.sk_deform_sk_view_toggle")
 
-class AMH2B_PT_Armature(bpy.types.Panel):
+class AMH2B_PT_Armature(Panel):
     bl_label = "Armature"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -211,27 +217,28 @@ class AMH2B_PT_Armature(bpy.types.Panel):
         layout = self.layout
         scn = context.scene
         box = layout.box()
+        box.operator(AMH2B_OT_RunBoneOpScript.bl_idname)
         box.label(text="Retarget")
-        box.operator("amh2b.arm_adjust_pose")
+        box.operator(AMH2B_OT_AdjustPose.bl_idname)
         box.prop(scn, "Amh2bPropArmTextBlockName")
-        box.operator("amh2b.arm_apply_scale")
-        box.operator("amh2b.arm_bridge_repose")
-        box.operator("amh2b.arm_bone_woven")
+        box.operator(AMH2B_OT_ApplyScale.bl_idname)
+        box.operator(AMH2B_OT_BridgeRepose.bl_idname)
+        box.operator(AMH2B_OT_BoneWoven.bl_idname)
         box = layout.box()
         box.label(text="Retarget Multi-Function")
-        box.operator("amh2b.arm_lucky")
+        box.operator(AMH2B_OT_Lucky.bl_idname)
         box = layout.box()
         box.label(text="Preserve Volume Toggle")
-        box.operator("amh2b.arm_enable_preserve_volume")
-        box.operator("amh2b.arm_disable_preserve_volume")
+        box.operator(AMH2B_OT_EnableModPreserveVolume.bl_idname)
+        box.operator(AMH2B_OT_DisableModPreserveVolume.bl_idname)
         box = layout.box()
         box.label(text="Bone Names")
-        box.operator("amh2b.arm_rename_generic")
+        box.operator(AMH2B_OT_RenameGeneric.bl_idname)
         box.prop(scn, "Amh2bPropArmGenericPrefix")
         box.prop(scn, "Amh2bPropArmGenericMHX")
-        box.operator("amh2b.arm_un_name_generic")
+        box.operator(AMH2B_OT_UnNameGeneric.bl_idname)
 
-class AMH2B_PT_Animation(bpy.types.Panel):
+class AMH2B_PT_Animation(Panel):
     bl_label = "Animation"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -246,7 +253,7 @@ class AMH2B_PT_Animation(bpy.types.Panel):
         box.operator("amh2b.anim_ratchet_hold")
         box.prop(scn, "Amh2bPropAnimRatchetFrameCount")
 
-class AMH2B_PT_Eyelid(bpy.types.Panel):
+class AMH2B_PT_Eyelid(Panel):
     bl_label = "Eyelid"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -277,7 +284,7 @@ class AMH2B_PT_Eyelid(bpy.types.Panel):
         box.prop(scn, "Amh2bPropEyelidMinXUpper")
         box.prop(scn, "Amh2bPropEyelidMaxXUpper")
 
-class AMH2B_PT_EyeBlink(bpy.types.Panel):
+class AMH2B_PT_EyeBlink(Panel):
     bl_label = "Eye Blink"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -352,7 +359,7 @@ class AMH2B_PT_EyeBlink(bpy.types.Panel):
         box.operator("amh2b.eblink_load_csv")
         box.prop(scn, "Amh2bPropEBlinkTextLoadName")
 
-class AMH2B_PT_Template(bpy.types.Panel):
+class AMH2B_PT_Template(Panel):
     bl_label = "Template"
     bl_space_type = "VIEW_3D"
     bl_region_type = Region
@@ -371,6 +378,24 @@ class AMH2B_PT_Template(bpy.types.Panel):
         box = layout.box()
         box.label(text="Vertex Group and ShapeKey")
         box.operator("amh2b.temp_make_tailor_object_searchable")
+
+class AMH2B_PT_Shrinkwrap(Panel):
+    bl_label = "Shrinkwrap"
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        scn = context.scene
+        layout = self.layout
+
+        box = layout.box()
+        box.label(text="Create Shrinkwrap Nodes")
+        box.operator("amh2b.geo_nodes_create_shrinkwrap")
+        box.operator("amh2b.geo_nodes_create_thick_shrinkwrap")
+        box.operator("amh2b.geo_nodes_create_directional_shrinkwrap")
+        box.operator("amh2b.geo_nodes_create_directional_thick_shrinkwrap")
+        box.prop(scn, "Amh2bPropNodesOverrideCreate")
 
 classes = [
     AMH2B_SwapMatWithFile,
@@ -392,15 +417,20 @@ classes = [
     AMH2B_SKFuncDelete,
     AMH2B_SKFuncCopy,
     AMH2B_DeformSK_ViewToggle,
-    AMH2B_ApplyScale,
-    AMH2B_AdjustPose,
-    AMH2B_BridgeRepose,
-    AMH2B_BoneWoven,
-    AMH2B_Lucky,
-    AMH2B_EnableModPreserveVolume,
-    AMH2B_DisableModPreserveVolume,
-    AMH2B_RenameGeneric,
-    AMH2B_UnNameGeneric,
+    AMH2B_CreateGeoNodesShrinkwrap,
+    AMH2B_CreateGeoNodesThickShrinkwrap,
+    AMH2B_CreateGeoNodesDirectionalShrinkwrap,
+    AMH2B_CreateGeoNodesDirectionalThickShrinkwrap,
+    AMH2B_OT_RunBoneOpScript,
+    AMH2B_OT_ApplyScale,
+    AMH2B_OT_AdjustPose,
+    AMH2B_OT_BridgeRepose,
+    AMH2B_OT_BoneWoven,
+    AMH2B_OT_Lucky,
+    AMH2B_OT_EnableModPreserveVolume,
+    AMH2B_OT_DisableModPreserveVolume,
+    AMH2B_OT_RenameGeneric,
+    AMH2B_OT_UnNameGeneric,
     AMH2B_RatchetHold,
     AMH2B_RemoveBlinkTrack,
     AMH2B_AddBlinkTrack,
@@ -423,13 +453,14 @@ classes = [
     AMH2B_PT_Eyelid,
     AMH2B_PT_EyeBlink,
     AMH2B_PT_Template,
+    AMH2B_PT_Shrinkwrap,
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bts = bpy.types.Scene
+    bts = Scene
     bp = bpy.props
 
     bts.Amh2bPropMatActiveSlotOnly = bp.BoolProperty(name="Active Slot Only",
@@ -624,8 +655,11 @@ def register():
         default=False)
     bts.Amh2bPropTempDelimiter = bp.StringProperty(name="Delimiter",
         description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
-    bts.Amh2bPropTempDelimCount = bp.IntProperty(name="Delim. Count",
-        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
+    bts.Amh2bPropTempDelimCount = bp.IntProperty(name="Delim. Count", description="Number of delimiters allowed in " +
+        "name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
+    bts.Amh2bPropNodesOverrideCreate = bp.BoolProperty(name="Override Create", description="Geometry Nodes and custom " +
+        "Node Groups will be re-created if this option is enabled. When custom Node Groups are " +
+        "override created, old Node Groups of the same name are renamed and deprecated", default=False)
 
 def unregister():
     for cls in classes:

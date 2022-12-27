@@ -15,10 +15,6 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 amh2b_rig_type_bone_names = {
     "makehuman_cmu_mb": ["Hips", "LHipJoint", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LowerBack", "Spine", "Spine1", "LeftShoulder", "LeftArm", "LeftForeArm","LeftHand", "LThumb", "LeftFingerBase", "LeftHandFinger1", "Neck", "Neck1", "Head", "RightShoulder", "RightArm", "RightForeArm", "RightHand","RThumb", "RightFingerBase", "RightHandFinger1", "RHipJoint", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase"],

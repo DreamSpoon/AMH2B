@@ -15,19 +15,15 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
 import numpy
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+    from .imp_v27 import do_global_translate
     Region = "TOOLS"
 else:
-    from .imp_v28 import *
+    from .imp_v28 import do_global_translate
     Region = "UI"
 
 #####################################################

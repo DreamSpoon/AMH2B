@@ -15,21 +15,17 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
 
-from .armature_func import *
-from .object_func import *
+from .armature_func import add_armature_to_objects
+from .object_func import dup_selected
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+    from .imp_v27 import (AMH2B_CreateSizeRigInner, select_object, set_active_object)
     Region = "TOOLS"
 else:
-    from .imp_v28 import *
+    from .imp_v28 import (AMH2B_CreateSizeRigInner, select_object, set_active_object)
     Region = "UI"
 
 def do_create_size_rig(act_ob, sel_obj_list, unlock_y):

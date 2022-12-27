@@ -15,27 +15,26 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
 import re
+import math
 import mathutils
 from mathutils import Vector
 import numpy
 
-from .append_from_file_func import *
-from .const import *
-from .object_func import *
-from .template import *
+from .append_from_file_func import append_object_from_blend_file
+from .const import (FC_MATCH_DIST, SC_TEMP_SK_X, SC_TEMP_SK_Y, SC_TEMP_SK_Z, SC_VGRP_MASKOUT)
+from .object_func import delete_all_objects_except, check_create_basis_shape_key
+from .template import get_searchable_object_name
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+    from .imp_v27 import (AMH2B_SearchInFileInner, deselect_object, select_object, set_active_object,
+        get_mesh_post_modifiers, get_all_objects_list)
 else:
-    from .imp_v28 import *
+    from .imp_v28 import (AMH2B_SearchInFileInner, deselect_object, select_object, set_active_object,
+        get_mesh_post_modifiers, get_all_objects_list)
 
 def is_name_prefix_match(name, prefix):
     if name == prefix or re.match(prefix + "\w*", name):

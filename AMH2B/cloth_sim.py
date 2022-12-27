@@ -15,20 +15,16 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
 
-from .const import *
+from .const import SC_VGRP_CLOTH_PIN, SC_VGRP_TSEWN
 
 if bpy.app.version < (2,80,0):
-    from .imp_v27 import *
+    from .imp_v27 import (cloth_sim_use_pin_group, cloth_sim_use_sew_group)
     Region = "TOOLS"
 else:
-    from .imp_v28 import *
+    from .imp_v28 import (cloth_sim_use_pin_group, cloth_sim_use_sew_group)
     Region = "UI"
 
 def do_add_cloth_sim(mesh_obj):

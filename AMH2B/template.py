@@ -15,14 +15,10 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ##### END GPL LICENSE BLOCK #####
-#
-# Automate MakeHuman 2 Blender (AMH2B)
-#   Blender 2.79 - 2.93 Addon
-# A set of tools to automate the process of shading/texturing, and animating MakeHuman data imported in Blender.
 
 import bpy
 
-from .material_func import *
+from .material_func import rename_material
 
 def get_mat_template_name(orig_name, delim, delim_count):
     pos = len(orig_name)
@@ -56,7 +52,6 @@ def do_setup_mat_template(selection_list, active_slot_only, delimiter, delimiter
                 continue
             mat_name = mat_slot.material.name
             new_mat_name = get_mat_template_name(mat_name, delimiter, delimiter_count+1)
-            print("new_mat_name = " + new_mat_name)
             rename_material(mat_name, new_mat_name)
 
 class AMH2B_SetupMatSwap(bpy.types.Operator):
