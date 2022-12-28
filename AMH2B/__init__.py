@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (1, 3, 5),
+    "version": (1, 4, 0),
     "blender": (2, 80, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -41,14 +41,16 @@ from .armature import (AMH2B_OT_RunBoneOpScript, AMH2B_OT_AdjustPose, AMH2B_OT_A
     AMH2B_OT_BoneWoven, AMH2B_OT_Lucky, AMH2B_OT_EnableModPreserveVolume, AMH2B_OT_DisableModPreserveVolume,
     AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric)
 from .eyeblink import (AMH2B_RemoveBlinkTrack, AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV,
-                       AMH2B_ResetEyeOpened, AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
+    AMH2B_ResetEyeOpened, AMH2B_ResetEyeClosed, AMH2B_SetEyeOpened, AMH2B_SetEyeClosed)
 from .eyelid import (AMH2B_AddLidLook, AMH2B_RemoveLidLook)
 from .material import (AMH2B_SwapMatWithFile, AMH2B_SwapMatInternal)
 from .mesh_size import AMH2B_CreateSizeRig
 from .shape_key import (AMH2B_BakeDeformShapeKeys, AMH2B_SearchFileForAutoShapeKeys, AMH2B_SKFuncDelete,
-                        AMH2B_SKFuncCopy, AMH2B_DeformSK_ViewToggle)
-from .shrinkwrap import (AMH2B_CreateGeoNodesShrinkwrap, AMH2B_CreateGeoNodesThickShrinkwrap,
-    AMH2B_CreateGeoNodesDirectionalShrinkwrap, AMH2B_CreateGeoNodesDirectionalThickShrinkwrap)
+    AMH2B_SKFuncCopy, AMH2B_DeformSK_ViewToggle)
+from .shrinkwrap import (AMH2B_CreateGeoNodesDirectionalShrinkwrap, AMH2B_CreateGeoNodesDirectionalThickShrinkwrap,
+    AMH2B_CreateGeoNodesShrinkwrap, AMH2B_CreateGeoNodesThickShrinkwrap)
+from .shrinkwrap_obj import (AMH2B_CreateObjModDirectionalShrinkwrap, AMH2B_CreateObjModDirectionalThickShrinkwrap,
+    AMH2B_CreateObjModShrinkwrap, AMH2B_CreateObjModThickShrinkwrap)
 from .template import (AMH2B_MakeTailorObjectSearchable, AMH2B_SetupMatSwap)
 from .vgroup import (AMH2B_AddMaskOutMod, AMH2B_ToggleViewMaskoutMod, AMH2B_CopyVertexGroupsByPrefix,
     AMH2B_DeleteVertexGroupsByPrefix, AMH2B_MakeTailorGroups, AMH2B_SearchFileForAutoVGroups)
@@ -379,7 +381,26 @@ class AMH2B_PT_Template(Panel):
         box.label(text="Vertex Group and ShapeKey")
         box.operator("amh2b.temp_make_tailor_object_searchable")
 
-class AMH2B_PT_Shrinkwrap(Panel):
+class AMH2B_PT_View3D_Shrinkwrap(Panel):
+    bl_label = "Shrinkwrap"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = Region
+    bl_category = "AMH2B"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        scn = context.scene
+        layout = self.layout
+
+        box = layout.box()
+        box.label(text="Shrinkwrap Mesh Modifiers")
+        box.operator("amh2b.obj_mod_create_directional_shrinkwrap")
+        box.operator("amh2b.obj_mod_create_directional_thick_shrinkwrap")
+        box.operator("amh2b.obj_mod_create_shrinkwrap")
+        box.operator("amh2b.obj_mod_create_thick_shrinkwrap")
+        box.prop(scn, "Amh2bPropNodesOverrideCreate")
+
+class AMH2B_PT_NodeEditorShrinkwrap(Panel):
     bl_label = "Shrinkwrap"
     bl_space_type = "NODE_EDITOR"
     bl_region_type = Region
@@ -421,6 +442,10 @@ classes = [
     AMH2B_CreateGeoNodesThickShrinkwrap,
     AMH2B_CreateGeoNodesDirectionalShrinkwrap,
     AMH2B_CreateGeoNodesDirectionalThickShrinkwrap,
+    AMH2B_CreateObjModDirectionalShrinkwrap,
+    AMH2B_CreateObjModDirectionalThickShrinkwrap,
+    AMH2B_CreateObjModShrinkwrap,
+    AMH2B_CreateObjModThickShrinkwrap,
     AMH2B_OT_RunBoneOpScript,
     AMH2B_OT_ApplyScale,
     AMH2B_OT_AdjustPose,
@@ -444,6 +469,7 @@ classes = [
     AMH2B_RemoveLidLook,
     AMH2B_PT_MeshMat,
     AMH2B_PT_MeshSize,
+    AMH2B_PT_View3D_Shrinkwrap,
     AMH2B_PT_VertexGroup,
     AMH2B_PT_WeightPaint,
     AMH2B_PT_Simulation,
@@ -453,7 +479,7 @@ classes = [
     AMH2B_PT_Eyelid,
     AMH2B_PT_EyeBlink,
     AMH2B_PT_Template,
-    AMH2B_PT_Shrinkwrap,
+    AMH2B_PT_NodeEditorShrinkwrap,
 ]
 
 def register():

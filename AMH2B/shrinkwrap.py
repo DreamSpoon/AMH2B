@@ -17,6 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
+from bpy.types import Operator
 
 from .node_other import ensure_node_group
 
@@ -26,7 +27,7 @@ DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME = "DirShrinkwrap_AMH2B_GeoNG"
 DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME = "DirThickShrinkwrap_AMH2B_GeoNG"
 
 # depending on the name passed to function, create the right set of nodes in a group and pass back
-def create_prereq_util_node_group(node_group_name, node_tree_type):
+def create_prereq_shrinkwrap_node_group(node_group_name, node_tree_type):
     if node_tree_type == 'GeometryNodeTree':
         if node_group_name == SHRINKWRAP_GEO_NG_NAME:
             return create_geo_ng_shrinkwrap()
@@ -38,18 +39,21 @@ def create_prereq_util_node_group(node_group_name, node_tree_type):
             return create_geo_ng_directional_thick_shrinkwrap()
 
     # error
-    print("Unknown name passed to create_prereq_util_node_group: " + str(node_group_name))
+    print("Unknown name passed to create_prereq_shrinkwrap_node_group: " + str(node_group_name))
     return None
 
 def create_geo_ng_shrinkwrap():
     # initialize variables
     new_nodes = {}
     new_node_group = bpy.data.node_groups.new(name=SHRINKWRAP_GEO_NG_NAME, type='GeometryNodeTree')
+    new_node_group.inputs.clear()
+    new_node_group.outputs.clear()
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
-    new_input.default_value = 1.0
+    new_input.default_value = 1.000000
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input.default_value = 0.000000
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
     new_input.default_value = 3.4028234663852886e+38
     new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
@@ -189,16 +193,15 @@ def create_geo_ng_shrinkwrap():
 
     return new_node_group
 
-def create_node_group_node_shrinkwrap(context, override_create):
-    ensure_node_group(override_create, SHRINKWRAP_GEO_NG_NAME, 'GeometryNodeTree', create_prereq_util_node_group)
+def create_node_group_node_shrinkwrap(node_tree, override_create):
+    ensure_node_group(override_create, SHRINKWRAP_GEO_NG_NAME, 'GeometryNodeTree', create_prereq_shrinkwrap_node_group)
 
     # create group node that will do the work
-    node_tree = context.space_data.edit_tree
     node = node_tree.nodes.new(type='GeometryNodeGroup')
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesShrinkwrap(bpy.types.Operator):
+class AMH2B_CreateGeoNodesShrinkwrap(Operator):
     bl_description = "Create Shrinkwrap group node, to project one geometry onto another geometry"
     bl_idname = "amh2b.geo_nodes_create_shrinkwrap"
     bl_label = "Shrinkwrap"
@@ -210,7 +213,7 @@ class AMH2B_CreateGeoNodesShrinkwrap(bpy.types.Operator):
         return s.type == 'NODE_EDITOR' and s.node_tree != None and s.tree_type == 'GeometryNodeTree'
 
     def execute(self, context):
-        create_node_group_node_shrinkwrap(context, context.scene.Amh2bPropNodesOverrideCreate)
+        create_node_group_node_shrinkwrap(context.space_data.edit_tree, context.scene.Amh2bPropNodesOverrideCreate)
         return {'FINISHED'}
 
 def create_geo_ng_thick_shrinkwrap():
@@ -221,11 +224,12 @@ def create_geo_ng_thick_shrinkwrap():
     new_input.default_value = 1.0
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input.default_value = 0.000000
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
     new_input.default_value = 3.4028234663852886e+38
     new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Factor")
+    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
     new_input.default_value = 1.0
     new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
@@ -425,16 +429,15 @@ def create_geo_ng_thick_shrinkwrap():
 
     return new_node_group
 
-def create_node_group_node_thick_shrinkwrap(context, override_create):
+def create_node_group_node_thick_shrinkwrap(node_tree, override_create):
     ensure_node_group(override_create, THICK_SHRINKWRAP_GEO_NG_NAME, 'GeometryNodeTree',
-                      create_prereq_util_node_group)
+                      create_prereq_shrinkwrap_node_group)
     # create group node that will do the work
-    node_tree = context.space_data.edit_tree
     node = node_tree.nodes.new(type='GeometryNodeGroup')
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(THICK_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesThickShrinkwrap(bpy.types.Operator):
+class AMH2B_CreateGeoNodesThickShrinkwrap(Operator):
     bl_description = "Create Thick Shrinkwrap group node, to project one geometry onto another geometry. Projected " \
         "geometry will retain it's 'thickness' after projection, by way of secondary 'nearness' check"
     bl_idname = "amh2b.geo_nodes_create_thick_shrinkwrap"
@@ -447,7 +450,8 @@ class AMH2B_CreateGeoNodesThickShrinkwrap(bpy.types.Operator):
         return s.type == 'NODE_EDITOR' and s.node_tree != None and s.tree_type == 'GeometryNodeTree'
 
     def execute(self, context):
-        create_node_group_node_thick_shrinkwrap(context, context.scene.Amh2bPropNodesOverrideCreate)
+        create_node_group_node_thick_shrinkwrap(context.space_data.edit_tree,
+                                                context.scene.Amh2bPropNodesOverrideCreate)
         return {'FINISHED'}
 
 def create_geo_ng_directional_shrinkwrap():
@@ -459,11 +463,12 @@ def create_geo_ng_directional_shrinkwrap():
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input.default_value = 0.000000
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
     new_input.default_value = 3.4028234663852886e+38
     new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Factor")
+    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
     new_input.min_value = 0.0
     new_input.max_value = 1.0
@@ -750,18 +755,17 @@ def create_geo_ng_directional_shrinkwrap():
 
     return new_node_group
 
-def create_node_group_node_directional_shrinkwrap(context, override_create):
+def create_node_group_node_directional_shrinkwrap(node_tree, override_create):
     ensure_node_group(override_create, DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME, 'GeometryNodeTree',
-                      create_prereq_util_node_group)
+                      create_prereq_shrinkwrap_node_group)
     # create group node that will do the work
-    node_tree = context.space_data.edit_tree
     node = node_tree.nodes.new(type='GeometryNodeGroup')
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesDirectionalShrinkwrap(bpy.types.Operator):
+class AMH2B_CreateGeoNodesDirectionalShrinkwrap(Operator):
     bl_description = "Create Directional Shrinkwrap group node, to project one geometry onto another geometry. " \
-        "Projected geometry is moved towards 'direction target' instead of original 'solid target'"
+        "Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'"
     bl_idname = "amh2b.geo_nodes_create_directional_shrinkwrap"
     bl_label = "Directional Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -772,7 +776,8 @@ class AMH2B_CreateGeoNodesDirectionalShrinkwrap(bpy.types.Operator):
         return s.type == 'NODE_EDITOR' and s.node_tree != None and s.tree_type == 'GeometryNodeTree'
 
     def execute(self, context):
-        create_node_group_node_directional_shrinkwrap(context, context.scene.Amh2bPropNodesOverrideCreate)
+        create_node_group_node_directional_shrinkwrap(context.space_data.edit_tree,
+                                                      context.scene.Amh2bPropNodesOverrideCreate)
         return {'FINISHED'}
 
 def create_geo_ng_directional_thick_shrinkwrap():
@@ -784,11 +789,12 @@ def create_geo_ng_directional_thick_shrinkwrap():
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+    new_input.default_value = 0.000000
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
     new_input.default_value = 3.4028234663852886e+38
     new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Factor")
+    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
     new_input.default_value = 1.0
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
@@ -1210,19 +1216,18 @@ def create_geo_ng_directional_thick_shrinkwrap():
 
     return new_node_group
 
-def create_node_group_node_directional_thick_shrinkwrap(context, override_create):
+def create_node_group_node_directional_thick_shrinkwrap(node_tree, override_create):
     ensure_node_group(override_create, DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME, 'GeometryNodeTree',
-                      create_prereq_util_node_group)
+                      create_prereq_shrinkwrap_node_group)
     # create group node that will do the work
-    node_tree = context.space_data.edit_tree
     node = node_tree.nodes.new(type='GeometryNodeGroup')
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesDirectionalThickShrinkwrap(bpy.types.Operator):
+class AMH2B_CreateGeoNodesDirectionalThickShrinkwrap(Operator):
     bl_description = "Create Directional Thick Shrinkwrap group node, to project one geometry onto another " \
-        "geometry. Projected geometry is moved towards 'direction target' instead of original 'solid target', and " \
-        "projected geometry's 'thickness' is retained"
+        "geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
+        "'solid target', with projected 'thickness' retained"
     bl_idname = "amh2b.geo_nodes_create_directional_thick_shrinkwrap"
     bl_label = "Directional Thick Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -1233,5 +1238,6 @@ class AMH2B_CreateGeoNodesDirectionalThickShrinkwrap(bpy.types.Operator):
         return s.type == 'NODE_EDITOR' and s.node_tree != None and s.tree_type == 'GeometryNodeTree'
 
     def execute(self, context):
-        create_node_group_node_directional_thick_shrinkwrap(context, context.scene.Amh2bPropNodesOverrideCreate)
+        create_node_group_node_directional_thick_shrinkwrap(context.space_data.edit_tree,
+                                                            context.scene.Amh2bPropNodesOverrideCreate)
         return {'FINISHED'}
