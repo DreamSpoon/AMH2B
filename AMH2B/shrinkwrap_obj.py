@@ -335,8 +335,7 @@ def create_obj_mod_geo_nodes_thick_shrinkwrap(node_group):
     node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_input = node_group.inputs.new(type='NodeSocketFloat', name="Factor")
     new_input.default_value = 1.000000
-    new_input = node_group.inputs.new(type='NodeSocketObject', name="Solid Target")
-    new_input.default_value = bpy.data.objects.get("Klen1:Proxy")
+    node_group.inputs.new(type='NodeSocketObject', name="Solid Target")
     new_input = node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
     new_input.default_value = 0.000000
     new_input = node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")

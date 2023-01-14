@@ -37,7 +37,7 @@ from bpy.types import (Panel, Scene)
 from .cloth_sim import AMH2B_AddClothSim
 from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 from .animation import AMH2B_RatchetHold
-from .armature import (AMH2B_OT_RunBoneOpScript, AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BridgeRepose,
+from .armature import (AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BridgeRepose,
     AMH2B_OT_BoneWoven, AMH2B_OT_Lucky, AMH2B_OT_EnableModPreserveVolume, AMH2B_OT_DisableModPreserveVolume,
     AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric)
 from .eyeblink import (AMH2B_RemoveBlinkTrack, AMH2B_AddBlinkTrack, AMH2B_SaveBlinkCSV, AMH2B_LoadBlinkCSV,
@@ -219,7 +219,6 @@ class AMH2B_PT_Armature(Panel):
         layout = self.layout
         scn = context.scene
         box = layout.box()
-        box.operator(AMH2B_OT_RunBoneOpScript.bl_idname)
         box.label(text="Retarget")
         box.operator(AMH2B_OT_AdjustPose.bl_idname)
         box.prop(scn, "Amh2bPropArmTextBlockName")
@@ -446,7 +445,6 @@ classes = [
     AMH2B_CreateObjModDirectionalThickShrinkwrap,
     AMH2B_CreateObjModShrinkwrap,
     AMH2B_CreateObjModThickShrinkwrap,
-    AMH2B_OT_RunBoneOpScript,
     AMH2B_OT_ApplyScale,
     AMH2B_OT_AdjustPose,
     AMH2B_OT_BridgeRepose,
