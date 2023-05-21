@@ -20,19 +20,12 @@ import bpy
 from bpy.types import Operator
 import csv
 import fnmatch
+import math
 
 from .armature_func import add_armature_to_objects
-from .bone_strings import amh2b_rig_stitch_dest_list, amh2b_rig_type_bone_names
+from .bone_strings import (amh2b_rig_stitch_dest_list, amh2b_rig_type_bone_names)
+from .items import (amh2b_fk_ik_both_none_items, amh2b_src_rig_type_items, amh2b_yes_no_items)
 from .object_func import dup_selected
-
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import (AMH2B_AdjustPoseInner, AMH2B_BoneWovenInner, AMH2B_LuckyInner, do_global_rotate,
-                          select_object, set_active_object)
-    Region = "TOOLS"
-else:
-    from .imp_v28 import (AMH2B_AdjustPoseInner, AMH2B_BoneWovenInner, AMH2B_LuckyInner, do_global_rotate,
-                          select_object, set_active_object)
-    Region = "UI"
 
 #####################################################
 #     Adjust Pose
@@ -44,7 +37,14 @@ def global_rotate_bone(rig_object, bone_name, axis_name, offset_deg):
     if the_bone is None:
         return
     the_bone.bone.select = True
-    do_global_rotate(axis_name, offset_deg)
+    if axis_name == "x" or axis_name == "X":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), orient_axis='X', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(True, False, False))
+    elif axis_name == "y" or axis_name == "Y":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), orient_axis='Y', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, True, False))
+    elif axis_name == "z" or axis_name == "Z":
+        bpy.ops.transform.rotate(value=(math.pi * offset_deg / 180), orient_axis='Z', orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, False, True))
+    else:
+        print("global_rotate_bone() Error: Unknown axis name = " + axis_name)
     the_bone.bone.select = False
 
 def run_offsets(rig_obj, offsets, datablock_textname):
@@ -73,16 +73,16 @@ def get_scripted_offsets(datablock_textname):
 
 def do_adjust_pose(mhx_arm_obj):
     # get CSV user data text block and convert to array of offsets data
-    offsets = get_scripted_offsets(bpy.context.scene.Amh2bPropArmTextBlockName)
+    offsets = get_scripted_offsets(bpy.context.scene.amh2b.arm_textblock_name)
     if offsets is None:
-        return "Scripted offsets text block not found: " + bpy.context.scene.Amh2bPropArmTextBlockName
+        return "Scripted offsets text block not found: " + bpy.context.scene.amh2b.arm_textblock_name
 
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
 
     # deselect all bones and run script to (select, pose, unselect) each bone individually
     bpy.ops.pose.select_all(action='DESELECT')
-    err_str = run_offsets(mhx_arm_obj, offsets, bpy.context.scene.Amh2bPropArmTextBlockName)
+    err_str = run_offsets(mhx_arm_obj, offsets, bpy.context.scene.amh2b.arm_textblock_name)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return err_str
@@ -98,11 +98,13 @@ def get_csv_lines_from_textblock(datablock_textname):
                            skipinitialspace=True)
     return list(csv_lines)
 
-class AMH2B_OT_AdjustPose(AMH2B_AdjustPoseInner, Operator):
+class AMH2B_OT_AdjustPose(Operator):
     """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
     bl_idname = "amh2b.arm_adjust_pose"
     bl_label = "Adjust Pose"
     bl_options = {'REGISTER', 'UNDO'}
+
+    text_block_name_enum : bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")
 
     def execute(self, context):
         act_ob = context.active_object
@@ -202,9 +204,10 @@ def do_bridge_repose_rig(act_ob, sel_obj_list):
     bpy.ops.object.select_all(action='DESELECT')
 
     # select the old active_object in the 3D viewport
-    select_object(act_ob)
+    act_ob.select_set(True)
+    ob.select_set(True)
     # make it the active selected object
-    set_active_object(act_ob)
+    bpy.context.view_layer.objects.active = act_ob
 
     # duplicate the original armature
     new_arm = dup_selected()
@@ -224,9 +227,9 @@ def do_bridge_repose_rig(act_ob, sel_obj_list):
     add_armature_to_objects(new_arm, selection_list)
 
     # ensure original armature is selected
-    select_object(act_ob)
+    act_ob.select_set(True)
     # make original armature the active object
-    set_active_object(act_ob)
+    bpy.context.view_layer.objects.active = act_ob
 
     bpy.ops.object.mode_set(mode='POSE')
     # apply pose to original armature
@@ -318,7 +321,7 @@ def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_typ
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    set_active_object(other_rig_obj)
+    bpy.context.view_layer.objects.active = other_rig_obj
 
     bpy.ops.object.mode_set(mode='EDIT')
     # Rename before join so that animation is attached to correct bones, to prevent mismatches
@@ -327,7 +330,7 @@ def do_bridge_rigs(self, mhx_rig_obj, mhx_rig_type, other_rig_obj, other_rig_typ
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    set_active_object(mhx_rig_obj)
+    bpy.context.view_layer.objects.active = mhx_rig_obj
 
     bpy.ops.object.join()
     bpy.ops.object.mode_set(mode='EDIT')
@@ -647,11 +650,20 @@ def do_bone_woven(self, dest_rig_obj, src_rig_obj):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_OT_BoneWoven(AMH2B_BoneWovenInner, Operator):
+class AMH2B_OT_BoneWoven(Operator):
     """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
     bl_idname = "amh2b.arm_bone_woven"
     bl_label = "Bone Woven"
     bl_options = {'REGISTER', 'UNDO'}
+
+    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
 
     def draw(self, context):
         layout = self.layout
@@ -705,8 +717,8 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
     bpy.ops.object.select_all(action='DESELECT')
 
     # select secondary armature (the animated armature), and make it the active object
-    select_object(other_armature_obj)
-    set_active_object(other_armature_obj)
+    other_armature_obj.select_set(True)
+    bpy.context.view_layer.objects.active = other_armature_obj
 
     # use Blender to apply location and rotation to animated armature
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
@@ -715,8 +727,8 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
 
     # other_armature_obj will still be selected and the active_object, so just add the MHX armature
     # to the selected list and make it the active object
-    select_object(mhx_arm_obj)
-    set_active_object(mhx_arm_obj)
+    mhx_arm_obj.select_set(True)
+    bpy.context.view_layer.objects.active = mhx_arm_obj
 
     # do bone woven
     do_bone_woven(self, mhx_arm_obj, other_armature_obj)
@@ -725,11 +737,21 @@ def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
 
 # TODO: Use BoneWoven as the base class instead of Operator,
 # to get rid of doubling of code for user options input.
-class AMH2B_OT_Lucky(AMH2B_LuckyInner, Operator):
+class AMH2B_OT_Lucky(Operator):
     """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
     bl_idname = "amh2b.arm_lucky"
     bl_label = "Lucky"
     bl_options = {'REGISTER', 'UNDO'}
+
+    repose_rig_enum : bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
+    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
+    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
+    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
+    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
+    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
 
     def draw(self, context):
         layout = self.layout
@@ -837,7 +859,7 @@ class AMH2B_OT_RenameGeneric(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_rename_generic(context.scene.Amh2bPropArmGenericPrefix, context.scene.Amh2bPropArmGenericMHX, context.selected_objects)
+        do_rename_generic(context.scene.amh2b.arm_generic_prefix, context.scene.amh2b.arm_generic_mhx, context.selected_objects)
         return {'FINISHED'}
 
 def get_non_generic_bone_name(bone_name):
@@ -878,5 +900,5 @@ class AMH2B_OT_UnNameGeneric(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_un_name_generic(context.scene.Amh2bPropArmGenericMHX, context.selected_objects)
+        do_un_name_generic(context.scene.amh2b.arm_generic_mhx, context.selected_objects)
         return {'FINISHED'}

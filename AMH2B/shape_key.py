@@ -29,13 +29,6 @@ from .const import (FC_MATCH_DIST, SC_TEMP_SK_X, SC_TEMP_SK_Y, SC_TEMP_SK_Z, SC_
 from .object_func import delete_all_objects_except, check_create_basis_shape_key
 from .template import get_searchable_object_name
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import (AMH2B_SearchInFileInner, deselect_object, select_object, set_active_object,
-        get_mesh_post_modifiers, get_all_objects_list)
-else:
-    from .imp_v28 import (AMH2B_SearchInFileInner, deselect_object, select_object, set_active_object,
-        get_mesh_post_modifiers, get_all_objects_list)
-
 def is_name_prefix_match(name, prefix):
     if name == prefix or re.match(prefix + "\w*", name):
         return True
@@ -63,14 +56,14 @@ def do_sk_func_delete(sel_obj_list, delete_prefix):
         delete_shapekeys_by_prefix(mesh_obj, delete_prefix)
 
 
-class AMH2B_SKFuncDelete(bpy.types.Operator):
+class AMH2B_OT_SKFuncDelete(bpy.types.Operator):
     """With selected MESH type objects, delete shape keys by prefix"""
     bl_idname = "amh2b.sk_func_delete"
     bl_label = "Delete Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        delete_prefix = context.scene.Amh2bPropSK_FunctionPrefix
+        delete_prefix = context.scene.amh2b.sk_function_prefix
         do_sk_func_delete(context.selected_objects, delete_prefix)
         return {'FINISHED'}
 
@@ -113,7 +106,7 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
         return
 
     # keep src_object selected throughout for loop, only switching dest_object select on and off
-    select_object(src_obj)
+    src_obj.select_set(True)
     for dest_obj in dest_objects:
         # skip destination mesh objects with different numbers of vertices
         dvc = len(dest_obj.data.vertices)
@@ -137,8 +130,8 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
         vert_diff_scales = get_vertex_difference_scales(src_obj, dest_obj)
 
         show_temp = dest_obj.show_only_shape_key
-        select_object(dest_obj)
-        set_active_object(dest_obj)
+        dest_obj.select_set(True)
+        bpy.context.view_layer.objects.active = dest_obj
         check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
             if sk.name == 'Basis':
@@ -160,11 +153,11 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
                 dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = (v_scale * delta_loc[0] + original_loc[0],
                     v_scale * delta_loc[1] + original_loc[1], v_scale * delta_loc[2] + original_loc[2])
 
-        deselect_object(dest_obj)
+        dest_obj.select_set(False)
         # bpy.ops.object.shape_key_transfer will set show_only_shape_key to true, so reset to previous value
         dest_obj.show_only_shape_key = show_temp
 
-    deselect_object(src_obj)
+    src_obj.select_set(False)
 
 def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     old_3dview_mode = bpy.context.object.mode
@@ -178,14 +171,14 @@ def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 # TODO copy animation keyframes too
-class AMH2B_SKFuncCopy(bpy.types.Operator):
+class AMH2B_OT_SKFuncCopy(bpy.types.Operator):
     """With active object, copy shape keys by prefix to all other selected objects"""
     bl_idname = "amh2b.sk_func_copy"
     bl_label = "Copy Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        copy_prefix = context.scene.Amh2bPropSK_FunctionPrefix
+        copy_prefix = context.scene.amh2b.sk_function_prefix
         ob_act = context.active_object
         if ob_act is None or ob_act.type != 'MESH':
             self.report({'ERROR'}, "Active object is not MESH type")
@@ -199,11 +192,13 @@ class AMH2B_SKFuncCopy(bpy.types.Operator):
             self.report({'ERROR'}, "No meshes were selected to receive copied shape keys")
             return {'CANCELLED'}
 
-        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix, context.scene.Amh2bPropSK_AdaptSize)
+        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix, context.scene.amh2b.sk_adapt_size)
         return {'FINISHED'}
 
 def get_mod_verts(obj):
-    obj_mod_mesh = get_mesh_post_modifiers(obj)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    object_eval = obj.evaluated_get(depsgraph)
+    obj_mod_mesh = bpy.data.meshes.new_from_object(object_eval)
     verts = [Vector([v.co.x, v.co.y, v.co.z]) for v in obj_mod_mesh.vertices]
     bpy.data.meshes.remove(obj_mod_mesh)
     return verts
@@ -464,7 +459,7 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
 
     bpy.context.scene.frame_set(old_current_frame)
 
-class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
+class AMH2B_OT_BakeDeformShapeKeys(bpy.types.Operator):
     """Bake active object's mesh deformations to shape keys"""
     bl_idname = "amh2b.sk_bake_deform_shape_keys"
     bl_label = "Bake Deform Keys"
@@ -477,17 +472,17 @@ class AMH2B_BakeDeformShapeKeys(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        if scn.Amh2bPropSK_DeformShapeKeyPrefix == '':
+        if scn.amh2b.sk_deform_name_prefix == '':
             self.report({'ERROR'}, "Shape key name prefix (add_prefix) is blank")
             return {'CANCELLED'}
-        if scn.Amh2bPropSK_StartFrame > scn.Amh2bPropSK_EndFrame:
+        if scn.amh2b.sk_start_frame > scn.amh2b.sk_end_frame:
             self.report({'ERROR'}, "Start Frame number is higher than End Frame number")
             return {'CANCELLED'}
 
-        do_bake_deform_shape_keys(act_ob, scn.Amh2bPropSK_DeformShapeKeyPrefix, scn.Amh2bPropSK_BindFrame,
-            scn.Amh2bPropSK_StartFrame, scn.Amh2bPropSK_EndFrame, scn.Amh2bPropSK_Animate,
-            scn.Amh2bPropSK_AddFrameToName, scn.Amh2bPropSK_Dynamic, scn.Amh2bPropSK_ExtraAccuracy,
-            scn.Amh2bPropSK_MaskVGroupName, scn.Amh2bPropSK_MaskInclude)
+        do_bake_deform_shape_keys(act_ob, scn.amh2b.sk_deform_name_prefix, scn.amh2b.sk_bind_frame,
+            scn.amh2b.sk_start_frame, scn.amh2b.sk_end_frame, scn.amh2b.sk_animate,
+            scn.amh2b.sk_add_frame_to_name, scn.amh2b.sk_dynamic, scn.amh2b.sk_extra_accuracy,
+            scn.amh2b.sk_mask_vgroup_name, scn.amh2b.sk_mask_include)
         return {'FINISHED'}
 
 def do_deform_sk_view_toggle(act_ob):
@@ -513,7 +508,7 @@ def do_deform_sk_view_toggle(act_ob):
             mod.show_viewport = sk_view_active
             mod.show_render = sk_view_active
 
-class AMH2B_DeformSK_ViewToggle(bpy.types.Operator):
+class AMH2B_OT_DeformSK_ViewToggle(bpy.types.Operator):
     """Toggle visibility between shape keys and cloth/soft body sims on active object.\nIntended only for non-Dynamic deform shape keys"""
     bl_idname = "amh2b.sk_deform_sk_view_toggle"
     bl_label = "Deform SK View Toggle"
@@ -536,7 +531,7 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
     selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
 
     # keep a list of all objects in the Blend file, before objects are appended
-    all_objects_list_before = get_all_objects_list()
+    all_objects_list_before = [ ob for ob in bpy.data.objects ]
 
     bpy.ops.object.select_all(action='DESELECT')
     for sel in selection_list:
@@ -575,7 +570,7 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
 
         # re-select the objects that were appended
         for ob in appended_selection_list:
-            select_object(ob)
+            ob.select_set(True)
 
         # appended object may have pulled in other objects as dependencies, so delete all appended objects
         delete_all_objects_except(all_objects_list_before)
@@ -586,14 +581,16 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_SearchFileForAutoShapeKeys(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
+class AMH2B_OT_SearchFileForAutoShapeKeys(bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
     bl_idname = "amh2b.sk_search_file_for_auto_sk"
     bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}
 
+    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
     def execute(self, context):
         scn = context.scene
-        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.Amh2bPropSK_FunctionPrefix,
-            scn.Amh2bPropSK_AdaptSize, scn.Amh2bPropSK_SwapAutonameExt)
+        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
+            scn.amh2b.sk_adapt_size, scn.amh2b.sk_swap_autoname_ext)
         return {'FINISHED'}

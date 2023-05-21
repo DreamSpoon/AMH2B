@@ -46,7 +46,7 @@ def add_lid_look(arm_list, bone_lidlook_data):
             con_limit.max_x = max_x
             con_limit.owner_space = 'LOCAL'
 
-class AMH2B_AddLidLook(bpy.types.Operator):
+class AMH2B_OT_AddLidLook(bpy.types.Operator):
     """With all selected ARMATURE objects (including active object), add bone constraints to eye bones so eyelids move when eye gaze direction changes upwards and downwards"""
     bl_idname = "amh2b.eyelid_add_lidlook"
     bl_label = "Add Lid Look"
@@ -69,10 +69,10 @@ class AMH2B_AddLidLook(bpy.types.Operator):
         # get settings data and pass to add lid look
         scn = context.scene
         bone_lidlook_data = [
-            (scn.Amh2bPropEyelidNameLeftLower, scn.Amh2bPropEyelidNameLeftEye, scn.Amh2bPropEyelidInfluenceLower, scn.Amh2bPropEyelidMinXLower, scn.Amh2bPropEyelidMaxXLower),
-            (scn.Amh2bPropEyelidNameLeftUpper, scn.Amh2bPropEyelidNameLeftEye, scn.Amh2bPropEyelidInfluenceUpper, scn.Amh2bPropEyelidMinXUpper, scn.Amh2bPropEyelidMaxXUpper),
-            (scn.Amh2bPropEyelidNameRightLower, scn.Amh2bPropEyelidNameRightEye, scn.Amh2bPropEyelidInfluenceLower, scn.Amh2bPropEyelidMinXLower, scn.Amh2bPropEyelidMaxXLower),
-            (scn.Amh2bPropEyelidNameRightUpper, scn.Amh2bPropEyelidNameRightEye, scn.Amh2bPropEyelidInfluenceUpper, scn.Amh2bPropEyelidMinXUpper, scn.Amh2bPropEyelidMaxXUpper),
+            (scn.amh2b.elid_name_left_lower, scn.amh2b.elid_name_left_eye, scn.amh2b.elid_influence_lower, scn.amh2b.elid_min_x_lower, scn.amh2b.elid_max_x_lower),
+            (scn.amh2b.elid_name_left_upper, scn.amh2b.elid_name_left_eye, scn.amh2b.elid_influence_upper, scn.amh2b.elid_min_x_upper, scn.amh2b.elid_max_x_upper),
+            (scn.amh2b.elid_name_right_lower, scn.amh2b.elid_name_right_eye, scn.amh2b.elid_influence_lower, scn.amh2b.elid_min_x_lower, scn.amh2b.elid_max_x_lower),
+            (scn.amh2b.elid_name_right_upper, scn.amh2b.elid_name_right_eye, scn.amh2b.elid_influence_upper, scn.amh2b.elid_min_x_upper, scn.amh2b.elid_max_x_upper),
         ]
         add_lid_look(arm_list, bone_lidlook_data)
 
@@ -95,7 +95,7 @@ def remove_lid_look(arm_list, bone_remove_lidlook_data):
             for con in constraints_to_remove:
                 bone.constraints.remove(con)
 
-class AMH2B_RemoveLidLook(bpy.types.Operator):
+class AMH2B_OT_RemoveLidLook(bpy.types.Operator):
     """With all selected ARMATURE objects (including active object), remove Lid Look bone constraints from eye bones"""
     bl_idname = "amh2b.eyelid_remove_lidlook"
     bl_label = "Remove Lid Look"
@@ -117,8 +117,8 @@ class AMH2B_RemoveLidLook(bpy.types.Operator):
             return {'CANCELLED'}
         # get settings data and pass to remove lid look
         scn = context.scene
-        bone_remove_lidlook_data = (scn.Amh2bPropEyelidNameLeftLower, scn.Amh2bPropEyelidNameLeftUpper,
-                                    scn.Amh2bPropEyelidNameRightLower, scn.Amh2bPropEyelidNameRightUpper)
+        bone_remove_lidlook_data = (scn.amh2b.elid_name_left_lower, scn.amh2b.elid_name_left_upper,
+                                    scn.amh2b.elid_name_right_lower, scn.amh2b.elid_name_right_upper)
         remove_lid_look(arm_list, bone_remove_lidlook_data)
 
         return {'FINISHED'}

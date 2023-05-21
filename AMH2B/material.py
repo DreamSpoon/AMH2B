@@ -23,13 +23,6 @@ from bpy_extras.io_utils import ImportHelper
 from .append_from_file_func import append_material_from_blend_file
 from .template import get_mat_template_name
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import AMH2B_SearchInFileInner
-    Region = "TOOLS"
-else:
-    from .imp_v28 import AMH2B_SearchInFileInner
-    Region = "UI"
-
 #####################################################
 #     Swap Materials from Other Blend File
 # Automate materials dictionary material swapping with a simple method:
@@ -100,17 +93,19 @@ def do_swap_mats_with_file(shaderswap_blendfile, selection_list, active_slot_onl
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_SwapMatWithFile(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
+class AMH2B_OT_SwapMatWithFile(bpy.types.Operator, ImportHelper):
     """Try to swap materials on all selected objects with replacement materials from another Blend File, based on following settings"""
     bl_idname = "amh2b.mat_search_file"
     bl_label = "Search File"
     bl_options = {'REGISTER', 'UNDO'}
 
+    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
     def execute(self, context):
         scn = context.scene
-        do_swap_mats_with_file(self.filepath, context.selected_objects, scn.Amh2bPropMatActiveSlotOnly,
-            scn.Amh2bPropMatExactNameOnly, scn.Amh2bPropMatIgnoreAutoname, scn.Amh2bPropMatKeepOriginalName,
-            scn.Amh2bPropMatDelimiter, scn.Amh2bPropMatDelimCount)
+        do_swap_mats_with_file(self.filepath, context.selected_objects, scn.amh2b.mat_active_slot_only,
+            scn.amh2b.mat_exact_name_only, scn.amh2b.mat_ignore_autoname, scn.amh2b.mat_keep_original_name,
+            scn.amh2b.mat_name_delimiter, scn.amh2b.mat_name_delimiter_count)
         return {'FINISHED'}
 
 #####################################################
@@ -157,7 +152,7 @@ def do_mat_swaps_internal(sel_obj_list, active_slot_only, ignore_autoname, keep_
             if keep_original_name:
                 mat_slot.material.name = original_mat_name
 
-class AMH2B_SwapMatInternal(bpy.types.Operator):
+class AMH2B_OT_SwapMatInternal(bpy.types.Operator):
     """Try to swap materials of all selected objects with replacement materials contained within this Blend file, based on following settings"""
     bl_idname = "amh2b.mat_search_internal"
     bl_label = "Search Internal"
@@ -167,9 +162,9 @@ class AMH2B_SwapMatInternal(bpy.types.Operator):
         scn = context.scene
         # cannot search internally for swap because "exact name only" causes a contradiction:
         # replacing a material with itself!
-        if scn.Amh2bPropMatExactNameOnly:
+        if scn.amh2b.mat_exact_name_only:
             return {'FINISHED'}
-        do_mat_swaps_internal(context.selected_objects, scn.Amh2bPropMatActiveSlotOnly,
-            scn.Amh2bPropMatIgnoreAutoname, scn.Amh2bPropMatKeepOriginalName, scn.Amh2bPropMatDelimiter,
-            scn.Amh2bPropMatDelimCount)
+        do_mat_swaps_internal(context.selected_objects, scn.amh2b.mat_active_slot_only,
+            scn.amh2b.mat_ignore_autoname, scn.amh2b.mat_keep_original_name, scn.amh2b.mat_name_delimiter,
+            scn.amh2b.mat_name_delimiter_count)
         return {'FINISHED'}

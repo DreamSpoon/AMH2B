@@ -21,13 +21,6 @@ import bpy
 from .armature_func import add_armature_to_objects
 from .object_func import dup_selected
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import (AMH2B_CreateSizeRigInner, select_object, set_active_object)
-    Region = "TOOLS"
-else:
-    from .imp_v28 import (AMH2B_CreateSizeRigInner, select_object, set_active_object)
-    Region = "UI"
-
 def do_create_size_rig(act_ob, sel_obj_list, unlock_y):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -42,9 +35,9 @@ def do_create_size_rig(act_ob, sel_obj_list, unlock_y):
     bpy.ops.object.select_all(action='DESELECT')
 
     # select the old active_object in the 3D viewport
-    select_object(act_ob)
+    act_ob.select_set(True)
     # make it the active selected object
-    set_active_object(act_ob)
+    bpy.context.view_layer.objects.active = act_ob
 
     # duplicate the original armature
     new_arm = dup_selected()
@@ -65,9 +58,9 @@ def do_create_size_rig(act_ob, sel_obj_list, unlock_y):
         add_armature_to_objects(new_arm, other_sel_list)
 
     # ensure new armature is selected
-    select_object(new_arm)
+    new_arm.select_set(True)
     # make new armature is the active object
-    set_active_object(new_arm)
+    bpy.context.view_layer.objects.active = new_arm
 
     # unlock scale values for all pose bones - except for Y axis, unless allowed
     bpy.ops.object.mode_set(mode='POSE')
@@ -79,11 +72,13 @@ def do_create_size_rig(act_ob, sel_obj_list, unlock_y):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_CreateSizeRig(AMH2B_CreateSizeRigInner, bpy.types.Operator):
+class AMH2B_OT_CreateSizeRig(bpy.types.Operator):
     """Copy armature and unlock pose scale values for resizing selected clothing meshes with copied armature.\nSelect mesh objects first and select armature object last"""
     bl_idname = "amh2b.mesh_create_size_rig"
     bl_label = "Create Size Rig"
     bl_options = {'REGISTER', 'UNDO'}
+
+    unlock_y_scale : bpy.props.BoolProperty(name="Unlock Y Scale", description="Unlock Y scale, in addition onlocking X and Z axis scaling, on clothing size rig.", default=False)
 
     def execute(self, context):
         act_ob = context.active_object

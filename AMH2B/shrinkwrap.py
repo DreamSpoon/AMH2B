@@ -201,7 +201,7 @@ def create_node_group_node_shrinkwrap(node_tree, override_create):
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesShrinkwrap(Operator):
+class AMH2B_OT_CreateGeoNodesShrinkwrap(Operator):
     bl_description = "Create Shrinkwrap group node, to project one geometry onto another geometry"
     bl_idname = "amh2b.geo_nodes_create_shrinkwrap"
     bl_label = "Shrinkwrap"
@@ -213,7 +213,7 @@ class AMH2B_CreateGeoNodesShrinkwrap(Operator):
         return s.type == 'NODE_EDITOR' and s.node_tree != None and s.tree_type == 'GeometryNodeTree'
 
     def execute(self, context):
-        create_node_group_node_shrinkwrap(context.space_data.edit_tree, context.scene.Amh2bPropNodesOverrideCreate)
+        create_node_group_node_shrinkwrap(context.space_data.edit_tree, context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_geo_ng_thick_shrinkwrap():
@@ -437,7 +437,7 @@ def create_node_group_node_thick_shrinkwrap(node_tree, override_create):
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(THICK_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesThickShrinkwrap(Operator):
+class AMH2B_OT_CreateGeoNodesThickShrinkwrap(Operator):
     bl_description = "Create Thick Shrinkwrap group node, to project one geometry onto another geometry. Projected " \
         "geometry will retain it's 'thickness' after projection, by way of secondary 'nearness' check"
     bl_idname = "amh2b.geo_nodes_create_thick_shrinkwrap"
@@ -451,7 +451,7 @@ class AMH2B_CreateGeoNodesThickShrinkwrap(Operator):
 
     def execute(self, context):
         create_node_group_node_thick_shrinkwrap(context.space_data.edit_tree,
-                                                context.scene.Amh2bPropNodesOverrideCreate)
+                                                context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_geo_ng_directional_shrinkwrap():
@@ -763,7 +763,7 @@ def create_node_group_node_directional_shrinkwrap(node_tree, override_create):
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesDirectionalShrinkwrap(Operator):
+class AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap(Operator):
     bl_description = "Create Directional Shrinkwrap group node, to project one geometry onto another geometry. " \
         "Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'"
     bl_idname = "amh2b.geo_nodes_create_directional_shrinkwrap"
@@ -777,7 +777,7 @@ class AMH2B_CreateGeoNodesDirectionalShrinkwrap(Operator):
 
     def execute(self, context):
         create_node_group_node_directional_shrinkwrap(context.space_data.edit_tree,
-                                                      context.scene.Amh2bPropNodesOverrideCreate)
+                                                      context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_geo_ng_directional_thick_shrinkwrap():
@@ -1224,7 +1224,7 @@ def create_node_group_node_directional_thick_shrinkwrap(node_tree, override_crea
     node.location = (node_tree.view_center[0]/2.5, node_tree.view_center[1]/2.5)
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME)
 
-class AMH2B_CreateGeoNodesDirectionalThickShrinkwrap(Operator):
+class AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap(Operator):
     bl_description = "Create Directional Thick Shrinkwrap group node, to project one geometry onto another " \
         "geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
         "'solid target', with projected 'thickness' retained"
@@ -1239,5 +1239,5 @@ class AMH2B_CreateGeoNodesDirectionalThickShrinkwrap(Operator):
 
     def execute(self, context):
         create_node_group_node_directional_thick_shrinkwrap(context.space_data.edit_tree,
-                                                            context.scene.Amh2bPropNodesOverrideCreate)
+                                                            context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}

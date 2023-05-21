@@ -54,7 +54,7 @@ def do_setup_mat_template(selection_list, active_slot_only, delimiter, delimiter
             new_mat_name = get_mat_template_name(mat_name, delimiter, delimiter_count+1)
             rename_material(mat_name, new_mat_name)
 
-class AMH2B_SetupMatSwap(bpy.types.Operator):
+class AMH2B_OT_SetupMatSwap(bpy.types.Operator):
     """Rename materials on all selected objects to make them searchable re: swap material from file"""
     bl_idname = "amh2b.temp_setup_mat_swap"
     bl_label = "Rename Materials"
@@ -62,8 +62,8 @@ class AMH2B_SetupMatSwap(bpy.types.Operator):
 
     def execute(self, context):
         scn = context.scene
-        do_setup_mat_template(context.selected_objects, scn.Amh2bPropTempActiveSlotOnly, scn.Amh2bPropTempDelimiter,
-                              scn.Amh2bPropTempDelimCount)
+        do_setup_mat_template(context.selected_objects, scn.amh2b.temp_active_slot_only, scn.amh2b.temp_delimiter,
+                              scn.amh2b.temp_delim_count)
         return {'FINISHED'}
 
 def get_searchable_object_name(object_name):
@@ -78,7 +78,7 @@ def do_rename_mhx_object_to_searchable(selection_list):
             continue
         obj.name = get_searchable_object_name(obj.name)
 
-class AMH2B_MakeTailorObjectSearchable(bpy.types.Operator):
+class AMH2B_OT_MakeTailorObjectSearchable(bpy.types.Operator):
     """Rename selected objects, as needed, to make them searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
     bl_idname = "amh2b.temp_make_tailor_object_searchable"
     bl_label = "Make Objects Searchable"

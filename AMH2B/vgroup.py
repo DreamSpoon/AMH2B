@@ -26,11 +26,6 @@ from .object_func import delete_all_objects_except
 from .template import get_searchable_object_name
 from .vgroup_func import (copy_vgroups_by_name_prefix, add_ifnot_vertex_grp, delete_vgroups_by_name_prefix)
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import (AMH2B_SearchInFileInner, get_all_objects_list)
-else:
-    from .imp_v28 import (AMH2B_SearchInFileInner, get_all_objects_list)
-
 def do_add_maskout_mod(act_ob):
     # add the Auto Mask vertex group if it does not exist
     add_ifnot_vertex_grp(act_ob, SC_VGRP_MASKOUT)
@@ -54,7 +49,7 @@ def do_add_maskout_mod(act_ob):
 
     return None
 
-class AMH2B_AddMaskOutMod(bpy.types.Operator):
+class AMH2B_OT_AddMaskOutMod(bpy.types.Operator):
     """Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to active object if needed"""
     bl_idname = "amh2b.vg_add_maskout_modifier"
     bl_label = "Add MaskOut Modifier"
@@ -82,7 +77,7 @@ def do_toggle_view_maskout_mod(act_ob):
             mod.show_render = mod.show_viewport
             return
 
-class AMH2B_ToggleViewMaskoutMod(bpy.types.Operator):
+class AMH2B_OT_ToggleViewMaskoutMod(bpy.types.Operator):
     """Toggle the visibility of the Auto Mask modifier, in viewport and render"""
     bl_idname = "amh2b.vg_toggle_auto_maskout"
     bl_label = "Toggle AutoMaskOut"
@@ -115,7 +110,7 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix,
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
+class AMH2B_OT_CopyVertexGroupsByPrefix(bpy.types.Operator):
     """Copy vertex groups by name prefix from active object (must be selected last) to all other selected mesh objects.\nObject name does not need to be 'searchable' """
     bl_idname = "amh2b.vg_copy_by_prefix"
     bl_label = "Copy Groups"
@@ -131,7 +126,7 @@ class AMH2B_CopyVertexGroupsByPrefix(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, scn.Amh2bPropVG_FunctionNamePrefix, scn.Amh2bPropSK_CreateNameOnly)
+        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, scn.amh2b.vg_func_name_prefix, scn.amh2b.vg_create_name_only)
         return {'FINISHED'}
 
 def delete_prefixed_vertex_groups(selection_list, delete_prefix):
@@ -144,7 +139,7 @@ def delete_prefixed_vertex_groups(selection_list, delete_prefix):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
+class AMH2B_OT_DeleteVertexGroupsByPrefix(bpy.types.Operator):
     """With all selected objects, delete vertex groups by prefix"""
     bl_idname = "amh2b.vg_delete_by_prefix"
     bl_label = "Delete Groups"
@@ -152,11 +147,11 @@ class AMH2B_DeleteVertexGroupsByPrefix(bpy.types.Operator):
 
     def execute(self, context):
         scn = context.scene
-        if scn.Amh2bPropVG_FunctionNamePrefix == '':
+        if scn.amh2b.vg_func_name_prefix == '':
             self.report({'ERROR'}, "Vertex group name prefix is blank")
             return {'CANCELLED'}
 
-        delete_prefixed_vertex_groups(context.selected_objects, scn.Amh2bPropVG_FunctionNamePrefix)
+        delete_prefixed_vertex_groups(context.selected_objects, scn.amh2b.vg_func_name_prefix)
         return {'FINISHED'}
 
 def do_make_tailor_vgroups(act_ob):
@@ -168,7 +163,7 @@ def do_make_tailor_vgroups(act_ob):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_MakeTailorGroups(bpy.types.Operator):
+class AMH2B_OT_MakeTailorGroups(bpy.types.Operator):
     """Add AutoMaskOut and AutoClothPin vertex groups to the active object, if these groups don't already exist"""
     bl_idname = "amh2b.vg_make_auto_vgroups"
     bl_label = "Add Groups"
@@ -196,7 +191,7 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
     bpy.ops.object.select_all(action='DESELECT')
 
     # keep a list of all objects in the Blend file, before objects are appended
-    all_objects_list_before = get_all_objects_list()
+    all_objects_list_before = [ ob for ob in bpy.data.objects ]
 
     for sel in other_obj_list:
         search_name = get_searchable_object_name(sel.name)
@@ -241,14 +236,16 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_SearchFileForAutoVGroups(AMH2B_SearchInFileInner, bpy.types.Operator, ImportHelper):
+class AMH2B_OT_SearchFileForAutoVGroups(bpy.types.Operator, ImportHelper):
     """For each selected MESH object: Search another file automatically and try to copy vertex groups based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
     bl_idname = "amh2b.vg_copy_from_file"
     bl_label = "Copy from File"
     bl_options = {'REGISTER', 'UNDO'}
 
+    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
     def execute(self, context):
         scn = context.scene
         do_search_file_for_auto_vgroups(context.selected_objects, self.filepath,
-            scn.Amh2bPropVG_FunctionNamePrefix, scn.Amh2bPropVG_SwapAutonameExt)
+            scn.amh2b.vg_func_name_prefix, scn.amh2b.vg_swap_autoname_ext, scn.amh2b.vg_create_name_only)
         return {'FINISHED'}

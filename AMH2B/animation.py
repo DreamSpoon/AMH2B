@@ -19,13 +19,6 @@
 import bpy
 import numpy
 
-if bpy.app.version < (2,80,0):
-    from .imp_v27 import do_global_translate
-    Region = "TOOLS"
-else:
-    from .imp_v28 import do_global_translate
-    Region = "UI"
-
 #####################################################
 #     Ratchet Hold
 # Re-calculate location data for an object (typically armature), given:
@@ -72,15 +65,15 @@ def do_ratchet_hold(obj_to_ratchet, sel_obj_list):
     hold_obj_new_loc = hold_onto_obj.matrix_world.to_translation()
     # Calculate offset (in world coordinate system) for moving object to ratchet,
     # such that hold onto object remains stationary.
-    deltaMove = numpy.subtract(hold_obj_old_loc, hold_obj_new_loc)
+    delta_move = numpy.subtract(hold_obj_old_loc, hold_obj_new_loc)
     # do move in (world coordinate system)
-    do_global_translate(deltaMove)
+    bpy.ops.transform.translate(value=delta_move, orient_type='GLOBAL')
     # insert location keyframes on object to ratchet at new location
     obj_to_ratchet.keyframe_insert(data_path="location")
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_RatchetHold(bpy.types.Operator):
+class AMH2B_OT_RatchetHold(bpy.types.Operator):
     """Active object's location is offset and keyframed to make other selected object appear stationary.\nSelect first the intended stationary object, select last the object to be keyframed"""
     bl_idname = "amh2b.anim_ratchet_hold"
     bl_label = "Ratchet Hold"
@@ -94,6 +87,6 @@ class AMH2B_RatchetHold(bpy.types.Operator):
             self.report({'ERROR'}, "Select exactly 2 objects and try again")
             return {'CANCELLED'}
 
-        for i in range(0, context.scene.Amh2bPropAnimRatchetFrameCount):
+        for i in range(0, context.scene.amh2b.anim_ratchet_frames):
             do_ratchet_hold(context.active_object, context.selected_objects)
         return {'FINISHED'}

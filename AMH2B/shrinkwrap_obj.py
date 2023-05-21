@@ -113,7 +113,7 @@ def create_obj_directional_shrinkwrap(ob, override_create):
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
 
-class AMH2B_CreateObjModDirectionalShrinkwrap(bpy.types.Operator):
+class AMH2B_OT_CreateObjModDirectionalShrinkwrap(bpy.types.Operator):
     bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
         "another geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
         "'solid target'"
@@ -126,7 +126,7 @@ class AMH2B_CreateObjModDirectionalShrinkwrap(bpy.types.Operator):
         return context.active_object != None and context.active_object.type == 'MESH'
 
     def execute(self, context):
-        create_obj_directional_shrinkwrap(context.active_object, context.scene.Amh2bPropNodesOverrideCreate)
+        create_obj_directional_shrinkwrap(context.active_object, context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_obj_mod_geo_nodes_directional_thick_shrinkwrap(node_group):
@@ -224,7 +224,7 @@ def create_obj_directional_thick_shrinkwrap(ob, override_create):
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
 
-class AMH2B_CreateObjModDirectionalThickShrinkwrap(bpy.types.Operator):
+class AMH2B_OT_CreateObjModDirectionalThickShrinkwrap(bpy.types.Operator):
     bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
         "another geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
         "'solid target', with projected 'thickness' retained"
@@ -237,7 +237,7 @@ class AMH2B_CreateObjModDirectionalThickShrinkwrap(bpy.types.Operator):
         return context.active_object != None and context.active_object.type == 'MESH'
 
     def execute(self, context):
-        create_obj_directional_thick_shrinkwrap(context.active_object, context.scene.Amh2bPropNodesOverrideCreate)
+        create_obj_directional_thick_shrinkwrap(context.active_object, context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_obj_mod_geo_nodes_shrinkwrap(node_group):
@@ -312,7 +312,7 @@ def create_obj_shrinkwrap(ob, override_create):
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
 
-class AMH2B_CreateObjModShrinkwrap(bpy.types.Operator):
+class AMH2B_OT_CreateObjModShrinkwrap(bpy.types.Operator):
     bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
         "another geometry"
     bl_idname = "amh2b.obj_mod_create_shrinkwrap"
@@ -324,7 +324,7 @@ class AMH2B_CreateObjModShrinkwrap(bpy.types.Operator):
         return context.active_object != None and context.active_object.type == 'MESH'
 
     def execute(self, context):
-        create_obj_shrinkwrap(context.active_object, context.scene.Amh2bPropNodesOverrideCreate)
+        create_obj_shrinkwrap(context.active_object, context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}
 
 def create_obj_mod_geo_nodes_thick_shrinkwrap(node_group):
@@ -402,7 +402,7 @@ def create_obj_thick_shrinkwrap(ob, override_create):
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
 
-class AMH2B_CreateObjModThickShrinkwrap(bpy.types.Operator):
+class AMH2B_OT_CreateObjModThickShrinkwrap(bpy.types.Operator):
     bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
         "another geometry. Projected geometry will retain it's 'thickness' after projection, by way of secondary " \
         "'nearness' check"
@@ -415,5 +415,5 @@ class AMH2B_CreateObjModThickShrinkwrap(bpy.types.Operator):
         return context.active_object != None and context.active_object.type == 'MESH'
 
     def execute(self, context):
-        create_obj_thick_shrinkwrap(context.active_object, context.scene.Amh2bPropNodesOverrideCreate)
+        create_obj_thick_shrinkwrap(context.active_object, context.scene.amh2b.nodes_override_create)
         return {'FINISHED'}

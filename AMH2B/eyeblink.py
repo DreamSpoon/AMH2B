@@ -210,7 +210,7 @@ def remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_n
             # otherwise remove keyframe points
             remove_blink_kf_points(action, fc, start_frame, end_frame)
 
-class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
+class AMH2B_OT_RemoveBlinkTrack(bpy.types.Operator):
     """Remove blink track from list of selected objects plus active object, based on EyeBlink and LidLook settings.\ni.e. Template Bone Bames in Eye Blink tab and Eyelid Bone Names in Eyelid tab"""
     bl_idname = "amh2b.eblink_remove_blink_track"
     bl_label = "Remove Blink Track"
@@ -237,32 +237,32 @@ class AMH2B_RemoveBlinkTrack(bpy.types.Operator):
         scn = context.scene
 
         blink_bone_name_list = []
-        if scn.Amh2bPropEBlinkBNameLeftLower != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftLower)
-        if scn.Amh2bPropEBlinkBNameLeftUpper != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameLeftUpper)
-        if scn.Amh2bPropEBlinkBNameRightLower != "" and scn.Amh2bPropEBlinkRemoveRight:
-            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameRightLower)
-        if scn.Amh2bPropEBlinkBNameRightUpper != "" and scn.Amh2bPropEBlinkRemoveRight:
-            blink_bone_name_list.append(scn.Amh2bPropEBlinkBNameRightUpper)
+        if scn.amh2b.eblink_bone_name_left_lower != "" and scn.amh2b.eblink_remove_left:
+            blink_bone_name_list.append(scn.amh2b.eblink_bone_name_left_lower)
+        if scn.amh2b.eblink_bone_name_left_upper != "" and scn.amh2b.eblink_remove_left:
+            blink_bone_name_list.append(scn.amh2b.eblink_bone_name_left_upper)
+        if scn.amh2b.eblink_bone_name_right_lower != "" and scn.amh2b.eblink_remove_right:
+            blink_bone_name_list.append(scn.amh2b.eblink_bone_name_right_lower)
+        if scn.amh2b.eblink_bone_name_right_upper != "" and scn.amh2b.eblink_remove_right:
+            blink_bone_name_list.append(scn.amh2b.eblink_bone_name_right_upper)
         lidlook_bone_name_list = []
-        if scn.Amh2bPropEyelidNameLeftLower != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameLeftLower)
-        if scn.Amh2bPropEyelidNameLeftUpper != "" and scn.Amh2bPropEBlinkRemoveLeft:
-            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameLeftUpper)
-        if scn.Amh2bPropEyelidNameRightLower != "" and scn.Amh2bPropEBlinkRemoveRight:
-            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameRightLower)
-        if scn.Amh2bPropEyelidNameRightUpper != "" and scn.Amh2bPropEBlinkRemoveRight:
-            lidlook_bone_name_list.append(scn.Amh2bPropEyelidNameRightUpper)
+        if scn.amh2b.elid_name_left_lower != "" and scn.amh2b.eblink_remove_left:
+            lidlook_bone_name_list.append(scn.amh2b.elid_name_left_lower)
+        if scn.amh2b.elid_name_left_upper != "" and scn.amh2b.eblink_remove_left:
+            lidlook_bone_name_list.append(scn.amh2b.elid_name_left_upper)
+        if scn.amh2b.elid_name_right_lower != "" and scn.amh2b.eblink_remove_right:
+            lidlook_bone_name_list.append(scn.amh2b.elid_name_right_lower)
+        if scn.amh2b.elid_name_right_upper != "" and scn.amh2b.eblink_remove_right:
+            lidlook_bone_name_list.append(scn.amh2b.elid_name_right_upper)
 
-        shapekey_name = scn.Amh2bPropEBlinkShapekeyName
+        shapekey_name = scn.amh2b.eblink_shapekey_name
 
         start_frame = None
-        if scn.Amh2bPropEBlinkRemoveStart:
-            start_frame = scn.Amh2bPropEBlinkRemoveStartFrame
+        if scn.amh2b.eblink_remove_start_enable:
+            start_frame = scn.amh2b.eblink_remove_start_frame
         end_frame = None
-        if scn.Amh2bPropEBlinkRemoveEnd:
-            end_frame = scn.Amh2bPropEBlinkRemoveEndFrame
+        if scn.amh2b.eblink_remove_end_enable:
+            end_frame = scn.amh2b.eblink_remove_end_frame
         remove_blink_track(arm_list, mesh_list, blink_bone_name_list, lidlook_bone_name_list, shapekey_name,
                            start_frame, end_frame)
 
@@ -656,28 +656,28 @@ def generate_blink_track(arm_list, mesh_list, frame_rate, start_frame, random_st
             blinking = False
 
 def set_current_b_settings(scn):
-    current_blink_settings["closing_time"] = scn.Amh2bPropEBlinkClosingTime
-    current_blink_settings["random_closing_time"] = scn.Amh2bPropEBlinkRndClosingTime
-    current_blink_settings["closed_time"] = scn.Amh2bPropEBlinkClosedTime
-    current_blink_settings["random_closed_time"] = scn.Amh2bPropEBlinkRndClosedTime
-    current_blink_settings["opening_time"] = scn.Amh2bPropEBlinkOpeningTime
-    current_blink_settings["random_opening_time"] = scn.Amh2bPropEBlinkRndOpeningTime
-    current_blink_settings["blinks_per_minute"] = scn.Amh2bPropEBlinkBlinksPerMinute
-    current_blink_settings["use_period"] = scn.Amh2bPropEBlinkUseBlinkPeriod
-    current_blink_settings["blink_period"] = scn.Amh2bPropEBlinkPeriod
-    current_blink_settings["random_blink_period"] = scn.Amh2bPropEBlinkRndPeriod
-    current_blink_settings["allow_random_drift"] = scn.Amh2bPropEBlinkAllowRndDrift
-    current_blink_settings["enable_left"] = scn.Amh2bPropEBlinkEnableLeft
-    current_blink_settings["enable_right"] = scn.Amh2bPropEBlinkEnableRight
-    current_blink_settings["shapekey_name"] = scn.Amh2bPropEBlinkShapekeyName
+    current_blink_settings["closing_time"] = scn.amh2b.eblink_closing_time
+    current_blink_settings["random_closing_time"] = scn.amh2b.eblink_random_closing_time
+    current_blink_settings["closed_time"] = scn.amh2b.eblink_closed_time
+    current_blink_settings["random_closed_time"] = scn.amh2b.eblink_random_closed_time
+    current_blink_settings["opening_time"] = scn.amh2b.eblink_opening_time
+    current_blink_settings["random_opening_time"] = scn.amh2b.eblink_random_opening_time
+    current_blink_settings["blinks_per_minute"] = scn.amh2b.eblink_blinks_per_min
+    current_blink_settings["use_period"] = scn.amh2b.eblink_blink_period_enable
+    current_blink_settings["blink_period"] = scn.amh2b.eblink_blink_period
+    current_blink_settings["random_blink_period"] = scn.amh2b.eblink_random_period_enable
+    current_blink_settings["allow_random_drift"] = scn.amh2b.eblink_allow_random_drift
+    current_blink_settings["enable_left"] = scn.amh2b.eblink_eye_left_enable
+    current_blink_settings["enable_right"] = scn.amh2b.eblink_eye_right_enable
+    current_blink_settings["shapekey_name"] = scn.amh2b.eblink_shapekey_name
 
 def set_current_en_settings(scn):
-    current_eye_name_settings[0][0] = scn.Amh2bPropEBlinkBNameLeftLower
-    current_eye_name_settings[0][1] = scn.Amh2bPropEBlinkBNameLeftUpper
-    current_eye_name_settings[1][0] = scn.Amh2bPropEBlinkBNameRightLower
-    current_eye_name_settings[1][1] = scn.Amh2bPropEBlinkBNameRightUpper
+    current_eye_name_settings[0][0] = scn.amh2b.eblink_bone_name_left_lower
+    current_eye_name_settings[0][1] = scn.amh2b.eblink_bone_name_left_upper
+    current_eye_name_settings[1][0] = scn.amh2b.eblink_bone_name_right_lower
+    current_eye_name_settings[1][1] = scn.amh2b.eblink_bone_name_right_upper
 
-class AMH2B_AddBlinkTrack(bpy.types.Operator):
+class AMH2B_OT_AddBlinkTrack(bpy.types.Operator):
     """With all selected objects (including active object), add blink track(s).\nMESH objects may receive Shapekey keyframes, ARMATURE objects may receive pose bone keyframes"""
     bl_idname = "amh2b.eblink_add_blink_track"
     bl_label = "Add Blink Track"
@@ -702,13 +702,13 @@ class AMH2B_AddBlinkTrack(bpy.types.Operator):
             return {'CANCELLED'}
         # get settings from UI
         scn = context.scene
-        frame_rate = scn.Amh2bPropEBlinkFrameRate
-        start_frame = scn.Amh2bPropEBlinkStartFrame
-        random_start_frame = scn.Amh2bPropEBlinkRndStartFrame
-        frame_count = scn.Amh2bPropEBlinkFrameCount
+        frame_rate = scn.amh2b.eblink_framerate
+        start_frame = scn.amh2b.eblink_start_frame
+        random_start_frame = scn.amh2b.eblink_random_start_frame
+        frame_count = scn.amh2b.eblink_frame_count
         max_blink_count = 0
-        if scn.Amh2bPropEBlinkUseMaxCount:
-            max_blink_count = scn.Amh2bPropEBlinkMaxCount
+        if scn.amh2b.eblink_max_count_enable:
+            max_blink_count = scn.amh2b.eblink_max_count
         set_current_b_settings(scn)
         set_current_en_settings(scn)
         # do work
@@ -768,7 +768,7 @@ def save_blink_data_to_csv(textblock_name, b_settings, en_settings, eoc_settings
     text_str = get_str_from_b_settings(b_settings) + get_str_from_en_settings(en_settings) + get_str_from_eoc_settings(eoc_settings)
     new_textname.from_string(text_str)
 
-class AMH2B_SaveBlinkCSV(bpy.types.Operator):
+class AMH2B_OT_SaveBlinkCSV(bpy.types.Operator):
     """Write current blink data settings (timing, eye names, opened and closed locations/rotations) to a textblock in the text editor"""
     bl_idname = "amh2b.eblink_save_csv"
     bl_label = "Write Settings"
@@ -778,7 +778,7 @@ class AMH2B_SaveBlinkCSV(bpy.types.Operator):
         set_current_b_settings(context.scene)
         set_current_en_settings(context.scene)
 
-        save_blink_data_to_csv(context.scene.Amh2bPropEBlinkTextSaveName, current_blink_settings, current_eye_name_settings,
+        save_blink_data_to_csv(context.scene.amh2b.eblink_text_save_name, current_blink_settings, current_eye_name_settings,
                                current_eye_opened_closed_settings)
         return {'FINISHED'}
 
@@ -917,7 +917,7 @@ def load_blink_data_from_csv(datablock_textname):
             for oc in range(2):
                 current_eye_opened_closed_settings[i][lu][oc] = temp_eye_opened_closed_settings[i][lu][oc]
 
-class AMH2B_LoadBlinkCSV(bpy.types.Operator):
+class AMH2B_OT_LoadBlinkCSV(bpy.types.Operator):
     """Read blink data settings (timing, eye names, opened and closed locations/rotations) from a textblock in the text editor"""
     bl_idname = "amh2b.eblink_load_csv"
     bl_label = "Read Settings"
@@ -926,29 +926,29 @@ class AMH2B_LoadBlinkCSV(bpy.types.Operator):
     def execute(self, context):
         scn = context.scene
 
-        temp = load_blink_data_from_csv(context.scene.Amh2bPropEBlinkTextLoadName)
+        temp = load_blink_data_from_csv(context.scene.amh2b.eblink_text_load_name)
         if isinstance(temp, str):
-            self.report({'ERROR'}, "AMH2B_LoadBlinkCSV error: " + temp)
+            self.report({'ERROR'}, "AMH2B_OT_LoadBlinkCSV error: " + temp)
             return {'CANCELLED'}
 
-        scn.Amh2bPropEBlinkClosingTime = current_blink_settings["closing_time"]
-        scn.Amh2bPropEBlinkRndClosingTime = current_blink_settings["random_closing_time"]
-        scn.Amh2bPropEBlinkClosedTime = current_blink_settings["closed_time"]
-        scn.Amh2bPropEBlinkRndClosedTime = current_blink_settings["random_closed_time"]
-        scn.Amh2bPropEBlinkOpeningTime = current_blink_settings["opening_time"]
-        scn.Amh2bPropEBlinkRndOpeningTime = current_blink_settings["random_opening_time"]
-        scn.Amh2bPropEBlinkBlinksPerMinute = current_blink_settings["blinks_per_minute"]
-        scn.Amh2bPropEBlinkUseBlinkPeriod = current_blink_settings["use_period"]
-        scn.Amh2bPropEBlinkPeriod = current_blink_settings["blink_period"]
-        scn.Amh2bPropEBlinkRndPeriod = current_blink_settings["random_blink_period"]
-        scn.Amh2bPropEBlinkAllowRndDrift = current_blink_settings["allow_random_drift"]
-        scn.Amh2bPropEBlinkEnableLeft = current_blink_settings["enable_left"]
-        scn.Amh2bPropEBlinkEnableRight = current_blink_settings["enable_right"]
-        scn.Amh2bPropEBlinkShapekeyName = current_blink_settings["shapekey_name"]
-        scn.Amh2bPropEBlinkBNameLeftLower = current_eye_name_settings[0][0]
-        scn.Amh2bPropEBlinkBNameLeftUpper = current_eye_name_settings[0][1]
-        scn.Amh2bPropEBlinkBNameRightLower = current_eye_name_settings[1][0]
-        scn.Amh2bPropEBlinkBNameRightUpper = current_eye_name_settings[1][1]
+        scn.amh2b.eblink_closing_time = current_blink_settings["closing_time"]
+        scn.amh2b.eblink_random_closing_time = current_blink_settings["random_closing_time"]
+        scn.amh2b.eblink_closed_time = current_blink_settings["closed_time"]
+        scn.amh2b.eblink_random_closed_time = current_blink_settings["random_closed_time"]
+        scn.amh2b.eblink_opening_time = current_blink_settings["opening_time"]
+        scn.amh2b.eblink_random_opening_time = current_blink_settings["random_opening_time"]
+        scn.amh2b.eblink_blinks_per_min = current_blink_settings["blinks_per_minute"]
+        scn.amh2b.eblink_blink_period_enable = current_blink_settings["use_period"]
+        scn.amh2b.eblink_blink_period = current_blink_settings["blink_period"]
+        scn.amh2b.eblink_random_period_enable = current_blink_settings["random_blink_period"]
+        scn.amh2b.eblink_allow_random_drift = current_blink_settings["allow_random_drift"]
+        scn.amh2b.eblink_eye_left_enable = current_blink_settings["enable_left"]
+        scn.amh2b.eblink_eye_right_enable = current_blink_settings["enable_right"]
+        scn.amh2b.eblink_shapekey_name = current_blink_settings["shapekey_name"]
+        scn.amh2b.eblink_bone_name_left_lower = current_eye_name_settings[0][0]
+        scn.amh2b.eblink_bone_name_left_upper = current_eye_name_settings[0][1]
+        scn.amh2b.eblink_bone_name_right_lower = current_eye_name_settings[1][0]
+        scn.amh2b.eblink_bone_name_right_upper = current_eye_name_settings[1][1]
 
         # update the UI
         self.report({'INFO'}, "Read settings complete")
@@ -961,7 +961,7 @@ def reset_eye_opened_settings():
             current_eye_opened_closed_settings[i][lu][I_OPENED] = \
                 copy.deepcopy(default_eye_opened_closed_settings[i][lu][I_OPENED])
 
-class AMH2B_ResetEyeOpened(bpy.types.Operator):
+class AMH2B_OT_ResetEyeOpened(bpy.types.Operator):
     """Reset eye opened blink data (locations/rotations) to defaults"""
     bl_idname = "amh2b.eblink_reset_opened"
     bl_label = "Reset Opened"
@@ -977,7 +977,7 @@ def reset_eye_closed_settings():
             current_eye_opened_closed_settings[i][lu][I_CLOSED] = \
                 copy.deepcopy(default_eye_opened_closed_settings[i][lu][I_CLOSED])
 
-class AMH2B_ResetEyeClosed(bpy.types.Operator):
+class AMH2B_OT_ResetEyeClosed(bpy.types.Operator):
     """Reset eye closed blink data (locations/rotations) to defaults"""
     bl_idname = "amh2b.eblink_reset_closed"
     bl_label = "Reset Closed"
@@ -1010,7 +1010,7 @@ def set_eye_opened_settings(obj):
                 current_eye_opened_closed_settings[i][lu][I_OPENED] = \
                     ((loc[0], loc[1], loc[2]), bone.rotation_mode, (rot[0], rot[1], rot[2]))
 
-class AMH2B_SetEyeOpened(bpy.types.Operator):
+class AMH2B_OT_SetEyeOpened(bpy.types.Operator):
     """Set eye opened blink data (locations/rotations) from active object, active object must be ARMATURE type"""
     bl_idname = "amh2b.eblink_set_opened"
     bl_label = "Set Opened"
@@ -1048,7 +1048,7 @@ def set_eye_closed_settings(obj):
                     ((loc[0], loc[1], loc[2]), bone.rotation_mode, (rot[0], rot[1], rot[2]))
 
 
-class AMH2B_SetEyeClosed(bpy.types.Operator):
+class AMH2B_OT_SetEyeClosed(bpy.types.Operator):
     """Set eye closed blink data (locations/rotations) from active object, active object must be ARMATURE type"""
     bl_idname = "amh2b.eblink_set_closed"
     bl_label = "Set Closed"

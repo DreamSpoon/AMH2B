@@ -96,7 +96,7 @@ def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_we
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_GrowPaint(bpy.types.Operator):
+class AMH2B_OT_GrowPaint(bpy.types.Operator):
     """With active object, starting with currently selected vertexes, set weight paint in successive 'rings' by using 'select more' and weight painting only the newly selected vertexes - blending weight paint value by 'select more' iteration"""
     bl_idname = "amh2b.wp_grow_paint"
     bl_label = "Grow Paint"
@@ -113,9 +113,9 @@ class AMH2B_GrowPaint(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_grow_paint(ob_act, vg_ai, scn.Amh2bPropWP_GrowPaintIterations, scn.Amh2bPropWP_GrowPaintStartWeight,
-            scn.Amh2bPropWP_GrowPaintEndWeight, scn.Amh2bPropWP_PaintInitialSelection, scn.Amh2bPropWP_TailFill,
-            scn.Amh2bPropWP_TailFillValue, scn.Amh2bPropWP_TailFillConnected)
+        do_grow_paint(ob_act, vg_ai, scn.amh2b.wp_grow_paint_iterations, scn.amh2b.wp_grow_paint_start_weight,
+            scn.amh2b.wp_grow_paint_end_weight, scn.amh2b.wp_paint_initial_selection, scn.amh2b.wp_tail_fill_enable,
+            scn.amh2b.wp_tail_fill_value, scn.amh2b.wp_tail_fill_connected)
         return {'FINISHED'}
 
 def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
@@ -139,7 +139,7 @@ def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, de
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_SelectVertexByWeight(bpy.types.Operator):
+class AMH2B_OT_SelectVertexByWeight(bpy.types.Operator):
     """With active object, deselect all vertices (optional), then select only vertices with weights between min_weight and max_weight, inclusive"""
     bl_idname = "amh2b.wp_select_vertex_by_weight"
     bl_label = "Select by Weight"
@@ -156,5 +156,5 @@ class AMH2B_SelectVertexByWeight(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_select_vertex_by_weight(ob_act, vg_ai, scn.Amh2bPropWP_SelectVertexMinW, scn.Amh2bPropWP_SelectVertexMaxW, scn.Amh2bPropWP_SelectVertexDeselect)
+        do_select_vertex_by_weight(ob_act, vg_ai, scn.amh2b.wp_select_vertex_min_w, scn.amh2b.wp_select_vertex_max_w, scn.amh2b.wp_select_vertex_deselect)
         return {'FINISHED'}
