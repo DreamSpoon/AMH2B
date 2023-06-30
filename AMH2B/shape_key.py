@@ -16,18 +16,27 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import bpy
-from bpy_extras.io_utils import ImportHelper
 import re
 import math
 import mathutils
 from mathutils import Vector
-import numpy
+from numpy import subtract as np_subtract
+from numpy import array as np_array
+
+import bpy
+from bpy_extras.io_utils import ImportHelper
+from bpy.types import Operator
 
 from .append_from_file_func import append_object_from_blend_file
 from .const import (FC_MATCH_DIST, SC_TEMP_SK_X, SC_TEMP_SK_Y, SC_TEMP_SK_Z, SC_VGRP_MASKOUT)
 from .object_func import delete_all_objects_except, check_create_basis_shape_key
 from .template import get_searchable_object_name
+
+SK_MENU_FUNC_ITEMS = [
+    ("SK_FUNC_BAKE", "Bake", "Bake mesh deform shapes to ShapeKeys"),
+    ("SK_FUNC_COPY", "Copy", ""),
+    ("SK_FUNC_DELETE", "Delete", ""),
+]
 
 def is_name_prefix_match(name, prefix):
     if name == prefix or re.match(prefix + "\w*", name):
@@ -56,7 +65,7 @@ def do_sk_func_delete(sel_obj_list, delete_prefix):
         delete_shapekeys_by_prefix(mesh_obj, delete_prefix)
 
 
-class AMH2B_OT_SKFuncDelete(bpy.types.Operator):
+class AMH2B_OT_SKFuncDelete(Operator):
     """With selected MESH type objects, delete shape keys by prefix"""
     bl_idname = "amh2b.sk_func_delete"
     bl_label = "Delete Keys"
@@ -149,7 +158,7 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
             for v_index, v_scale in vert_diff_scales:
                 sk_loc = dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co
                 original_loc = dest_obj.data.shape_keys.key_blocks[0].data[v_index].co
-                delta_loc = numpy.subtract(sk_loc, original_loc)
+                delta_loc = np_subtract(sk_loc, original_loc)
                 dest_obj.data.shape_keys.key_blocks[sk_index].data[v_index].co = (v_scale * delta_loc[0] + original_loc[0],
                     v_scale * delta_loc[1] + original_loc[1], v_scale * delta_loc[2] + original_loc[2])
 
@@ -171,7 +180,7 @@ def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 # TODO copy animation keyframes too
-class AMH2B_OT_SKFuncCopy(bpy.types.Operator):
+class AMH2B_OT_SKFuncCopy(Operator):
     """With active object, copy shape keys by prefix to all other selected objects"""
     bl_idname = "amh2b.sk_func_copy"
     bl_label = "Copy Keys"
@@ -193,6 +202,78 @@ class AMH2B_OT_SKFuncCopy(bpy.types.Operator):
             return {'CANCELLED'}
 
         do_copy_shape_keys(ob_act, other_obj_list, copy_prefix, context.scene.amh2b.sk_adapt_size)
+        return {'FINISHED'}
+
+def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
+    old_3dview_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    # copy list of selected objects, minus the active object
+    selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
+
+    # keep a list of all objects in the Blend file, before objects are appended
+    all_objects_list_before = [ ob for ob in bpy.data.objects ]
+
+    bpy.ops.object.select_all(action='DESELECT')
+    for sel in selection_list:
+        search_name = get_searchable_object_name(sel.name)
+        # if the desired ShapeKey mesh object name is already used then rename it before appending from file,
+        # and rename later after the appended object is deleted
+        test_obj = bpy.data.objects.get(search_name)
+        if test_obj is not None:
+            test_obj.name = "TempRenameName"
+
+        # if cannot load mesh object from file...
+        append_object_from_blend_file(chosen_blend_file, search_name)
+        appended_obj = bpy.data.objects.get(search_name)
+        if appended_obj is None:
+            # if "swap autoname ext" is enabled then check object name, and if it follows the
+            # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
+            if swap_autoname_ext and re.match(".*\.[0-9]{3}", search_name):
+                no_ext_search_name = search_name[0:len(search_name)-4]
+                append_object_from_blend_file(chosen_blend_file, no_ext_search_name)
+                appended_obj = bpy.data.objects.get(no_ext_search_name)
+            else:
+                # if rename occurred, then undo rename
+                if test_obj is not None:
+                    test_obj.name = search_name
+                continue
+
+        # use bpy.context.selected_objects instead of sel_obj_list because bpy.context.selected_objects will change
+        # as objects are selected/deselected
+        appended_selection_list = [ob for ob in bpy.context.selected_objects]
+
+        # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
+        # and this requires exactly two specific objects be selected per shape key copy
+        bpy.ops.object.select_all(action='DESELECT')
+        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix, adapt_size)
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # re-select the objects that were appended
+        for ob in appended_selection_list:
+            ob.select_set(True)
+
+        # appended object may have pulled in other objects as dependencies, so delete all appended objects
+        delete_all_objects_except(all_objects_list_before)
+
+        # if an object was named in order to do appending then fix name
+        if test_obj is not None:
+            test_obj.name = search_name
+
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+class AMH2B_OT_SearchFileForAutoShapeKeys(Operator, ImportHelper):
+    """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
+    bl_idname = "amh2b.sk_search_file_for_auto_sk"
+    bl_label = "Copy from File"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
+
+    def execute(self, context):
+        scn = context.scene
+        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
+            scn.amh2b.sk_adapt_size, scn.amh2b.sk_swap_autoname_ext)
         return {'FINISHED'}
 
 def get_mod_verts(obj):
@@ -353,10 +434,10 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
         key_z_cos = get_mod_verts(obj)
         sk_z.value = 0.0
 
-        deform_mats = [ numpy.array(
-            [numpy.subtract(key_x_cos[i], basis_cos[i]),
-            numpy.subtract(key_y_cos[i], basis_cos[i]),
-            numpy.subtract(key_z_cos[i], basis_cos[i])])
+        deform_mats = [ np_array(
+            [np_subtract(key_x_cos[i], basis_cos[i]),
+            np_subtract(key_y_cos[i], basis_cos[i]),
+            np_subtract(key_z_cos[i], basis_cos[i])])
             for i in range(len(basis_cos)) ]
         # release references and free memory
         key_x_cos = None
@@ -370,7 +451,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
         sk_offsets.interpolation = 'KEY_LINEAR'
         for base_v_index, mod_v_index in vert_matches:
             skv = sk_offsets.data[base_v_index]
-            d_offset = numpy.subtract(deformed_cos[mod_v_index], basis_cos[mod_v_index])
+            d_offset = np_subtract(deformed_cos[mod_v_index], basis_cos[mod_v_index])
             # apply change of basis matrix to deformed offset
             d_offset = deform_mats[mod_v_index].dot(d_offset)
             skv.co.x = skv.co.x + d_offset[0]
@@ -383,7 +464,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
             sk_offsets.value = 0.0
             for base_v_index, mod_v_index in vert_matches:
                 skv = sk_offsets.data[base_v_index]
-                d_offset = numpy.subtract(deformed_cos[mod_v_index], key_test_cos[mod_v_index])
+                d_offset = np_subtract(deformed_cos[mod_v_index], key_test_cos[mod_v_index])
                 d_offset = deform_mats[mod_v_index].dot(d_offset)
                 skv.co.x = skv.co.x + d_offset[0]
                 skv.co.y = skv.co.y + d_offset[1]
@@ -459,7 +540,7 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
 
     bpy.context.scene.frame_set(old_current_frame)
 
-class AMH2B_OT_BakeDeformShapeKeys(bpy.types.Operator):
+class AMH2B_OT_BakeDeformShapeKeys(Operator):
     """Bake active object's mesh deformations to shape keys"""
     bl_idname = "amh2b.sk_bake_deform_shape_keys"
     bl_label = "Bake Deform Keys"
@@ -508,7 +589,7 @@ def do_deform_sk_view_toggle(act_ob):
             mod.show_viewport = sk_view_active
             mod.show_render = sk_view_active
 
-class AMH2B_OT_DeformSK_ViewToggle(bpy.types.Operator):
+class AMH2B_OT_DeformSK_ViewToggle(Operator):
     """Toggle visibility between shape keys and cloth/soft body sims on active object.\nIntended only for non-Dynamic deform shape keys"""
     bl_idname = "amh2b.sk_deform_sk_view_toggle"
     bl_label = "Deform SK View Toggle"
@@ -521,76 +602,4 @@ class AMH2B_OT_DeformSK_ViewToggle(bpy.types.Operator):
             return {'CANCELLED'}
 
         do_deform_sk_view_toggle(act_ob)
-        return {'FINISHED'}
-
-def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
-    old_3dview_mode = bpy.context.object.mode
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    # copy list of selected objects, minus the active object
-    selection_list = [ob for ob in sel_obj_list if ob.type == 'MESH']
-
-    # keep a list of all objects in the Blend file, before objects are appended
-    all_objects_list_before = [ ob for ob in bpy.data.objects ]
-
-    bpy.ops.object.select_all(action='DESELECT')
-    for sel in selection_list:
-        search_name = get_searchable_object_name(sel.name)
-        # if the desired ShapeKey mesh object name is already used then rename it before appending from file,
-        # and rename later after the appended object is deleted
-        test_obj = bpy.data.objects.get(search_name)
-        if test_obj is not None:
-            test_obj.name = "TempRenameName"
-
-        # if cannot load mesh object from file...
-        append_object_from_blend_file(chosen_blend_file, search_name)
-        appended_obj = bpy.data.objects.get(search_name)
-        if appended_obj is None:
-            # if "swap autoname ext" is enabled then check object name, and if it follows the
-            # '.001', '.002', etc. format, then try to swap again but with '.XYZ' extension removed
-            if swap_autoname_ext and re.match(".*\.[0-9]{3}", search_name):
-                no_ext_search_name = search_name[0:len(search_name)-4]
-                append_object_from_blend_file(chosen_blend_file, no_ext_search_name)
-                appended_obj = bpy.data.objects.get(no_ext_search_name)
-            else:
-                # if rename occurred, then undo rename
-                if test_obj is not None:
-                    test_obj.name = search_name
-                continue
-
-        # use bpy.context.selected_objects instead of sel_obj_list because bpy.context.selected_objects will change
-        # as objects are selected/deselected
-        appended_selection_list = [ob for ob in bpy.context.selected_objects]
-
-        # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
-        # and this requires exactly two specific objects be selected per shape key copy
-        bpy.ops.object.select_all(action='DESELECT')
-        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix, adapt_size)
-        bpy.ops.object.select_all(action='DESELECT')
-
-        # re-select the objects that were appended
-        for ob in appended_selection_list:
-            ob.select_set(True)
-
-        # appended object may have pulled in other objects as dependencies, so delete all appended objects
-        delete_all_objects_except(all_objects_list_before)
-
-        # if an object was named in order to do appending then fix name
-        if test_obj is not None:
-            test_obj.name = search_name
-
-    bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_SearchFileForAutoShapeKeys(bpy.types.Operator, ImportHelper):
-    """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
-    bl_idname = "amh2b.sk_search_file_for_auto_sk"
-    bl_label = "Copy from File"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
-
-    def execute(self, context):
-        scn = context.scene
-        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
-            scn.amh2b.sk_adapt_size, scn.amh2b.sk_swap_autoname_ext)
         return {'FINISHED'}

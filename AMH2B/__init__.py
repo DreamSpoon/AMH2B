@@ -26,14 +26,14 @@ bl_info = {
     "version": (2, 0, 0),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
-    "wiki_url": "https://github.com/DreamSpoon/AMH2B#readme",
+    "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
     "category": "Import MakeHuman Automation",
 }
 
 import bpy
 from bpy.types import (Panel, PropertyGroup, Scene)
-from bpy.props import (BoolProperty, CollectionProperty, FloatProperty, IntProperty, PointerProperty, StringProperty)
-
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty,
+    StringProperty)
 from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 from .animation import AMH2B_OT_RatchetHold
 from .armature import (AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BridgeRepose, AMH2B_OT_BoneWoven,
@@ -44,8 +44,8 @@ from .eyeblink import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack, AMH2B_
 from .eyelid import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
 from .material import (AMH2B_OT_SwapMatWithFile, AMH2B_OT_SwapMatInternal)
 from .mesh_size import AMH2B_OT_CreateSizeRig
-from .shape_key import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys, AMH2B_OT_SKFuncDelete,
-    AMH2B_OT_SKFuncCopy, AMH2B_OT_DeformSK_ViewToggle)
+from .shape_key import (SK_MENU_FUNC_ITEMS, AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
+    AMH2B_OT_SKFuncDelete, AMH2B_OT_SKFuncCopy, AMH2B_OT_DeformSK_ViewToggle)
 from .shrinkwrap import (AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap, AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap,
     AMH2B_OT_CreateGeoNodesShrinkwrap, AMH2B_OT_CreateGeoNodesThickShrinkwrap)
 from .shrinkwrap_obj import (AMH2B_OT_CreateObjModDirectionalShrinkwrap, AMH2B_OT_CreateObjModDirectionalThickShrinkwrap,
@@ -54,8 +54,13 @@ from .template import (AMH2B_OT_MakeTailorObjectSearchable, AMH2B_OT_SetupMatSwa
 from .vgroup import (AMH2B_OT_AddMaskOutMod, AMH2B_OT_ToggleViewMaskoutMod, AMH2B_OT_CopyVertexGroupsByPrefix,
     AMH2B_OT_DeleteVertexGroupsByPrefix, AMH2B_OT_MakeTailorGroups, AMH2B_OT_SearchFileForAutoVGroups)
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
-from .soft_body import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody)
+from .soft_body.func import SB_FUNCTION_ITEMS
+from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring)
+from .soft_body.panel import AMH2B_PT_SoftBodyWeight
+from .attrib_convert.panel import AMH2B_PT_Attribs
+from .attrib_convert.operator import AMH2B_OT_AttributeConvert
+from .attrib_convert.func import ATTR_CONV_FUNC_ITEMS
 
 class AMH2B_PT_MeshMat(Panel):
     bl_label = "Mesh Material"
@@ -151,46 +156,6 @@ class AMH2B_PT_WeightPaint(Panel):
         sub.prop(scn.amh2b, "wp_tail_fill_value")
         sub.prop(scn.amh2b, "wp_tail_fill_connected")
 
-class AMH2B_PT_SoftBodyWeight(Panel):
-    bl_label = "Soft Body Weight"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "AMH2B"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        scn = context.scene
-        layout = self.layout
-        main_box = layout.box()
-        main_box.label(text="Proximity Weight")
-        box = main_box.box()
-        box.operator(AMH2B_OT_AddSoftBodyWeightTestCalc.bl_idname)
-        box = main_box.box()
-        box.operator(AMH2B_OT_FinishSoftBodyWeightCalc.bl_idname)
-        box.prop(scn.amh2b, "sb_apply_sk_mix")
-        box = main_box.box()
-        box.operator(AMH2B_OT_DataTransferSBWeight.bl_idname)
-        box.prop(scn.amh2b, "sb_dt_gen_data_layers")
-        box.prop(scn.amh2b, "sb_dt_vert_mapping", text="")
-        box.prop(scn.amh2b, "sb_dt_apply_mod")
-        box.prop(scn.amh2b, "sb_dt_individual")
-        col = box.box().column()
-        col.active = scn.amh2b.sb_dt_individual
-        col.prop(scn.amh2b, "sb_dt_include_goal")
-        col.prop(scn.amh2b, "sb_dt_include_mask")
-        col.prop(scn.amh2b, "sb_dt_include_mass")
-        col.prop(scn.amh2b, "sb_dt_include_spring")
-        box = main_box.box()
-        box.operator(AMH2B_OT_PresetSoftBody.bl_idname)
-#        box.label(text="Desc...")
-        box = main_box.box()
-        box.label(text="Vertex Group Name")
-        col = box.box().column()
-        col.prop(scn.amh2b, "sb_dt_goal_vg_name")
-        col.prop(scn.amh2b, "sb_dt_mask_vg_name")
-        col.prop(scn.amh2b, "sb_dt_mass_vg_name")
-        col.prop(scn.amh2b, "sb_dt_spring_vg_name")
-
 class AMH2B_PT_ShapeKey(Panel):
     bl_label = "ShapeKey"
     bl_space_type = "VIEW_3D"
@@ -201,33 +166,39 @@ class AMH2B_PT_ShapeKey(Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
+        act_ob = context.active_object
         box = layout.box()
-        box.label(text="Functions")
-        box.operator(AMH2B_OT_SearchFileForAutoShapeKeys.bl_idname)
-        box.operator(AMH2B_OT_SKFuncCopy.bl_idname)
-        box.prop(scn.amh2b, "sk_adapt_size")
-        box.prop(scn.amh2b, "sk_swap_autoname_ext")
-        box.operator(AMH2B_OT_SKFuncDelete.bl_idname)
-        box.prop(scn.amh2b, "sk_function_prefix")
+        box.prop(scn.amh2b, "sk_active_function", text="")
         box = layout.box()
-        box.label(text="Bake Deform ShapeKey")
-        box.operator(AMH2B_OT_BakeDeformShapeKeys.bl_idname)
-        box.prop(scn.amh2b, "sk_mask_vgroup_name")
-        box.prop(scn.amh2b, "sk_mask_include")
-        box.prop(scn.amh2b, "sk_deform_name_prefix")
-        box.prop(scn.amh2b, "sk_bind_frame")
-        box.prop(scn.amh2b, "sk_start_frame")
-        box.prop(scn.amh2b, "sk_end_frame")
-        box.prop(scn.amh2b, "sk_animate")
-        box.prop(scn.amh2b, "sk_add_frame_to_name")
-        box.prop(scn.amh2b, "sk_dynamic")
-        sub = box.column()
-        sub.active = scn.amh2b.sk_dynamic
-        sub.label(text="Extra Accuracy")
-        sub.prop(scn.amh2b, "sk_extra_accuracy")
-        sub = box.column()
-        sub.active = not scn.amh2b.sk_dynamic
-        sub.operator(AMH2B_OT_DeformSK_ViewToggle.bl_idname)
+        if scn.amh2b.sk_active_function == "SK_FUNC_COPY":
+            box.label(text="Functions")
+            box.operator(AMH2B_OT_SearchFileForAutoShapeKeys.bl_idname)
+            box.operator(AMH2B_OT_SKFuncCopy.bl_idname)
+            box.prop(scn.amh2b, "sk_adapt_size")
+            box.prop(scn.amh2b, "sk_swap_autoname_ext")
+            box.prop(scn.amh2b, "sk_function_prefix")
+        elif scn.amh2b.sk_active_function == "SK_FUNC_DELETE":
+            box.operator(AMH2B_OT_SKFuncDelete.bl_idname)
+            box.prop(scn.amh2b, "sk_function_prefix")
+        elif scn.amh2b.sk_active_function == "SK_FUNC_BAKE":
+            box.label(text="Bake Deform ShapeKey")
+            box.operator(AMH2B_OT_BakeDeformShapeKeys.bl_idname)
+            box.prop(scn.amh2b, "sk_mask_vgroup_name")
+            box.prop(scn.amh2b, "sk_mask_include")
+            box.prop(scn.amh2b, "sk_deform_name_prefix")
+            box.prop(scn.amh2b, "sk_bind_frame")
+            box.prop(scn.amh2b, "sk_start_frame")
+            box.prop(scn.amh2b, "sk_end_frame")
+            box.prop(scn.amh2b, "sk_animate")
+            box.prop(scn.amh2b, "sk_add_frame_to_name")
+            box.prop(scn.amh2b, "sk_dynamic")
+            sub = box.column()
+            sub.active = scn.amh2b.sk_dynamic
+            sub.label(text="Extra Accuracy")
+            sub.prop(scn.amh2b, "sk_extra_accuracy")
+            sub = box.column()
+            sub.active = not scn.amh2b.sk_dynamic
+            sub.operator(AMH2B_OT_DeformSK_ViewToggle.bl_idname)
 
 class AMH2B_PT_Armature(Panel):
     bl_label = "Armature"
@@ -471,6 +442,8 @@ class AMH2B_PG_Amh2b(PropertyGroup):
         description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
     arm_generic_mhx: BoolProperty(name="Include MHX bones",
         description="Include MHX bones when renaming/un-naming", default=False)
+    sk_active_function: EnumProperty(name="Function", description="ShapeKey menu active function",
+        items=SK_MENU_FUNC_ITEMS)
     sk_bind_frame: IntProperty(name="Bind frame",
         description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original " +
         "locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
@@ -645,8 +618,12 @@ class AMH2B_PG_Amh2b(PropertyGroup):
     nodes_override_create: BoolProperty(name="Override Create", description="Geometry Nodes and custom " +
         "Node Groups will be re-created if this option is enabled. When custom Node Groups are " +
         "override created, old Node Groups of the same name are renamed and deprecated", default=False)
+
+    sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")
     sb_apply_sk_mix: BoolProperty(name="Apply SK Mix", description="Apply all ShapeKeys instead of deleting all " \
         "ShapeKeys - necessary before applying Geometry Nodes", default=True)
+    sb_add_mask_modifier: BoolProperty(name="Add Mask Modifier", description="Add Mask modifier with settings " \
+        "auto-filled", default=True)
     sb_dt_gen_data_layers: BoolProperty(name="Generate Groups", description="With active object, create Vertex " \
         "Groups for Soft Body weights if necessary", default=True)
     sb_dt_individual: BoolProperty(name="Transfer Individually", description="Instead of creating a single Data " \
@@ -666,6 +643,10 @@ class AMH2B_PG_Amh2b(PropertyGroup):
     sb_dt_mask_vg_name: StringProperty(name="Mask", description="Mask vertex group name", default="SB-mask")
     sb_dt_mass_vg_name: StringProperty(name="Mass", description="Mass vertex group name", default="SB-mass")
     sb_dt_spring_vg_name: StringProperty(name="Spring", description="Spring vertex group name", default="SB-spring")
+
+    attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
+    attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
+    attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
 
 classes = [
     AMH2B_PG_Amh2b,
@@ -719,11 +700,14 @@ classes = [
     AMH2B_OT_FinishSoftBodyWeightCalc,
     AMH2B_OT_DataTransferSBWeight,
     AMH2B_OT_PresetSoftBody,
+    AMH2B_OT_AddSoftBodySpring,
+    AMH2B_OT_AttributeConvert,
     AMH2B_PT_MeshMat,
     AMH2B_PT_MeshSize,
     AMH2B_PT_View3D_Shrinkwrap,
     AMH2B_PT_VertexGroup,
     AMH2B_PT_WeightPaint,
+    AMH2B_PT_Attribs,
     AMH2B_PT_SoftBodyWeight,
     AMH2B_PT_ShapeKey,
     AMH2B_PT_Armature,
