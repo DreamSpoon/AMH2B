@@ -477,13 +477,18 @@ def create_geo_ng_spring_connect_vert():
     # remove old group inputs and outputs
     new_node_group.inputs.clear()
     new_node_group.outputs.clear()
+    # remove old group inputs and outputs
+    new_node_group.inputs.clear()
+    new_node_group.outputs.clear()
     # create new group inputs and outputs
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
     new_input = new_node_group.inputs.new(type='NodeSocketBool', name="Include")
     new_input.default_value = True
     new_node_group.inputs.new(type='NodeSocketBool', name="Remove Original")
     new_node_group.inputs.new(type='NodeSocketVector', name="Connect Position")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Connect Length")
+    new_input = new_node_group.inputs.new(type='NodeSocketFloatDistance', name="Connect Min Length")
+    new_input.min_value = 0.000000
+    new_input = new_node_group.inputs.new(type='NodeSocketFloatDistance', name="Connect Max Length")
     new_input.min_value = 0.000000
     new_node_group.inputs.new(type='NodeSocketVector', name="Extrude Vec")
     new_input = new_node_group.inputs.new(type='NodeSocketFloatDistance', name="Extrude Length")
@@ -491,12 +496,10 @@ def create_geo_ng_spring_connect_vert():
     new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Extrude Bias")
     new_input.min_value = 0.000000
     new_input.max_value = 1.000000
+    new_input.default_value = 0.500000
     new_input = new_node_group.inputs.new(type='NodeSocketFloatDistance', name="Merge Distance")
     new_input.min_value = 0.000000
     new_node_group.inputs.new(type='NodeSocketGeometry', name="Inner Solid")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Connect Epsilon")
-    new_input.min_value = 0.000000
-    new_input.default_value = 0.001000
     new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
     new_node_group.outputs.new(type='NodeSocketBool', name="Include")
     new_node_group.outputs.new(type='NodeSocketVector', name="Connect Position")
@@ -546,7 +549,7 @@ def create_geo_ng_spring_connect_vert():
     node = tree_nodes.new(type="FunctionNodeBooleanMath")
     node.location = (20, 39)
     node.operation = "AND"
-    new_nodes["Boolean Math.002"] = node
+    new_nodes["Boolean Math.001"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (20, -529)
@@ -560,7 +563,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[3].default_value = 0.000000
     node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
     node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.001"] = node
+    new_nodes["Mix"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Extrude Vec * Length"
@@ -568,7 +571,7 @@ def create_geo_ng_spring_connect_vert():
     node.operation = "SCALE"
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.003"] = node
+    new_nodes["Vector Math"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Connect Vec"
@@ -577,7 +580,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.005"] = node
+    new_nodes["Vector Math.001"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Extrude Vec"
@@ -586,7 +589,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.001"] = node
+    new_nodes["Vector Math.002"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-431, -608)
@@ -598,7 +601,7 @@ def create_geo_ng_spring_connect_vert():
     node.operation = "SUBTRACT"
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math"] = node
+    new_nodes["Vector Math.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-431, -353)
@@ -606,7 +609,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.002"] = node
+    new_nodes["Vector Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-431, -196)
@@ -618,7 +621,7 @@ def create_geo_ng_spring_connect_vert():
     node = tree_nodes.new(type="FunctionNodeBooleanMath")
     node.location = (-431, -59)
     node.operation = "AND"
-    new_nodes["Boolean Math.006"] = node
+    new_nodes["Boolean Math.002"] = node
     # Capture Attribute
     node = tree_nodes.new(type="GeometryNodeCaptureAttribute")
     node.label = "Connect Pos CapAttr"
@@ -629,7 +632,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[3].default_value = (0.000000, 0.000000, 0.000000, 0.000000)
     node.inputs[4].default_value = False
     node.inputs[5].default_value = 0
-    new_nodes["Capture Attribute.002"] = node
+    new_nodes["Capture Attribute.001"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (470, 0)
@@ -637,7 +640,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.006"] = node
+    new_nodes["Vector Math.005"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (470, 372)
@@ -655,7 +658,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.004"] = node
+    new_nodes["Vector Math.006"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (255, -118)
@@ -669,7 +672,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[3].default_value = 0.000000
     node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
     node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix"] = node
+    new_nodes["Mix.001"] = node
     # Capture Attribute
     node = tree_nodes.new(type="GeometryNodeCaptureAttribute")
     node.label = "Extrude Vec CapAttr"
@@ -680,7 +683,7 @@ def create_geo_ng_spring_connect_vert():
     node.inputs[3].default_value = (0.000000, 0.000000, 0.000000, 0.000000)
     node.inputs[4].default_value = False
     node.inputs[5].default_value = 0
-    new_nodes["Capture Attribute.001"] = node
+    new_nodes["Capture Attribute.002"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (725, 431)
@@ -747,7 +750,7 @@ def create_geo_ng_spring_connect_vert():
     node = tree_nodes.new(type="FunctionNodeBooleanMath")
     node.location = (941, 882)
     node.operation = "AND"
-    new_nodes["Boolean Math.001"] = node
+    new_nodes["Boolean Math.006"] = node
     # Extrude Mesh
     node = tree_nodes.new(type="GeometryNodeExtrudeMesh")
     node.location = (941, 725)
@@ -762,33 +765,32 @@ def create_geo_ng_spring_connect_vert():
     # create links
     tree_links = new_node_group.links
     tree_links.new(new_nodes["Merge by Distance"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Vector Math"].inputs[0])
-    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Vector Math"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Merge by Distance"].inputs[2])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Vector Math.001"].inputs[0])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.002"].inputs[0])
-    tree_links.new(new_nodes["Mix.001"].outputs[1], new_nodes["Vector Math.003"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Vector Math.003"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[1], new_nodes["Compare"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Compare"].inputs[0])
-    tree_links.new(new_nodes["Compare"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Mix"].inputs[5])
-    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Mix"].inputs[4])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.005"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Mix.001"].inputs[5])
-    tree_links.new(new_nodes["Vector Math.005"].outputs[0], new_nodes["Mix.001"].inputs[4])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Mix.001"].inputs[0])
-    tree_links.new(new_nodes["Capture Attribute"].outputs[4], new_nodes["Boolean Math.001"].inputs[0])
-    tree_links.new(new_nodes["Extrude Mesh"].outputs[1], new_nodes["Boolean Math.001"].inputs[1])
-    tree_links.new(new_nodes["Boolean Math.002"].outputs[0], new_nodes["Capture Attribute"].inputs[4])
-    tree_links.new(new_nodes["Boolean Math.001"].outputs[0], new_nodes["Merge by Distance"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Vector Math.003"].inputs[0])
+    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Vector Math.003"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[9], new_nodes["Merge by Distance"].inputs[2])
+    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Vector Math.002"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Vector Math.004"].inputs[0])
+    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Vector Math"].inputs[0])
+    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Vector Math"].inputs[3])
+    tree_links.new(new_nodes["Vector Math.004"].outputs[1], new_nodes["Compare"].inputs[1])
+    tree_links.new(new_nodes["Compare"].outputs[0], new_nodes["Mix.001"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Mix.001"].inputs[5])
+    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Mix.001"].inputs[4])
+    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Vector Math.001"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.002"].outputs[0], new_nodes["Mix"].inputs[5])
+    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Mix"].inputs[4])
+    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Mix"].inputs[0])
+    tree_links.new(new_nodes["Capture Attribute"].outputs[4], new_nodes["Boolean Math.006"].inputs[0])
+    tree_links.new(new_nodes["Extrude Mesh"].outputs[1], new_nodes["Boolean Math.006"].inputs[1])
+    tree_links.new(new_nodes["Boolean Math.001"].outputs[0], new_nodes["Capture Attribute"].inputs[4])
+    tree_links.new(new_nodes["Boolean Math.006"].outputs[0], new_nodes["Merge by Distance"].inputs[1])
     tree_links.new(new_nodes["Compare"].outputs[0], new_nodes["Boolean Math"].inputs[0])
-    tree_links.new(new_nodes["Boolean Math"].outputs[0], new_nodes["Boolean Math.002"].inputs[1])
-    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Vector Math.004"].inputs[0])
-    tree_links.new(new_nodes["Boolean Math.001"].outputs[0], new_nodes["Group Output"].inputs[1])
-    tree_links.new(new_nodes["Capture Attribute"].outputs[0], new_nodes["Capture Attribute.002"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Capture Attribute.002"].inputs[1])
-    tree_links.new(new_nodes["Capture Attribute.002"].outputs[1], new_nodes["Group Output"].inputs[2])
+    tree_links.new(new_nodes["Boolean Math"].outputs[0], new_nodes["Boolean Math.001"].inputs[1])
+    tree_links.new(new_nodes["Mix.001"].outputs[1], new_nodes["Vector Math.006"].inputs[0])
+    tree_links.new(new_nodes["Boolean Math.006"].outputs[0], new_nodes["Group Output"].inputs[1])
+    tree_links.new(new_nodes["Capture Attribute"].outputs[0], new_nodes["Capture Attribute.001"].inputs[0])
+    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Capture Attribute.001"].inputs[1])
+    tree_links.new(new_nodes["Capture Attribute.001"].outputs[1], new_nodes["Group Output"].inputs[2])
     tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Capture Attribute"].inputs[0])
     tree_links.new(new_nodes["Extrude Mesh"].outputs[0], new_nodes["Delete Geometry"].inputs[0])
     tree_links.new(new_nodes["Delete Geometry"].outputs[0], new_nodes["Merge by Distance"].inputs[0])
@@ -799,33 +801,37 @@ def create_geo_ng_spring_connect_vert():
     tree_links.new(new_nodes["Boolean Math.004"].outputs[0], new_nodes["Boolean Math.005"].inputs[1])
     tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Boolean Math.005"].inputs[0])
     tree_links.new(new_nodes["Boolean Math.005"].outputs[0], new_nodes["Delete Geometry"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[10], new_nodes["Math"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[1], new_nodes["Math"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Boolean Math.006"].inputs[0])
-    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Boolean Math.006"].inputs[1])
-    tree_links.new(new_nodes["Boolean Math.006"].outputs[0], new_nodes["Boolean Math.002"].inputs[0])
-    tree_links.new(new_nodes["Boolean Math.006"].outputs[0], new_nodes["Extrude Mesh"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[9], new_nodes["Raycast"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.004"].outputs[1], new_nodes["Math"].inputs[0])
+    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Boolean Math.002"].inputs[0])
+    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Boolean Math.002"].inputs[1])
+    tree_links.new(new_nodes["Boolean Math.002"].outputs[0], new_nodes["Boolean Math.001"].inputs[0])
+    tree_links.new(new_nodes["Boolean Math.002"].outputs[0], new_nodes["Extrude Mesh"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[10], new_nodes["Raycast"].inputs[0])
     tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Raycast"].inputs[6])
-    tree_links.new(new_nodes["Vector Math.004"].outputs[0], new_nodes["Raycast"].inputs[7])
-    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Vector Math.006"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.006"].outputs[1], new_nodes["Raycast"].inputs[8])
+    tree_links.new(new_nodes["Vector Math.006"].outputs[0], new_nodes["Raycast"].inputs[7])
+    tree_links.new(new_nodes["Mix.001"].outputs[1], new_nodes["Vector Math.005"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.005"].outputs[1], new_nodes["Raycast"].inputs[8])
     tree_links.new(new_nodes["Raycast"].outputs[0], new_nodes["Mix.002"].inputs[0])
-    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Mix.002"].inputs[4])
+    tree_links.new(new_nodes["Mix.001"].outputs[1], new_nodes["Mix.002"].inputs[4])
     tree_links.new(new_nodes["Mix.002"].outputs[1], new_nodes["Vector Math.007"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.007"].outputs[0], new_nodes["Capture Attribute.001"].inputs[1])
-    tree_links.new(new_nodes["Capture Attribute.002"].outputs[0], new_nodes["Capture Attribute.001"].inputs[0])
-    tree_links.new(new_nodes["Capture Attribute.001"].outputs[1], new_nodes["Group Output"].inputs[3])
-    tree_links.new(new_nodes["Capture Attribute.001"].outputs[0], new_nodes["Extrude Mesh"].inputs[0])
+    tree_links.new(new_nodes["Vector Math.007"].outputs[0], new_nodes["Capture Attribute.002"].inputs[1])
+    tree_links.new(new_nodes["Capture Attribute.001"].outputs[0], new_nodes["Capture Attribute.002"].inputs[0])
+    tree_links.new(new_nodes["Capture Attribute.002"].outputs[1], new_nodes["Group Output"].inputs[3])
+    tree_links.new(new_nodes["Capture Attribute.002"].outputs[0], new_nodes["Extrude Mesh"].inputs[0])
     tree_links.new(new_nodes["Mix.002"].outputs[1], new_nodes["Extrude Mesh"].inputs[2])
     tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Vector Math.008"].inputs[0])
     tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Mix.002"].inputs[5])
     tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Vector Math.008"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Compare"].inputs[0])
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group
 
 def create_spring_connect_mod_geo_node_group(new_node_group):
+    # remove old group inputs and outputs
+    new_node_group.inputs.clear()
+    new_node_group.outputs.clear()
     # remove old group inputs and outputs
     new_node_group.inputs.clear()
     new_node_group.outputs.clear()
@@ -835,7 +841,7 @@ def create_spring_connect_mod_geo_node_group(new_node_group):
     new_input = new_node_group.inputs.new(type='NodeSocketFloatFactor', name="Include Ratio")
     new_input.min_value = 0.000000
     new_input.max_value = 1.000000
-    new_input.default_value = 0.500000
+    new_input.default_value = 1.000000
     new_input = new_node_group.inputs.new(type='NodeSocketVector', name="Connect Position")
     new_input.hide_value = True
     new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
@@ -848,29 +854,6 @@ def create_spring_connect_mod_geo_node_group(new_node_group):
     node = tree_nodes.new(type="NodeGroupOutput")
     node.location = (1019, 196)
     new_nodes["Group Output"] = node
-    # Normal
-    node = tree_nodes.new(type="GeometryNodeInputNormal")
-    node.location = (764, -333)
-    new_nodes["Normal"] = node
-    # Vector Math
-    node = tree_nodes.new(type="ShaderNodeVectorMath")
-    node.location = (764, -196)
-    node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = -1.000000
-    new_nodes["Vector Math"] = node
-    # Group
-    node = tree_nodes.new(type="GeometryNodeGroup")
-    node.location = (764, 196)
-    node.node_tree = bpy.data.node_groups.get(SPRING_CONNECT_VERT_GEO_NG_NAME)
-    node.inputs[2].default_value = False
-    node.inputs[4].default_value = 1.000000
-    node.inputs[6].default_value = 1.000000
-    node.inputs[7].default_value = 0.000000
-    node.inputs[8].default_value = 0.020000
-    node.inputs[10].default_value = 0.001000
-    new_nodes["Group"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (510, -196)
@@ -878,28 +861,11 @@ def create_spring_connect_mod_geo_node_group(new_node_group):
     node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = -1.000000
-    new_nodes["Vector Math.001"] = node
+    new_nodes["Vector Math"] = node
     # Normal
     node = tree_nodes.new(type="GeometryNodeInputNormal")
     node.location = (510, -333)
-    new_nodes["Normal.001"] = node
-    # Group
-    node = tree_nodes.new(type="GeometryNodeGroup")
-    node.location = (510, 196)
-    node.node_tree = bpy.data.node_groups.get(SPRING_CONNECT_VERT_GEO_NG_NAME)
-    node.inputs[2].default_value = False
-    node.inputs[4].default_value = 0.060000
-    node.inputs[6].default_value = 0.040000
-    node.inputs[7].default_value = 0.333300
-    node.inputs[8].default_value = 0.020000
-    node.inputs[10].default_value = 0.030000
-    new_nodes["Group.001"] = node
-    # Object Info
-    node = tree_nodes.new(type="GeometryNodeObjectInfo")
-    node.location = (294, 59)
-    node.transform_space = "ORIGINAL"
-    node.inputs[1].default_value = False
-    new_nodes["Object Info"] = node
+    new_nodes["Normal"] = node
     # ID
     node = tree_nodes.new(type="GeometryNodeInputID")
     node.location = (294, -294)
@@ -916,28 +882,66 @@ def create_spring_connect_mod_geo_node_group(new_node_group):
     node.inputs[5].default_value = 100
     node.inputs[8].default_value = 0
     new_nodes["Random Value"] = node
+    # Group
+    node = tree_nodes.new(type="GeometryNodeGroup")
+    node.location = (764, 196)
+    node.node_tree = bpy.data.node_groups.get(SPRING_CONNECT_VERT_GEO_NG_NAME)
+    node.inputs[2].default_value = False
+    node.inputs[4].default_value = 0.000000
+    node.inputs[5].default_value = 1.000000
+    node.inputs[7].default_value = 1.000000
+    node.inputs[8].default_value = 0.000000
+    node.inputs[9].default_value = 0.000000
+    new_nodes["Group"] = node
+    # Group
+    node = tree_nodes.new(type="GeometryNodeGroup")
+    node.location = (510, 196)
+    node.node_tree = bpy.data.node_groups.get(SPRING_CONNECT_VERT_GEO_NG_NAME)
+    node.inputs[2].default_value = False
+    node.inputs[4].default_value = 0.0061803399
+    node.inputs[5].default_value = 0.061803399
+    node.inputs[7].default_value = 0.061803399
+    node.inputs[8].default_value = 0.61803399
+    node.inputs[9].default_value = 0.016803399
+    new_nodes["Group.001"] = node
     # Group Input
     node = tree_nodes.new(type="NodeGroupInput")
     node.location = (98, 137)
     new_nodes["Group Input"] = node
+    # Object Info
+    node = tree_nodes.new(type="GeometryNodeObjectInfo")
+    node.location = (294, 59)
+    node.transform_space = "ORIGINAL"
+    node.inputs[1].default_value = False
+    new_nodes["Object Info"] = node
+    # Position
+    node = tree_nodes.new(type="GeometryNodeInputPosition")
+    node.location = (294, 176)
+    new_nodes["Position"] = node
+    # Geometry Proximity
+    node = tree_nodes.new(type="GeometryNodeProximity")
+    node.location = (294, 333)
+    node.target_element = "FACES"
+    new_nodes["Geometry Proximity"] = node
     # create links
     tree_links = new_node_group.links
     tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Group.001"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Group.001"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Group.001"].inputs[5])
-    tree_links.new(new_nodes["Normal.001"].outputs[0], new_nodes["Vector Math.001"].inputs[0])
+    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Group.001"].inputs[6])
     tree_links.new(new_nodes["Normal"].outputs[0], new_nodes["Vector Math"].inputs[0])
     tree_links.new(new_nodes["Group.001"].outputs[0], new_nodes["Group"].inputs[0])
     tree_links.new(new_nodes["Group.001"].outputs[1], new_nodes["Group"].inputs[1])
-    tree_links.new(new_nodes["Group.001"].outputs[3], new_nodes["Group"].inputs[5])
+    tree_links.new(new_nodes["Group.001"].outputs[3], new_nodes["Group"].inputs[6])
     tree_links.new(new_nodes["Group.001"].outputs[2], new_nodes["Group"].inputs[3])
-    tree_links.new(new_nodes["Object Info"].outputs[3], new_nodes["Group.001"].inputs[9])
-    tree_links.new(new_nodes["Object Info"].outputs[3], new_nodes["Group"].inputs[9])
+    tree_links.new(new_nodes["Object Info"].outputs[3], new_nodes["Group.001"].inputs[10])
+    tree_links.new(new_nodes["Object Info"].outputs[3], new_nodes["Group"].inputs[10])
     tree_links.new(new_nodes["Group"].outputs[0], new_nodes["Group Output"].inputs[0])
     tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Object Info"].inputs[0])
     tree_links.new(new_nodes["ID"].outputs[0], new_nodes["Random Value"].inputs[7])
     tree_links.new(new_nodes["Random Value"].outputs[3], new_nodes["Group.001"].inputs[1])
     tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Random Value"].inputs[6])
+    tree_links.new(new_nodes["Object Info"].outputs[3], new_nodes["Geometry Proximity"].inputs[0])
+    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
+    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Group.001"].inputs[3])
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group

@@ -34,15 +34,14 @@ class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
     def poll(cls, context):
         act_ob = context.active_object
         sel_ob = context.selected_objects
-        return context.object.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
+        return act_ob != None and act_ob.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
             len([ob for ob in sel_ob if ob.type == 'MESH']) == 2
 
     def execute(self, context):
         a = context.scene.amh2b
         act_ob = context.active_object
         sel_ob = context.selected_objects
-        # TODO replace True with actual 'override_create'
-        create_weighting_object(context, True, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1],
+        create_weighting_object(context, a.nodes_override_create, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1],
             a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
         return {'FINISHED'}
 
@@ -59,10 +58,10 @@ class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and context.object.mode == 'OBJECT'
+        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
 
     def execute(self, context):
-        gn_mod = get_sbw_geo_nodes_mod(context.active_object)
+        gn_mod = get_sbw_geo_nodes_mod(context.active_object, context.scene.amh2b.sb_weight_geo_modifier)
         if gn_mod is None:
             self.report({'ERROR'}, "Active object is missing WeightSoftBody Geometry Nodes")
             return {'CANCELLED'}
@@ -84,7 +83,7 @@ class AMH2B_OT_DataTransferSBWeight(Operator):
     def poll(cls, context):
         act_ob = context.active_object
         sel_ob = context.selected_objects
-        return context.object.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
+        return act_ob != None and act_ob.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
             len([ob for ob in sel_ob if ob.type == 'MESH']) == 2
 
     def execute(self, context):
@@ -107,32 +106,28 @@ class AMH2B_OT_PresetSoftBody(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return context.object.mode == 'OBJECT' and act_ob != None and act_ob.type == 'MESH'
+        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
 
     def execute(self, context):
         act_ob = context.active_object
         a = context.scene.amh2b
-        preset_soft_body(act_ob, a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name,
-            a.sb_dt_spring_vg_name, a.sb_add_mask_modifier)
+        preset_soft_body(act_ob, a.sb_dt_goal_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
         return {'FINISHED'}
 
 class AMH2B_OT_AddSoftBodySpring(Operator):
-    bl_description = "Add vertexes/edges to active Object to connect with other selected Object"
+    bl_description = "Add vertexes/edges to active Object using Connect position attribute " \
+        "(Vertex -> Float Vector type). e.g. Use ShapeKey to Attribute function in AMH2B -> Attributes panel"
     bl_idname = "amh2b.add_soft_body_spring"
     bl_label = "Add Springs"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # returns True if two Objects are selected, one of them is active_object, and both Objects are type MESH
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        sel_ob = context.selected_objects
-        return context.object.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
-            len([ob for ob in sel_ob if ob.type == 'MESH']) == 2
+        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
 
     def execute(self, context):
         act_ob = context.active_object
-        sel_ob = context.selected_objects
-        # TODO replace True with actual 'override_create'
-        add_soft_body_spring(True, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1])
+        a = context.scene.amh2b
+        add_soft_body_spring(a.nodes_override_create, act_ob, a.sb_add_spring_attrib)
         return {'FINISHED'}

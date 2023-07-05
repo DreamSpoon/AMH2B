@@ -23,9 +23,6 @@ SC_VGRP_ASTITCH = SC_VGRP_AUTO_PREFIX+"Stch"
 SC_VGRP_TSEWN = SC_VGRP_AUTO_PREFIX+"ClothSew"
 SC_MN_ASTITCH = "AStitch"
 
-SC_VGRP_MASKOUT = SC_VGRP_AUTO_PREFIX+"MaskOut"
-SC_VGRP_CLOTH_PIN = SC_VGRP_AUTO_PREFIX+"ClothPin"
-
 # Deform Shape Keys match distance
 FC_MATCH_DIST = 0.00001
 # Deform Shape Key default name prefix

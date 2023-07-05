@@ -16,16 +16,15 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import bpy
-from bpy.types import Operator
 import csv
 import fnmatch
 import math
 
-from .armature_func import add_armature_to_objects
+import bpy
+
 from .bone_strings import (amh2b_rig_stitch_dest_list, amh2b_rig_type_bone_names)
-from .items import (amh2b_fk_ik_both_none_items, amh2b_src_rig_type_items, amh2b_yes_no_items)
-from .object_func import dup_selected
+from ..object_func import (dup_selected, add_armature_to_objects, get_scene_user_collection,
+    is_object_in_sub_collection, get_objects_using_armature)
 
 #####################################################
 #     Adjust Pose
@@ -98,28 +97,6 @@ def get_csv_lines_from_textblock(datablock_textname):
                            skipinitialspace=True)
     return list(csv_lines)
 
-class AMH2B_OT_AdjustPose(Operator):
-    """Add to rotations of pose of active object by way of CSV script in Blender's Text Editor. Default script name is Text"""
-    bl_idname = "amh2b.arm_adjust_pose"
-    bl_label = "Adjust Pose"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    text_block_name_enum : bpy.props.StringProperty(name="Script TextBlock Name", description="Name of object, in Text Editor, that contains CSV script.", default="Text")
-
-    def execute(self, context):
-        act_ob = context.active_object
-        # quit if Active Object is None or not an armature
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-
-        err_str = do_adjust_pose(act_ob)
-        if err_str is None:
-            return {'FINISHED'}
-
-        self.report({'ERROR'}, err_str)
-        return {'CANCELLED'}
-
 #####################################################
 #     Apply Scale
 # Apply scale to armature (this is only needed for armature scale apply),
@@ -167,21 +144,6 @@ def do_apply_scale(act_ob):
     bpy.context.scene.frame_set(bpy.context.scene.frame_current-1)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_ApplyScale(Operator):
-    """Apply Scale to active object (ARMATURE type) without corrupting the armature pose data (i.e. location)"""
-    bl_idname = "amh2b.arm_apply_scale"
-    bl_label = "Apply Scale to Rig"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-
-        do_apply_scale(act_ob)
-        return {'FINISHED'}
 
 #####################################################
 #     Bridge Re-Pose Rig
@@ -236,21 +198,6 @@ def do_bridge_repose_rig(act_ob, sel_obj_list):
     bpy.ops.pose.armature_apply()
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_BridgeRepose(Operator):
-    """Create a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
-    bl_idname = "amh2b.arm_bridge_repose"
-    bl_label = "Bridge Re-Pose"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-
-        do_bridge_repose_rig(act_ob, context.selected_objects)
-        return {'FINISHED'}
 
 #####################################################
 #     Bone Woven
@@ -610,13 +557,10 @@ def detect_rig_type(given_rig):
     best_bone_count_found = 0
     for typename, bone_names in amh2b_rig_type_bone_names.items():
         bn_match_count = get_bone_name_match_count(bone_names, given_bone_names)
-        # test current match count against best match count to find better, use better (more bone name matches) if found 
+        # test current match count against best match count to find better, use better (more bone name matches) if found
         if bn_match_count >= amh2b_min_bones_for_rig_match and bn_match_count > best_bone_count_found:
-            print("possible match with count=" + str(bn_match_count) + ", name=" + typename)
             best_typename_found = typename
             best_bone_count_found = bn_match_count
-    print("best_typename_found=" + best_typename_found)
-    print("best_bone_count_found=" + str(best_bone_count_found))
     # return failure if zero bone name matches were found - the armature configuration is unknown
     if best_bone_count_found == 0:
         return None
@@ -650,146 +594,6 @@ def do_bone_woven(self, dest_rig_obj, src_rig_obj):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_OT_BoneWoven(Operator):
-    """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
-    bl_idname = "amh2b.arm_bone_woven"
-    bl_label = "Bone Woven"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "src_rig_type_enum")
-        layout.prop(self, "torso_stitch_enum")
-        layout.prop(self, "arm_left_stitch_enum")
-        layout.prop(self, "arm_right_stitch_enum")
-        layout.prop(self, "leg_left_stitch_enum")
-        layout.prop(self, "leg_right_stitch_enum")
-        layout.prop(self, "fingers_left_stitch_enum")
-        layout.prop(self, "fingers_right_stitch_enum")
-
-    def execute(self, context):
-        act_ob = context.active_object
-        sel_obs = context.selected_objects
-        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
-            self.report({'ERROR'}, "Select exactly 2 ARMATURES and try again")
-            return {'CANCELLED'}
-
-        dest_rig_obj = act_ob
-        src_rig_obj = None
-        if sel_obs[0] != act_ob:
-            src_rig_obj = sel_obs[0]
-        else:
-            src_rig_obj = sel_obs[1]
-
-        do_bone_woven(self, dest_rig_obj, src_rig_obj)
-
-        return {'FINISHED'}
-
-#####################################################
-#     Lucky
-# One button to do all the work, or at least as much as possible, i.e.
-# Automatically apply location/rotation/scale to animated armature,
-# repose MHX armature and it"s parented objects (e.g. clothes, hair),
-# apply Bone Woven.
-#
-#   Instructions for use:
-# Select all meshes attached to the MHX Armature, and the Animated Armature, and the MHX Armature.
-# The MHX Armature must be selected last so that it is the Active Object.
-
-def do_lucky(self, mhx_arm_obj, other_armature_obj, sel_obj_list):
-    old_3dview_mode = bpy.context.object.mode
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    # since MHX armature is already the active object, do repose first
-    if self.repose_rig_enum == 'YES':
-        do_bridge_repose_rig(mhx_arm_obj, sel_obj_list)
-
-    # de-select all objects
-    bpy.ops.object.select_all(action='DESELECT')
-
-    # select secondary armature (the animated armature), and make it the active object
-    other_armature_obj.select_set(True)
-    bpy.context.view_layer.objects.active = other_armature_obj
-
-    # use Blender to apply location and rotation to animated armature
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
-    # use custom apply scale to animated armature
-    do_apply_scale(other_armature_obj)
-
-    # other_armature_obj will still be selected and the active_object, so just add the MHX armature
-    # to the selected list and make it the active object
-    mhx_arm_obj.select_set(True)
-    bpy.context.view_layer.objects.active = mhx_arm_obj
-
-    # do bone woven
-    do_bone_woven(self, mhx_arm_obj, other_armature_obj)
-
-    bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-# TODO: Use BoneWoven as the base class instead of Operator,
-# to get rid of doubling of code for user options input.
-class AMH2B_OT_Lucky(Operator):
-    """Given user selected MHX armature, animated source armature, and objects attached to MHX armature: do RePose, then Apply Scale, then BoneWoven: so the result is a correctly animated MHX armature - with working finger rig, face rig, etc"""
-    bl_idname = "amh2b.arm_lucky"
-    bl_label = "Lucky"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    repose_rig_enum : bpy.props.EnumProperty(name="Re-Pose Rig", description="Apply Re-Pose to rig during lucky process yes/no.", items=amh2b_yes_no_items)
-    src_rig_type_enum : bpy.props.EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    torso_stitch_enum : bpy.props.EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    arm_left_stitch_enum : bpy.props.EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : bpy.props.EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : bpy.props.EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : bpy.props.EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : bpy.props.EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : bpy.props.EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "repose_rig_enum")
-        layout.prop(self, "src_rig_type_enum")
-        layout.prop(self, "torso_stitch_enum")
-        layout.prop(self, "arm_left_stitch_enum")
-        layout.prop(self, "arm_right_stitch_enum")
-        layout.prop(self, "leg_left_stitch_enum")
-        layout.prop(self, "leg_right_stitch_enum")
-        layout.prop(self, "fingers_left_stitch_enum")
-        layout.prop(self, "fingers_right_stitch_enum")
-
-    def execute(self, context):
-        mhx_arm_obj = context.active_object
-
-        # quit if no MHX rig selected or active object is wrong type
-        if mhx_arm_obj is None or mhx_arm_obj.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-
-        # get the animated armature (other_armature_obj) from the list of selected objects
-        # (other_armature_obj will be joined to the MHX armature)
-        other_armature_obj = None
-        for ob in context.selected_objects:
-            if ob.name != mhx_arm_obj.name:
-                if ob.type == 'ARMATURE':
-                    other_armature_obj = ob
-                    break
-
-        # quit if no secondary armature is selected
-        if other_armature_obj == None:
-            self.report({'ERROR'}, "Could not find other armature to join with MHX armature")
-            return {'CANCELLED'}
-
-        do_lucky(self, mhx_arm_obj, other_armature_obj, context.selected_objects)
-        return {'FINISHED'}
-
 def do_toggle_preserve_volume(new_state, sel_obj_list):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -802,26 +606,6 @@ def do_toggle_preserve_volume(new_state, sel_obj_list):
                 mod.use_deform_preserve_volume = new_state
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_EnableModPreserveVolume(Operator):
-    """Enable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
-    bl_idname = "amh2b.arm_enable_preserve_volume"
-    bl_label = "Enable"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_toggle_preserve_volume(True, context.selected_objects)
-        return {'FINISHED'}
-
-class AMH2B_OT_DisableModPreserveVolume(Operator):
-    """Disable 'Preserve Volume' in all Armature modifiers attached to all selected MESH type objects"""
-    bl_idname = "amh2b.arm_disable_preserve_volume"
-    bl_label = "Disable"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_toggle_preserve_volume(False, context.selected_objects)
-        return {'FINISHED'}
 
 def get_generic_bone_name(bone_name, generic_prefix):
     if bone_name.rfind(":") != -1:
@@ -851,16 +635,6 @@ def do_rename_generic(new_generic_prefix, include_mhx, sel_obj_list):
         rename_bones_generic(new_generic_prefix, include_mhx, ob)
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_RenameGeneric(Operator):
-    """Rename armature bones to match the format 'aaaa:bbbb', where 'aaaa' is the generic prefix"""
-    bl_idname = "amh2b.arm_rename_generic"
-    bl_label = "Rename Generic"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_rename_generic(context.scene.amh2b.arm_generic_prefix, context.scene.amh2b.arm_generic_mhx, context.selected_objects)
-        return {'FINISHED'}
 
 def get_non_generic_bone_name(bone_name):
     if bone_name.rfind(":") != -1:
@@ -893,12 +667,29 @@ def do_un_name_generic(include_mhx, sel_obj_list):
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_OT_UnNameGeneric(Operator):
-    """Rename bones to remove any formating like 'aaaa:bbbb', where 'aaaa' is removed and the bones name becomes 'bbbb'"""
-    bl_idname = "amh2b.arm_un_name_generic"
-    bl_label = "Un-name Generic"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        do_un_name_generic(context.scene.amh2b.arm_generic_mhx, context.selected_objects)
-        return {'FINISHED'}
+def cleanup_gizmos(context):
+    # iterate over all Armature type Objects,
+    # iterate over bones in each Armature, searching for 'bone shape' Objects,
+    # verifying each 'bone shape' Object is in a Collection under Armature's Collection,
+    # and adding 'hidden' Collections as needed and moving gizmos to 'hidden' Collections as needed
+    for arm_ob in bpy.data.objects:
+        if arm_ob.type != 'ARMATURE':
+            continue
+        arm_coll = get_scene_user_collection(context.scene, arm_ob.users_collection)
+        if arm_coll is None:
+            continue
+        for pose_bone in arm_ob.pose.bones:
+            cs_ob = pose_bone.custom_shape
+            if cs_ob is None:
+                continue
+            cs_coll = get_scene_user_collection(context.scene, cs_ob.users_collection)
+            if cs_coll is None or is_object_in_sub_collection(cs_ob, arm_coll):
+                continue
+            hidden_coll = arm_coll.children.get("Hidden")
+            if hidden_coll is None:
+                hidden_coll = bpy.data.collections.new(name="Hidden")
+                hidden_coll.hide_viewport = True
+                hidden_coll.hide_render = True
+                arm_coll.children.link(hidden_coll)
+            cs_coll.objects.unlink(cs_ob)
+            hidden_coll.objects.link(cs_ob)

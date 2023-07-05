@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-import numpy
+from numpy import subtract as np_subtract
 
 #####################################################
 #     Ratchet Hold
@@ -65,7 +65,7 @@ def do_ratchet_hold(obj_to_ratchet, sel_obj_list):
     hold_obj_new_loc = hold_onto_obj.matrix_world.to_translation()
     # Calculate offset (in world coordinate system) for moving object to ratchet,
     # such that hold onto object remains stationary.
-    delta_move = numpy.subtract(hold_obj_old_loc, hold_obj_new_loc)
+    delta_move = np_subtract(hold_obj_old_loc, hold_obj_new_loc)
     # do move in (world coordinate system)
     bpy.ops.transform.translate(value=delta_move, orient_type='GLOBAL')
     # insert location keyframes on object to ratchet at new location
@@ -87,6 +87,6 @@ class AMH2B_OT_RatchetHold(bpy.types.Operator):
             self.report({'ERROR'}, "Select exactly 2 objects and try again")
             return {'CANCELLED'}
 
-        for i in range(0, context.scene.amh2b.anim_ratchet_frames):
+        for _ in range(0, context.scene.amh2b.anim_ratchet_frames):
             do_ratchet_hold(context.active_object, context.selected_objects)
         return {'FINISHED'}

@@ -23,19 +23,24 @@ from mathutils import Vector
 from numpy import subtract as np_subtract
 from numpy import array as np_array
 
+import bmesh
 import bpy
-from bpy_extras.io_utils import ImportHelper
-from bpy.types import Operator
 
-from .append_from_file_func import append_object_from_blend_file
-from .const import (FC_MATCH_DIST, SC_TEMP_SK_X, SC_TEMP_SK_Y, SC_TEMP_SK_Z, SC_VGRP_MASKOUT)
-from .object_func import delete_all_objects_except, check_create_basis_shape_key
-from .template import get_searchable_object_name
+from ..append_from_file_func import append_object_from_blend_file
+from ..const import (FC_MATCH_DIST, SC_TEMP_SK_X, SC_TEMP_SK_Y, SC_TEMP_SK_Z)
+from ..object_func import delete_all_objects_except, check_create_basis_shape_key
+from ..template import get_searchable_object_name
 
-SK_MENU_FUNC_ITEMS = [
-    ("SK_FUNC_BAKE", "Bake", "Bake mesh deform shapes to ShapeKeys"),
-    ("SK_FUNC_COPY", "Copy", ""),
-    ("SK_FUNC_DELETE", "Delete", ""),
+SK_FUNC_APPLY_MOD = "SK_FUNC_APPLY_MOD"
+SK_FUNC_BAKE = "SK_FUNC_BAKE"
+SK_FUNC_COPY = "SK_FUNC_COPY"
+SK_FUNC_DELETE = "SK_FUNC_DELETE"
+SK_FUNC_ITEMS = [
+    (SK_FUNC_APPLY_MOD, "Apply Modifier", "Apply Object Modifiers to mesh, with respect to ShapeKeys. Only " \
+         "active Modifier(s) will be applied, and Modifier(s) will not be removed"),
+    (SK_FUNC_BAKE, "Bake", "Bake mesh deform shapes to ShapeKeys"),
+    (SK_FUNC_COPY, "Copy", ""),
+    (SK_FUNC_DELETE, "Delete", ""),
 ]
 
 def is_name_prefix_match(name, prefix):
@@ -63,18 +68,6 @@ def do_sk_func_delete(sel_obj_list, delete_prefix):
                      if x.type == 'MESH' and x.data.shape_keys is not None and
                      len(x.data.shape_keys.key_blocks) > 1):
         delete_shapekeys_by_prefix(mesh_obj, delete_prefix)
-
-
-class AMH2B_OT_SKFuncDelete(Operator):
-    """With selected MESH type objects, delete shape keys by prefix"""
-    bl_idname = "amh2b.sk_func_delete"
-    bl_label = "Delete Keys"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        delete_prefix = context.scene.amh2b.sk_function_prefix
-        do_sk_func_delete(context.selected_objects, delete_prefix)
-        return {'FINISHED'}
 
 def v_distance(point1, point2) -> float:
     return math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2 + (point2[2] - point1[2]) ** 2)
@@ -110,7 +103,7 @@ def get_vertex_difference_scales(src_obj, dst_obj):
 
     return output_list
 
-def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size):
+def copy_shapekeys_by_name_prefix(context, src_obj, dest_objects, copy_prefix, adapt_size):
     if src_obj.data.shape_keys is None:
         return
 
@@ -140,7 +133,7 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
 
         show_temp = dest_obj.show_only_shape_key
         dest_obj.select_set(True)
-        bpy.context.view_layer.objects.active = dest_obj
+        context.view_layer.objects.active = dest_obj
         check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
             if sk.name == 'Basis':
@@ -168,41 +161,16 @@ def copy_shapekeys_by_name_prefix(src_obj, dest_objects, copy_prefix, adapt_size
 
     src_obj.select_set(False)
 
-def do_copy_shape_keys(src_object, dest_objects, copy_prefix, adapt_size):
-    old_3dview_mode = bpy.context.object.mode
+def do_copy_shape_keys(context, src_object, dest_objects, copy_prefix, adapt_size):
+    old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
     # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
     # and this requires exactly two specific objects be selected per shape key copy
     bpy.ops.object.select_all(action='DESELECT')
 
-    copy_shapekeys_by_name_prefix(src_object, dest_objects, copy_prefix, adapt_size)
+    copy_shapekeys_by_name_prefix(context, src_object, dest_objects, copy_prefix, adapt_size)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-# TODO copy animation keyframes too
-class AMH2B_OT_SKFuncCopy(Operator):
-    """With active object, copy shape keys by prefix to all other selected objects"""
-    bl_idname = "amh2b.sk_func_copy"
-    bl_label = "Copy Keys"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        copy_prefix = context.scene.amh2b.sk_function_prefix
-        ob_act = context.active_object
-        if ob_act is None or ob_act.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-        if ob_act.data.shape_keys is None or len(ob_act.data.shape_keys.key_blocks) < 2:
-            self.report({'ERROR'}, "Active object does not have enough shape keys to be copied")
-            return {'CANCELLED'}
-
-        other_obj_list = [ob for ob in context.selected_editable_objects if ob.type == 'MESH' and ob != ob_act]
-        if len(other_obj_list) < 1:
-            self.report({'ERROR'}, "No meshes were selected to receive copied shape keys")
-            return {'CANCELLED'}
-
-        do_copy_shape_keys(ob_act, other_obj_list, copy_prefix, context.scene.amh2b.sk_adapt_size)
-        return {'FINISHED'}
 
 def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
     old_3dview_mode = bpy.context.object.mode
@@ -262,20 +230,6 @@ def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, ada
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_OT_SearchFileForAutoShapeKeys(Operator, ImportHelper):
-    """For each selected MESH object: Search another file automatically and try to copy shape keys based on Prefix and object name.\nNote: Name of object from MHX import process is used to search for object in other selected file"""
-    bl_idname = "amh2b.sk_search_file_for_auto_sk"
-    bl_label = "Copy from File"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    filter_glob : bpy.props.StringProperty(default="*.blend", options={'HIDDEN'})
-
-    def execute(self, context):
-        scn = context.scene
-        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
-            scn.amh2b.sk_adapt_size, scn.amh2b.sk_swap_autoname_ext)
-        return {'FINISHED'}
-
 def get_mod_verts(obj):
     depsgraph = bpy.context.evaluated_depsgraph_get()
     object_eval = obj.evaluated_get(depsgraph)
@@ -291,9 +245,7 @@ def get_vert_matches(obj, mask_vgroup_name, mask_include):
     kd = mathutils.kdtree.KDTree(len(base_verts))
     for v in base_verts:
         kd.insert((v.co.x, v.co.y, v.co.z), v.index)
-
     kd.balance()
-
     # search the modified vertices for overlapping verts and build the "matches" list
     mod_verts = get_mod_verts(obj)
     matches = []
@@ -304,7 +256,6 @@ def get_vert_matches(obj, mask_vgroup_name, mask_include):
         # if none found within match distance then goto next iteration
         if len(found_list) < 1:
             continue
-
         found_vert_index = found_list[0][1]
         if mask_vgroup_name != "":
             mask_vgroup = obj.vertex_groups.get(mask_vgroup_name)
@@ -319,22 +270,18 @@ def get_vert_matches(obj, mask_vgroup_name, mask_include):
 
         # append match tuple [base_mesh_vert_index, modified_mesh_vert_index]
         matches.append([found_vert_index, i])
-
     return matches
 
 def create_single_deform_shape_key(obj, add_prefix, vert_matches, mod_verts):
     check_create_basis_shape_key(obj)
-
     # create a shape key
     sk = obj.shape_key_add(name=add_prefix)
-
     sk.interpolation = 'KEY_LINEAR'
     # modify shape key vertex positions to match modified (deformed) mesh
     for base_v_index, mod_v_index in vert_matches:
         sk.data[base_v_index].co.x = mod_verts[mod_v_index].x
         sk.data[base_v_index].co.y = mod_verts[mod_v_index].y
         sk.data[base_v_index].co.z = mod_verts[mod_v_index].z
-
     return sk
 
 mod_names = ['ARMATURE', 'CAST', 'CURVE', 'DISPLACE', 'HOOK', 'LAPLACIANDEFORM', 'LATTICE', 'MESH_DEFORM',
@@ -353,7 +300,6 @@ def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys
     for frame in range(start_frame_num, end_frame_num+1):
         bpy.context.scene.frame_set(frame)
         mod_verts = get_mod_verts(obj)
-
         prefix = add_prefix
         if append_frame_to_name:
             prefix = prefix + str(frame).zfill(4)
@@ -493,9 +439,9 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_y)
     obj.shape_key_remove(sk_z)
 
-def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
+def do_bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
     append_frame_to_name, is_dynamic, extra_accuracy, mask_vgroup_name, mask_include):
-    old_current_frame = bpy.context.scene.frame_current
+    old_current_frame = context.scene.frame_current
 
     # before binding, temporarily mute visibility of deform modifiers
     muted_deform_mods = []
@@ -518,7 +464,7 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
                 sk.mute = True
 
     # get "bind" vert matches, by location, in bind frame
-    bpy.context.scene.frame_set(bind_frame_num)
+    context.scene.frame_set(bind_frame_num)
     vert_matches = get_vert_matches(obj, mask_vgroup_name, mask_include)
     print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
 
@@ -538,68 +484,90 @@ def do_bake_deform_shape_keys(obj, add_prefix, bind_frame_num, start_frame_num, 
         do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
             vert_matches)
 
-    bpy.context.scene.frame_set(old_current_frame)
+    context.scene.frame_set(old_current_frame)
 
-class AMH2B_OT_BakeDeformShapeKeys(Operator):
-    """Bake active object's mesh deformations to shape keys"""
-    bl_idname = "amh2b.sk_bake_deform_shape_keys"
-    bl_label = "Bake Deform Keys"
-    bl_options = {'REGISTER', 'UNDO'}
+def copy_eval_bmesh_to_verts(context, from_ob, to_mesh):
+    # get 'from_ob' vertice locations, with modifiers applied (local space)
+    depsgraph = context.evaluated_depsgraph_get()
+    bm = bmesh.new()
+    bm.from_object(from_ob, depsgraph)
+    bm.verts.ensure_lookup_table()
+    # check if ShapeKeys are used, and select vertex data output
+    active_sk_index = from_ob.active_shape_key_index
+    vert_data = None
+    if to_mesh.shape_keys != None and active_sk_index < len(to_mesh.shape_keys.key_blocks):
+        vert_data = to_mesh.shape_keys.key_blocks[active_sk_index].data
+    # use Mesh vertices if ShapeKey data output is not available
+    if vert_data is None:
+        vert_data = to_mesh.vertices
+    # copy locations of bmesh vertices to output
+    for i, v in enumerate(bm.verts):
+        vert_data[i].co = v.co
+    bm.free()
 
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-
-        scn = context.scene
-        if scn.amh2b.sk_deform_name_prefix == '':
-            self.report({'ERROR'}, "Shape key name prefix (add_prefix) is blank")
-            return {'CANCELLED'}
-        if scn.amh2b.sk_start_frame > scn.amh2b.sk_end_frame:
-            self.report({'ERROR'}, "Start Frame number is higher than End Frame number")
-            return {'CANCELLED'}
-
-        do_bake_deform_shape_keys(act_ob, scn.amh2b.sk_deform_name_prefix, scn.amh2b.sk_bind_frame,
-            scn.amh2b.sk_start_frame, scn.amh2b.sk_end_frame, scn.amh2b.sk_animate,
-            scn.amh2b.sk_add_frame_to_name, scn.amh2b.sk_dynamic, scn.amh2b.sk_extra_accuracy,
-            scn.amh2b.sk_mask_vgroup_name, scn.amh2b.sk_mask_include)
-        return {'FINISHED'}
-
-def do_deform_sk_view_toggle(act_ob):
-    # save original sk_view_active state by checking all modifiers for an armature with
-    # AutoCuts vertex group; if any found then the view state is "on";
-    # also the view state is "on" if any cloth or soft body sims have their viewport view set to visible
-    sk_view_active = False
-    for mod in act_ob.modifiers:
-        if mod.type == 'ARMATURE' and mod.vertex_group == SC_VGRP_MASKOUT:
-            sk_view_active = True
-        elif (mod.type == 'CLOTH' or mod.type == 'SOFT_BODY') and mod.show_viewport == False:
-            sk_view_active = True
-
-    # based on original view state, do toggle
-    for mod in act_ob.modifiers:
-        if mod.type == 'ARMATURE' and (mod.vertex_group == SC_VGRP_MASKOUT or mod.vertex_group == ""):
-            if sk_view_active:
-                mod.vertex_group = ""
-            else:
-                mod.vertex_group = SC_VGRP_MASKOUT
-                mod.invert_vertex_group = False
-        elif mod.type == 'CLOTH' or mod.type == 'SOFT_BODY':
-            mod.show_viewport = sk_view_active
-            mod.show_render = sk_view_active
-
-class AMH2B_OT_DeformSK_ViewToggle(Operator):
-    """Toggle visibility between shape keys and cloth/soft body sims on active object.\nIntended only for non-Dynamic deform shape keys"""
-    bl_idname = "amh2b.sk_deform_sk_view_toggle"
-    bl_label = "Deform SK View Toggle"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-
-        do_deform_sk_view_toggle(act_ob)
-        return {'FINISHED'}
+def apply_modifier_sk(context, mesh_ob):
+    original_mesh = mesh_ob.data
+    # save state of original Object properties
+    original_mesh_settings = {}
+    if original_mesh.shape_keys != None:
+        if original_mesh.shape_keys.use_relative:
+            original_mesh_settings["shape_keys.use_relative"] = True
+        original_mesh_settings["active_shape_key_index"] = mesh_ob.active_shape_key_index
+        original_mesh_settings["add_rest_position_attribute"] = mesh_ob.add_rest_position_attribute
+        original_mesh_settings["show_only_shape_key"] = mesh_ob.show_only_shape_key
+    # save selected state of all Objects
+    sel_ob_names = [ ob.name for ob in bpy.data.objects if ob.select_get() ]
+    for ob in bpy.data.objects:
+        ob.select_set(False)
+    # create new Object with same mesh as original Object
+    dup_mesh_ob = bpy.data.objects.new("TempObject", mesh_ob.data)
+    context.scene.collection.objects.link(dup_mesh_ob)
+    # select only 'dup_mesh_ob' and duplicate it, which will duplicate the Mesh as well
+    dup_mesh_ob.select_set(True)
+    # get old names list, duplicate object, and check new object names against old to get new object
+    old_ob_names = [ ob.name for ob in bpy.data.objects ]
+    bpy.ops.object.duplicate(linked=False)
+    temp_mesh_ob = [ ob for ob in bpy.data.objects if ob.name not in old_ob_names ][0]
+    # remove all animation data from duplicate Mesh, so ShapeKey properties can be modified easily (Drivers on
+    # some properties could cause problems)
+    dup_mesh = temp_mesh_ob.data
+    if dup_mesh.shape_keys != None:
+        dup_mesh.shape_keys.animation_data_clear()
+    # move duplicated Mesh to original Object
+    mesh_ob.data = dup_mesh
+    # set ShapeKey to Basis, if any
+    if original_mesh.shape_keys != None:
+        original_mesh.shape_keys.use_relative = False
+        dup_mesh.shape_keys.use_relative = False
+        dup_mesh_ob.active_shape_key_index = 0
+        dup_mesh_ob.add_rest_position_attribute = False
+        dup_mesh_ob.show_only_shape_key = True
+        mesh_ob.active_shape_key_index = 0
+        mesh_ob.add_rest_position_attribute = False
+        mesh_ob.show_only_shape_key = True
+    # copy Basis
+    copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+    # copy other ShapeKeys, if any
+    if mesh_ob.data.shape_keys != None:
+        for index in range(len(mesh_ob.data.shape_keys.key_blocks) - 1):
+            dup_mesh_ob.active_shape_key_index = index + 1
+            mesh_ob.active_shape_key_index = index + 1
+            copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+    # return original Mesh to original Object
+    mesh_ob.data = original_mesh
+    # delete temp Object
+    bpy.data.objects.remove(temp_mesh_ob)
+    # delete dup mesh Object
+    bpy.data.objects.remove(dup_mesh_ob)
+    # restore selected state of all Objects
+    for ob_name in sel_ob_names:
+        ob = bpy.data.objects.get(ob_name)
+        if ob != None:
+            ob.select_set(True)
+    # restore state of original Object properties
+    if original_mesh.shape_keys != None:
+        if original_mesh_settings.get("shape_keys.use_relative") == True:
+            original_mesh.shape_keys.use_relative = True
+        mesh_ob.active_shape_key_index = original_mesh_settings["active_shape_key_index"]
+        mesh_ob.add_rest_position_attribute = original_mesh_settings["add_rest_position_attribute"]
+        mesh_ob.show_only_shape_key = original_mesh_settings["show_only_shape_key"]

@@ -21,76 +21,9 @@ import bpy
 from bpy_extras.io_utils import ImportHelper
 
 from .append_from_file_func import append_object_from_blend_file
-from .const import (SC_VGRP_MASKOUT, SC_VGRP_CLOTH_PIN)
 from .object_func import delete_all_objects_except
 from .template import get_searchable_object_name
-from .vgroup_func import (copy_vgroups_by_name_prefix, add_ifnot_vertex_grp, delete_vgroups_by_name_prefix)
-
-def do_add_maskout_mod(act_ob):
-    # add the Auto Mask vertex group if it does not exist
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_MASKOUT)
-    v_grp = act_ob.vertex_groups.get(SC_VGRP_MASKOUT)
-
-    # prevent duplicate masks: check for MaskOut in modifiers stack and quit if found
-    for mod in act_ob.modifiers:
-        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_MASKOUT:
-            return None
-
-    # add mask modifier and set it
-    mod = act_ob.modifiers.new("Auto Mask", 'MASK')
-    if mod is None:
-        return "Unable to add MASK modifier to object" + act_ob.name
-
-    mod.vertex_group = v_grp.name
-    mod.invert_vertex_group = True
-    # move modifier to top of stack
-    while act_ob.modifiers.find(mod.name) != 0:
-        bpy.ops.object.modifier_move_up({"object": act_ob}, modifier=mod.name)
-
-    return None
-
-class AMH2B_OT_AddMaskOutMod(bpy.types.Operator):
-    """Add Mask modifier to implement AutoMaskOut, adding AutoMaskOut vertex group to active object if needed"""
-    bl_idname = "amh2b.vg_add_maskout_modifier"
-    bl_label = "Add MaskOut Modifier"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-
-        err_str = do_add_maskout_mod(act_ob)
-        if err_str == None:
-            return {'FINISHED'}
-
-        self.report({'ERROR'}, err_str)
-        return {'CANCELLED'}
-
-def do_toggle_view_maskout_mod(act_ob):
-    # find the MaskOut modifier in the stack
-    for mod in act_ob.modifiers:
-        if mod.type == 'MASK' and mod.vertex_group == SC_VGRP_MASKOUT:
-            # toggle and ensure that viewport and render visibility are the same
-            mod.show_viewport = not mod.show_viewport
-            mod.show_render = mod.show_viewport
-            return
-
-class AMH2B_OT_ToggleViewMaskoutMod(bpy.types.Operator):
-    """Toggle the visibility of the Auto Mask modifier, in viewport and render"""
-    bl_idname = "amh2b.vg_toggle_auto_maskout"
-    bl_label = "Toggle AutoMaskOut"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-
-        do_toggle_view_maskout_mod(act_ob)
-        return {'FINISHED'}
+from .vgroup_func import (copy_vgroups_by_name_prefix, delete_vgroups_by_name_prefix)
 
 def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix, create_name_only):
     old_3dview_mode = bpy.context.object.mode
@@ -152,30 +85,6 @@ class AMH2B_OT_DeleteVertexGroupsByPrefix(bpy.types.Operator):
             return {'CANCELLED'}
 
         delete_prefixed_vertex_groups(context.selected_objects, scn.amh2b.vg_func_name_prefix)
-        return {'FINISHED'}
-
-def do_make_tailor_vgroups(act_ob):
-    old_3dview_mode = bpy.context.object.mode
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_MASKOUT)
-    add_ifnot_vertex_grp(act_ob, SC_VGRP_CLOTH_PIN)
-
-    bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-class AMH2B_OT_MakeTailorGroups(bpy.types.Operator):
-    """Add AutoMaskOut and AutoClothPin vertex groups to the active object, if these groups don't already exist"""
-    bl_idname = "amh2b.vg_make_auto_vgroups"
-    bl_label = "Add Groups"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'MESH':
-            self.report({'ERROR'}, "Active object is not MESH type")
-            return {'CANCELLED'}
-
-        do_make_tailor_vgroups(act_ob)
         return {'FINISHED'}
 
 def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext,

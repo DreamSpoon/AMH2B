@@ -24,28 +24,76 @@ from .geo_nodes import (REFLECT_PROXIMITY_GEO_NG_NAME, SB_WEIGHT_GEO_NG_NAME, SP
 from .mat_nodes import create_weight_test_mat_nodes
 from ..node_other import ensure_node_group
 
-SB_FUNCTION_SPRING = "SB_SPRING"
 SB_FUNCTION_WEIGHT = "SB_WEIGHT"
 SB_FUNCTION_DATA_TRANSFER = "SB_DATA_TRANSFER"
+SB_FUNCTION_SPRING = "SB_SPRING"
 SB_FUNCTION_MODIFIER = "SB_MODIFIER"
 SB_FUNCTION_ITEMS = [
-    (SB_FUNCTION_SPRING, "Spring", "Add springs (vertices/edges) to Mesh Object"),
     (SB_FUNCTION_WEIGHT, "Weight", "Calculate Soft Body vertex group weights"),
     (SB_FUNCTION_DATA_TRANSFER, "Data Transfer", "Transfer Soft Body vertex group weights between Mesh Objects"),
-    (SB_FUNCTION_MODIFIER, "SB Modifier", "Add Soft Body modifier with settings auto-filled"),
+    (SB_FUNCTION_SPRING, "Spring", "Add springs (vertices/edges) to Mesh Object"),
+    (SB_FUNCTION_MODIFIER, "Modifier", "Add Soft Body modifier with settings auto-filled"),
     ]
 
+# each element of 'input_list' is dictionary type, using format:
+# {
+#     "value": x,
+#     "use_attribute": True/False,
+#     "attribute_name": y,
+#     }
 def set_geo_nodes_mod_inputs(gn_mod, input_list):
+    val_key = None
+    use_attr_key = None
+    attr_name_key = None
     index = 0
-    for inp_key in gn_mod.keys():
-        if not inp_key.lower().startswith('input') or inp_key.lower().endswith('_attribute_name') or \
-            inp_key.lower().endswith('_use_attribute'):
+    for mod_key in gn_mod.keys():
+        if index >= len(input_list):
+            return
+        elif not mod_key.lower().startswith('input'):
+            if val_key is None and use_attr_key is None and attr_name_key is None:
+                continue
+        elif mod_key.lower().endswith('_attribute_name'):
+            if attr_name_key is None:
+                attr_name_key = mod_key
+                continue
+        elif mod_key.lower().endswith('_use_attribute'):
+            if use_attr_key is None:
+                use_attr_key = mod_key
+                continue
+        elif val_key is None:
+            val_key = mod_key
             continue
-        try:
-            gn_mod[inp_key] = input_list[index]
-        except:
-            pass
+        # set values of inputs to given values from 'input_list', if available
+        inp_dict = input_list[index]
+        if val_key != None and val_key in gn_mod.keys() and "value" in inp_dict.keys():
+            gn_mod[val_key] = inp_dict["value"]
+        if use_attr_key != None and use_attr_key in gn_mod.keys() and "use_attribute" in inp_dict.keys():
+            gn_mod[use_attr_key] = inp_dict["use_attribute"]
+        if attr_name_key != None and attr_name_key in gn_mod.keys() and "attribute_name" in inp_dict.keys():
+            gn_mod[attr_name_key] = inp_dict["attribute_name"]
+        # increment input element index, and get input thing, if available
         index += 1
+        val_key = None
+        use_attr_key = None
+        attr_name_key = None
+        if not mod_key.lower().startswith('input'):
+            continue
+        elif mod_key.lower().endswith('_attribute_name'):
+            attr_name_key = mod_key
+        elif mod_key.lower().endswith('_use_attribute'):
+            use_attr_key = mod_key
+        else:
+            val_key = mod_key
+    if index >= len(input_list):
+        return
+    # set values of inputs to given values from 'input_list', if available
+    inp_dict = input_list[index]
+    if val_key != None and val_key in gn_mod.keys() and "value" in inp_dict.keys():
+        gn_mod[val_key] = inp_dict["value"]
+    if use_attr_key != None and use_attr_key in gn_mod.keys() and "use_attribute" in inp_dict.keys():
+        gn_mod[use_attr_key] = inp_dict["use_attribute"]
+    if attr_name_key != None and attr_name_key in gn_mod.keys() and "attribute_name" in inp_dict.keys():
+        gn_mod[attr_name_key] = inp_dict["attribute_name"]
 
 def set_geo_nodes_mod_outputs(gn_mod, output_list):
     index = 0
@@ -58,14 +106,14 @@ def set_geo_nodes_mod_outputs(gn_mod, output_list):
             pass
         index += 1
 
-def create_prereq_weight_sb_node_group(node_group_name, node_tree_type):
+def create_prereq_sb_node_group(node_group_name, node_tree_type):
     if node_tree_type == 'GeometryNodeTree':
         if node_group_name == REFLECT_PROXIMITY_GEO_NG_NAME:
             return create_geo_ng_weight_sb()
         elif node_group_name == SPRING_CONNECT_VERT_GEO_NG_NAME:
             return create_geo_ng_spring_connect_vert()
     # error
-    print("Unknown name passed to create_prereq_weight_sb_node_group: " + str(node_group_name))
+    print("Unknown name passed to create_prereq_sb_node_group: " + str(node_group_name))
     return None
 
 def apply_weight_sb_mod_geo_nodes(override_create, recv_ob, send_ob, goal_vg_name, mask_vg_name, mass_vg_name,
@@ -80,21 +128,25 @@ def apply_weight_sb_mod_geo_nodes(override_create, recv_ob, send_ob, goal_vg_nam
         geo_nodes_mod.node_group = None
 
     ensure_node_group(override_create, REFLECT_PROXIMITY_GEO_NG_NAME, 'GeometryNodeTree',
-                      create_prereq_weight_sb_node_group)
+                      create_prereq_sb_node_group)
     create_weight_sb_mod_geo_node_group(node_group)
     # assign node_group to Geometry Nodes modifier, which will populate modifier's default input
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
     # set Geometry Nodes modifier input/output values
-    set_geo_nodes_mod_inputs(geo_nodes_mod, (send_ob, 0.01, 0.02, 1.0, 0.0,
-                                             send_ob, 0.0, 0.01,
-                                             send_ob, 0.01, 0.02, 0.5, 1.0,
-                                             send_ob, 0.01, 0.02, 1.0, 0.5) )
+    gr = 0.61803399
+    gr_d20 = gr / 20.0
+    gr_d200 = gr / 200.0
+    set_geo_nodes_mod_inputs(geo_nodes_mod,
+        ({ "value": send_ob }, { "value": gr_d200 }, { "value": gr_d20 }, { "value": 1.0 }, { "value": 0.0 },
+         { "value": send_ob }, { "value": 0.0 }, { "value": gr_d200 },
+         { "value": send_ob }, { "value": gr_d200 }, { "value": gr_d20 }, { "value": gr }, { "value": 1.0 },
+         { "value": send_ob }, { "value": gr_d200 }, { "value": gr_d20 }, { "value": 1.0 }, { "value": gr }) )
     set_geo_nodes_mod_outputs(geo_nodes_mod, (goal_vg_name+"-test", mask_vg_name+"-test", mass_vg_name+"-test",
                                               spring_vg_name+"-test") )
 
-def get_sbw_geo_nodes_mod(ob):
-    mods = [ m for m in ob.modifiers if m.name == SB_WEIGHT_GEO_NG_NAME and m.type == 'NODES' ]
+def get_sbw_geo_nodes_mod(ob, sb_weight_geo_modifier):
+    mods = [ m for m in ob.modifiers if m.name == sb_weight_geo_modifier and m.type == 'NODES' ]
     if len(mods) > 0:
         return mods[0]
 
@@ -215,7 +267,7 @@ def data_transfer_sb_weights(context, ob, other_ob, gen_data_layers, vert_mappin
         if ob.vertex_groups.get(spring_vg_name) is None:
             ob.vertex_groups.new(name=spring_vg_name)
 
-def preset_soft_body(ob, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_name, add_mask_mod):
+def preset_soft_body(ob, goal_vg_name, mass_vg_name, spring_vg_name):
     existing_mods = [ m for m in ob.modifiers if m.type == 'SOFT_BODY' ]
     # if no soft body modifier exists object then add one
     if len(existing_mods) == 0:
@@ -225,7 +277,7 @@ def preset_soft_body(ob, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_nam
     sb_mod.settings.vertex_group_mass = mass_vg_name
     sb_mod.settings.vertex_group_goal = goal_vg_name
     sb_mod.settings.vertex_group_spring = spring_vg_name
-    sb_mod.settings.mass = 1.0
+    sb_mod.settings.mass = 1.61803399
     sb_mod.settings.speed = 1.0
     sb_mod.settings.use_goal = True
     sb_mod.settings.goal_spring = 0.61803399 + 0.061803399
@@ -234,22 +286,15 @@ def preset_soft_body(ob, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_nam
     sb_mod.settings.goal_min = 0.0
     sb_mod.settings.goal_max = 1.0
     sb_mod.settings.use_edges = True
-    sb_mod.settings.pull = 0.61803399 + 0.061803399
+    sb_mod.settings.pull = 0.61803399
     sb_mod.settings.push = 0.61803399
     sb_mod.settings.damping = 50 * 0.61803399
     sb_mod.settings.plastic = 0
     sb_mod.settings.bend = 1.61803399 * 1.61803399 * 1.61803399
-    sb_mod.settings.spring_length = 0
+    sb_mod.settings.spring_length = 95
     sb_mod.settings.use_stiff_quads = False
 
-    if add_mask_mod:
-        # create mask modifier for mask Vertex Group if it does not already exist
-        existing_mods = [ m for m in ob.modifiers if m.type == 'MASK' and m.vertex_group == mask_vg_name]
-        if len(existing_mods) == 0:
-            mask_mod = ob.modifiers.new(name="WeightSoftBody Mask", type='MASK')
-            mask_mod.vertex_group = mask_vg_name
-
-def apply_spring_connect_mod_geo_nodes(override_create, recv_ob, send_ob):
+def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name):
     geo_nodes_mod = recv_ob.modifiers.new(name="SpringConnectVert Geometry Nodes", type='NODES')
     if geo_nodes_mod.node_group is None:
         node_group = bpy.data.node_groups.new(name="SpringConnectGeoNodes", type='GeometryNodeTree')
@@ -260,19 +305,12 @@ def apply_spring_connect_mod_geo_nodes(override_create, recv_ob, send_ob):
         geo_nodes_mod.node_group = None
 
     ensure_node_group(override_create, SPRING_CONNECT_VERT_GEO_NG_NAME, 'GeometryNodeTree',
-                      create_prereq_weight_sb_node_group)
+                      create_prereq_sb_node_group)
     create_spring_connect_mod_geo_node_group(node_group)
     # assign node_group to Geometry Nodes modifier, which will populate modifier's default input
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
-    # set Geometry Nodes modifier input/output values
-    # set_geo_nodes_mod_inputs(geo_nodes_mod, (send_ob, 0.01, 0.02, 1.0, 0.0,
-    #                                          send_ob, 0.0, 0.01,
-    #                                          send_ob, 0.01, 0.02, 0.5, 1.0,
-    #                                          send_ob, 0.01, 0.02, 1.0, 0.5) )
-    # set_geo_nodes_mod_outputs(geo_nodes_mod, (goal_vg_name+"-test", mask_vg_name+"-test", mass_vg_name+"-test",
-    #                                           spring_vg_name+"-test") )
-    set_geo_nodes_mod_inputs(geo_nodes_mod, (send_ob, 1.0) )
-
-def add_soft_body_spring(override_create, ob, other_ob):
-    apply_spring_connect_mod_geo_nodes(override_create, ob, other_ob)
+    connect_d = { "use_attribute": True }
+    if vertex_attrib_name != None and vertex_attrib_name != "":
+        connect_d["attribute_name"] = vertex_attrib_name
+    set_geo_nodes_mod_inputs(geo_nodes_mod, ({}, {}, connect_d ) )
