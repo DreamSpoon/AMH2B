@@ -22,9 +22,9 @@ from .func import (create_weighting_object, get_sbw_geo_nodes_mod, finish_weight
     preset_soft_body, add_soft_body_spring)
 
 class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
-    bl_description = "Create Soft Body vertex weights test mesh by duplicating active object. Select two mesh " \
-        "objects, first object is 'sender', second object (active object) is 'receiver'. Proximity from surface of " \
-        "'sender' to 'receiver' is calculated"
+    """Create Soft Body vertex weights test mesh by duplicating active object. Select two mesh objects, first """ \
+        """object is 'sender', second object (active object) is 'receiver'. Proximity from surface of 'sender' """ \
+        """to 'receiver' is calculated"""
     bl_idname = "amh2b.create_sb_weight_test_calc"
     bl_label = "Create Weight Test"
     bl_options = {'REGISTER', 'UNDO'}
@@ -46,9 +46,9 @@ class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
-    bl_description = "With active object, convert test weights into Vertex Groups for use with Soft Body sim and " \
-        "'Weight Data Transfer' function. 'Vertex Group Name' section controls names of Vertex Groups used by Soft Body " \
-        "weight calculator, and temp Attribute names"
+    """With active object, convert test weights into Vertex Groups for use with Soft Body sim and 'Weight Data """ \
+        """Transfer' function. 'Vertex Group Name' section controls names of Vertex Groups used by Soft Body """ \
+        """weight calculator, and temp Attribute names"""
     #"Convert test weights into Vertex Groups to use with Soft Body, and with Weight Data Transfer"
     bl_idname = "amh2b.convert_sb_weight_test_calc"
     bl_label = "Convert Test Weights"
@@ -71,9 +71,9 @@ class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_DataTransferSBWeight(Operator):
-    bl_description = "Transfer Soft Body vertex weight data to active object from other selected object (select " \
-        "only two mesh type objects). 'Vertex Group Name' section controls names of Vertex Groups used by Soft Body " \
-        "weight calculator, and temp Attribute names"
+    """Transfer Soft Body vertex weight data to active object from other selected object (select only two mesh """ \
+        """type objects). 'Vertex Group Name' section controls names of Vertex Groups used by Soft Body weight """ \
+        """calculator, and temp Attribute names"""
     bl_idname = "amh2b.sb_weight_data_transfer"
     bl_label = "Transfer Weight Data"
     bl_options = {'REGISTER', 'UNDO'}
@@ -91,14 +91,14 @@ class AMH2B_OT_DataTransferSBWeight(Operator):
         sel_ob = context.selected_objects
         a = context.scene.amh2b
         data_transfer_sb_weights(context, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1],
-            a.sb_dt_gen_data_layers, a.sb_dt_vert_mapping, a.sb_dt_individual, a.sb_dt_apply_mod, a.sb_dt_include_goal,
-            a.sb_dt_include_mask, a.sb_dt_include_mass, a.sb_dt_include_spring, a.sb_dt_goal_vg_name,
-            a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
+            a.sb_dt_vert_mapping, a.sb_dt_individual, a.sb_dt_apply_mod, a.sb_dt_include_goal, a.sb_dt_include_mask,
+            a.sb_dt_include_mass, a.sb_dt_include_spring, a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name,
+            a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
         return {'FINISHED'}
 
 class AMH2B_OT_PresetSoftBody(Operator):
-    bl_description = "Ensure active object has Soft Body modifier, then autofill Vertex Group names, and use " \
-        "preset Soft Body settings. For faster results, set current frame of animation to 0 "
+    """Ensure active object has Soft Body modifier, then autofill Vertex Group names, and use preset Soft Body """ \
+        """settings. For faster results, set current frame of animation to 0 """
     bl_idname = "amh2b.preset_soft_body"
     bl_label = "Preset Soft Body"
     bl_options = {'REGISTER', 'UNDO'}
@@ -115,8 +115,9 @@ class AMH2B_OT_PresetSoftBody(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_AddSoftBodySpring(Operator):
-    bl_description = "Add vertexes/edges to active Object using Connect position attribute " \
-        "(Vertex -> Float Vector type). e.g. Use ShapeKey to Attribute function in AMH2B -> Attributes panel"
+    """With active object Mesh, add vertexes/edges to connect Mesh with locations given by Attribute. """ \
+        """Optionally, Mesh vertexes can connect with closest point on another object's Mesh - by editing """ \
+        """Geometry Nodes tree"""
     bl_idname = "amh2b.add_soft_body_spring"
     bl_label = "Add Springs"
     bl_options = {'REGISTER', 'UNDO'}

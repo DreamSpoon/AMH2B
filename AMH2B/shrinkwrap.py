@@ -202,7 +202,7 @@ def create_node_group_node_shrinkwrap(node_tree, override_create):
     node.node_tree = bpy.data.node_groups.get(SHRINKWRAP_GEO_NG_NAME)
 
 class AMH2B_OT_CreateGeoNodesShrinkwrap(Operator):
-    bl_description = "Create Shrinkwrap group node, to project one geometry onto another geometry"
+    """Create Shrinkwrap group node, to project one geometry onto another geometry"""
     bl_idname = "amh2b.geo_nodes_create_shrinkwrap"
     bl_label = "Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -438,8 +438,8 @@ def create_node_group_node_thick_shrinkwrap(node_tree, override_create):
     node.node_tree = bpy.data.node_groups.get(THICK_SHRINKWRAP_GEO_NG_NAME)
 
 class AMH2B_OT_CreateGeoNodesThickShrinkwrap(Operator):
-    bl_description = "Create Thick Shrinkwrap group node, to project one geometry onto another geometry. Projected " \
-        "geometry will retain it's 'thickness' after projection, by way of secondary 'nearness' check"
+    """Create Thick Shrinkwrap group node, to project one geometry onto another geometry. Projected geometry """ \
+        """will retain it's 'thickness' after projection, by way of secondary 'nearness' check"""
     bl_idname = "amh2b.geo_nodes_create_thick_shrinkwrap"
     bl_label = "Thick Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -764,8 +764,8 @@ def create_node_group_node_directional_shrinkwrap(node_tree, override_create):
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME)
 
 class AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap(Operator):
-    bl_description = "Create Directional Shrinkwrap group node, to project one geometry onto another geometry. " \
-        "Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'"
+    """Create Directional Shrinkwrap group node, to project one geometry onto another geometry. Projected """ \
+        """geometry is optionally moved towards 'direction target' instead of original 'solid target'"""
     bl_idname = "amh2b.geo_nodes_create_directional_shrinkwrap"
     bl_label = "Directional Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -1225,9 +1225,9 @@ def create_node_group_node_directional_thick_shrinkwrap(node_tree, override_crea
     node.node_tree = bpy.data.node_groups.get(DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME)
 
 class AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap(Operator):
-    bl_description = "Create Directional Thick Shrinkwrap group node, to project one geometry onto another " \
-        "geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
-        "'solid target', with projected 'thickness' retained"
+    """Create Directional Thick Shrinkwrap group node, to project one geometry onto another geometry. """ \
+        """Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'""" \
+        """, with projected 'thickness' retained"""
     bl_idname = "amh2b.geo_nodes_create_directional_thick_shrinkwrap"
     bl_label = "Directional Thick Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}

@@ -18,27 +18,31 @@
 
 import bpy
 
-from .operator import (AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BoneWoven,
-    AMH2B_OT_EnableModPreserveVolume, AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric,
-    AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos)
+from .func import (ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
+from .operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
+    AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
+    AMH2B_OT_StitchArmature)
 
-def draw_panel_armature(self, context, box):
+def draw_panel_armature(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
+    a = scn.amh2b
+    func_grp_box.prop(a, "arm_function", text="")
     layout.separator()
-    layout.operator(AMH2B_OT_CleanupGizmos.bl_idname)
-    layout.operator(AMH2B_OT_EnableModPreserveVolume.bl_idname)
-    layout.operator(AMH2B_OT_DisableModPreserveVolume.bl_idname)
-    layout.operator(AMH2B_OT_ApplyScale.bl_idname)
-    layout.separator()
-    layout.operator(AMH2B_OT_AdjustPose.bl_idname)
-    layout.prop_search(scn.amh2b, "arm_textblock_name", bpy.data, "texts", text="")
-    layout.separator()
-    layout.operator(AMH2B_OT_BoneWoven.bl_idname)
-    layout.separator()
-    layout.label(text="Bone Names")
-    layout.operator(AMH2B_OT_RenameGeneric.bl_idname)
-    layout.prop(scn.amh2b, "arm_generic_prefix", text="")
-    layout.prop(scn.amh2b, "arm_generic_mhx")
-    layout.separator()
-    layout.operator(AMH2B_OT_UnNameGeneric.bl_idname)
+    if a.arm_function == ARM_FUNC_RETARGET:
+        layout.operator(AMH2B_OT_ScriptPose.bl_idname)
+        layout.separator()
+        layout.operator(AMH2B_OT_StitchArmature.bl_idname)
+    elif a.arm_function == ARM_FUNC_UTILITY:
+        layout.operator(AMH2B_OT_CleanupGizmos.bl_idname)
+        layout.separator()
+        layout.operator(AMH2B_OT_EnableModPreserveVolume.bl_idname)
+        layout.operator(AMH2B_OT_DisableModPreserveVolume.bl_idname)
+        layout.separator()
+        layout.operator(AMH2B_OT_ApplyScale.bl_idname)
+        layout.separator()
+        layout.label(text="Bone Names")
+        layout.operator(AMH2B_OT_RenameGeneric.bl_idname)
+        layout.prop(a, "arm_generic_prefix", text="")
+        layout.separator()
+        layout.operator(AMH2B_OT_UnNameGeneric.bl_idname)

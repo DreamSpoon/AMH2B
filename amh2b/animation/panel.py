@@ -16,20 +16,17 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-amh2b_fk_ik_both_none_items = [
-    ('BOTH', "Both", "", 1),
-    ('FORWARDK', "FK", "", 2),
-    ('INVERSEK', "IK", "", 3),
-    ('NONE', "None", "", 4),
-]
+import bpy
 
-amh2b_src_rig_type_items = [
-    ('I_AUTOMATIC', "Automatic", "", 1),
-    ('I_MIXAMO_NATIVE_FBX', "Mixamo Native FBX", "", 2),
-    ('I_MAKEHUMAN_CMU_MB', "MakeHuman CMU MB", "", 3),
-]
+from .operator import (AMH2B_OT_RatchetHold, AMH2B_OT_RatchetPoint)
 
-amh2b_yes_no_items = [
-    ('YES', "Yes", "", 1),
-    ('NO', "No", "", 2),
-]
+def draw_panel_animation(self, context, func_grp_box):
+    layout = self.layout
+    scn = context.scene
+    layout.label(text="Object Location")
+    layout.operator(AMH2B_OT_RatchetPoint.bl_idname)
+    layout.separator()
+    layout.operator(AMH2B_OT_RatchetHold.bl_idname)
+    layout.prop_search(scn.amh2b, "anim_ratchet_point_object", bpy.data, "objects", text="Point")
+    layout.prop_search(scn.amh2b, "anim_ratchet_target_object", bpy.data, "objects", text="Target")
+    layout.prop(scn.amh2b, "anim_ratchet_frames")

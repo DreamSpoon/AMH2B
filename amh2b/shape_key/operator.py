@@ -100,8 +100,8 @@ class AMH2B_OT_BakeDeformShapeKeys(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_ApplyModifierSK(Operator):
-    bl_description = "Apply active Object's active modifiers to its Mesh, with updates to Mesh's ShapeKeys. " \
-        "Object modifiers are not removed"
+    """Apply active Object's active modifiers to its Mesh, with updates to Mesh's ShapeKeys. """ \
+        """Object modifiers are not removed"""
     bl_idname = "amh2b.sk_apply_modifiers"
     bl_label = "Apply Modifiers"
     bl_options = {'REGISTER', 'UNDO'}

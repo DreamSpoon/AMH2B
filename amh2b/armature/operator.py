@@ -16,16 +16,16 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import bpy
 from bpy.props import (EnumProperty, StringProperty)
 from bpy.types import Operator
 
-from .func import (do_adjust_pose, do_apply_scale, do_bridge_repose_rig, do_bone_woven,
-    do_toggle_preserve_volume, do_rename_generic, do_un_name_generic, cleanup_gizmos)
-from .items import (amh2b_fk_ik_both_none_items, amh2b_src_rig_type_items, amh2b_yes_no_items)
+from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
+    cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets)
 
-class AMH2B_OT_AdjustPose(Operator):
-    """Apply CSV script to pose active object's Armature (see Blender's Text Editor)"""
-    bl_idname = "amh2b.arm_adjust_pose"
+class AMH2B_OT_ScriptPose(Operator):
+    """Apply script to pose active object Armature's bones with World space rotations"""
+    bl_idname = "amh2b.script_pose"
     bl_label = "Script Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -34,15 +34,32 @@ class AMH2B_OT_AdjustPose(Operator):
         return context.active_object != None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
+        a = context.scene.amh2b
         act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
-        err_str = do_adjust_pose(act_ob)
-        if err_str != None:
-            self.report({'ERROR'}, err_str)
-            return {'CANCELLED'}
+        script_pose(context, act_ob, a.arm_script_pose_preset, a.arm_use_textblock, a.arm_textblock_name,
+                    a.arm_script_pose_reverse)
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        load_script_pose_presets()
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        a = context.scene.amh2b
+        row = layout.row()
+        row.active = not a.arm_use_textblock
+        row.prop(a, "arm_script_pose_preset", text="Preset")
+        layout.separator()
+        layout.prop(a, "arm_use_textblock", text="Use Custom Text")
+        row = layout.row()
+        row.active = a.arm_use_textblock
+        row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")
+        layout.separator()
+        layout.prop(a, "arm_script_pose_reverse")
 
 class AMH2B_OT_ApplyScale(Operator):
     """Apply Object Scale to active object Armature without corrupting Armature pose data (i.e. location)"""
@@ -59,74 +76,7 @@ class AMH2B_OT_ApplyScale(Operator):
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
-        do_apply_scale(act_ob)
-        return {'FINISHED'}
-
-class AMH2B_OT_BridgeRepose(Operator):
-    """Create a "bridge rig" to move a shape-keyed mesh into new position, so copy of armature can have pose applied.\nSelect all MESH objects attached to armature first, and select armature last, then use this function"""
-    bl_idname = "amh2b.arm_bridge_repose"
-    bl_label = "Bridge Re-Pose"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object != None and context.active_object.type == 'ARMATURE'
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            self.report({'ERROR'}, "Active object is not ARMATURE type")
-            return {'CANCELLED'}
-
-        do_bridge_repose_rig(act_ob, context.selected_objects)
-        return {'FINISHED'}
-
-class AMH2B_OT_BoneWoven(Operator):
-    """Join two rigs, with bone stitching, to re-target MHX rig to another rig.\nSelect animated rig first and select MHX rig last, then use this function"""
-    bl_idname = "amh2b.arm_bone_woven"
-    bl_label = "Bone Woven"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    src_rig_type_enum : EnumProperty(name="Source Rig Type", description="Rig type that will be joined to MHX rig.", items=amh2b_src_rig_type_items)
-    torso_stitch_enum : EnumProperty(name="Torso Stitches", description="Set torso stitches to yes/no.", items=amh2b_yes_no_items)
-    arm_left_stitch_enum : EnumProperty(name="Left Arm Stitches", description="Set left arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    arm_right_stitch_enum : EnumProperty(name="Right Arm Stitches", description="Set right arm stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_left_stitch_enum : EnumProperty(name="Left Leg Stitches", description="Set left leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    leg_right_stitch_enum : EnumProperty(name="Right Leg Stitches", description="Set right leg stitches to FK, or IK, or both, or none.", items=amh2b_fk_ik_both_none_items)
-    fingers_left_stitch_enum : EnumProperty(name="Left Fingers Stitches", description="Set left fingers stitches to yes/no.", items=amh2b_yes_no_items)
-    fingers_right_stitch_enum : EnumProperty(name="Right Fingers Stitches", description="Set right fingers stitches to yes/no.", items=amh2b_yes_no_items)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "src_rig_type_enum")
-        layout.prop(self, "torso_stitch_enum")
-        layout.prop(self, "arm_left_stitch_enum")
-        layout.prop(self, "arm_right_stitch_enum")
-        layout.prop(self, "leg_left_stitch_enum")
-        layout.prop(self, "leg_right_stitch_enum")
-        layout.prop(self, "fingers_left_stitch_enum")
-        layout.prop(self, "fingers_right_stitch_enum")
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object != None and context.active_object.type == 'ARMATURE'
-
-    def execute(self, context):
-        act_ob = context.active_object
-        sel_obs = context.selected_objects
-        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
-            self.report({'ERROR'}, "Select exactly 2 ARMATURES and try again")
-            return {'CANCELLED'}
-
-        dest_rig_obj = act_ob
-        src_rig_obj = None
-        if sel_obs[0] != act_ob:
-            src_rig_obj = sel_obs[0]
-        else:
-            src_rig_obj = sel_obs[1]
-
-        do_bone_woven(self, dest_rig_obj, src_rig_obj)
-
+        armature_apply_scale(context, act_ob)
         return {'FINISHED'}
 
 class AMH2B_OT_CleanupGizmos(Operator):
@@ -147,7 +97,7 @@ class AMH2B_OT_EnableModPreserveVolume(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_toggle_preserve_volume(True, context.selected_objects)
+        toggle_preserve_volume(context, True, context.selected_objects)
         return {'FINISHED'}
 
 class AMH2B_OT_DisableModPreserveVolume(Operator):
@@ -157,7 +107,7 @@ class AMH2B_OT_DisableModPreserveVolume(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_toggle_preserve_volume(False, context.selected_objects)
+        toggle_preserve_volume(context, False, context.selected_objects)
         return {'FINISHED'}
 
 class AMH2B_OT_RenameGeneric(Operator):
@@ -167,15 +117,65 @@ class AMH2B_OT_RenameGeneric(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_rename_generic(context.scene.amh2b.arm_generic_prefix, context.scene.amh2b.arm_generic_mhx, context.selected_objects)
+        a = context.scene.amh2b
+        rename_bone_generic(context, a.arm_generic_prefix, context.selected_objects)
         return {'FINISHED'}
 
 class AMH2B_OT_UnNameGeneric(Operator):
-    """Rename bones to remove any formating like 'aaaa:bbbb', where 'aaaa' is removed and the bones name becomes 'bbbb'"""
+    """Rename active object Armature bones to remove any formating like 'aaaa:bbbb', where 'aaaa' is removed """ \
+        """and the bones name becomes 'bbbb'"""
     bl_idname = "amh2b.arm_un_name_generic"
     bl_label = "Un-name Generic"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_un_name_generic(context.scene.amh2b.arm_generic_mhx, context.selected_objects)
+        unname_bone_generic(context, context.selected_objects)
         return {'FINISHED'}
+
+class AMH2B_OT_StitchArmature(Operator):
+    """Stitch source Armature to target Armature, to retarget animation from source Armature to target """ \
+        """Armature. Select source Armature first, select target Armature last - so target Armature is active object"""
+    bl_idname = "amh2b.stitch_armature"
+    bl_label = "Stitch Armature"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        act_ob = context.active_object
+        sel_obs = context.selected_objects
+        return act_ob != None and len(sel_obs) == 2 and sel_obs[0].type == 'ARMATURE' and sel_obs[1].type == 'ARMATURE'
+
+    def execute(self, context):
+        a = context.scene.amh2b
+        act_ob = context.active_object
+        sel_obs = context.selected_objects
+        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
+            self.report({'ERROR'}, "Select exactly 2 ARMATURES and try again")
+            return {'CANCELLED'}
+        dest_rig_obj = act_ob
+        src_rig_obj = None
+        if sel_obs[0] != act_ob:
+            src_rig_obj = sel_obs[0]
+        else:
+            src_rig_obj = sel_obs[1]
+        stitch_armature(context, a.arm_apply_transforms, a.arm_add_layer_index, src_rig_obj, dest_rig_obj,
+                        a.arm_stitch_armature_preset, a.arm_use_textblock, a.arm_textblock_name)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        load_stitch_armature_presets()
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        a = context.scene.amh2b
+        layout.prop(a, "arm_add_layer_index")
+        layout.prop(a, "arm_apply_transforms")
+        row = layout.row()
+        row.active = not a.arm_use_textblock
+        row.prop(a, "arm_stitch_armature_preset", text="Preset")
+        layout.separator()
+        layout.prop(a, "arm_use_textblock", text="Use Custom Text")
+        row = layout.row()
+        row.active = a.arm_use_textblock
+        row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")

@@ -236,7 +236,7 @@ def setup_dt_modifier(context, ob, other_ob, vert_mapping, apply_mod, vg_name=No
         context.view_layer.objects.active = ob
         bpy.ops.object.modifier_apply(modifier=dt_mod.name)
 
-def data_transfer_sb_weights(context, ob, other_ob, gen_data_layers, vert_mapping, individual, apply_mod, include_goal,
+def data_transfer_sb_weights(context, ob, other_ob, vert_mapping, individual, apply_mod, include_goal,
         include_mask, include_mass, include_spring, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_name):
     if individual:
         mod_created = False
@@ -257,15 +257,14 @@ def data_transfer_sb_weights(context, ob, other_ob, gen_data_layers, vert_mappin
     else:
         setup_dt_modifier(context, ob, other_ob, vert_mapping, apply_mod)
     # generate vertex groups on other_ob, if necessary
-    if gen_data_layers:
-        if ob.vertex_groups.get(goal_vg_name) is None:
-            ob.vertex_groups.new(name=goal_vg_name)
-        if ob.vertex_groups.get(mask_vg_name) is None:
-            ob.vertex_groups.new(name=mask_vg_name)
-        if ob.vertex_groups.get(mass_vg_name) is None:
-            ob.vertex_groups.new(name=mass_vg_name)
-        if ob.vertex_groups.get(spring_vg_name) is None:
-            ob.vertex_groups.new(name=spring_vg_name)
+    if ob.vertex_groups.get(goal_vg_name) is None:
+        ob.vertex_groups.new(name=goal_vg_name)
+    if ob.vertex_groups.get(mask_vg_name) is None:
+        ob.vertex_groups.new(name=mask_vg_name)
+    if ob.vertex_groups.get(mass_vg_name) is None:
+        ob.vertex_groups.new(name=mass_vg_name)
+    if ob.vertex_groups.get(spring_vg_name) is None:
+        ob.vertex_groups.new(name=spring_vg_name)
 
 def preset_soft_body(ob, goal_vg_name, mass_vg_name, spring_vg_name):
     existing_mods = [ m for m in ob.modifiers if m.type == 'SOFT_BODY' ]

@@ -31,11 +31,11 @@ def draw_panel_attributes(self, context, box):
     layout.operator(AMH2B_OT_AttributeConvert.bl_idname)
     if amh2b.attr_conv_function == SHAPEKEY_ATTRIB:
         if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
-            layout.prop_search(amh2b, "attr_conv_shapekey", act_ob.data.shape_keys, "key_blocks")
+            layout.prop_search(amh2b, "attr_conv_shapekey", act_ob.data.shape_keys, "key_blocks", text="")
         else:
-            layout.prop(amh2b, "attr_conv_shapekey")
+            layout.prop(amh2b, "attr_conv_shapekey", text="")
     elif amh2b.attr_conv_function == ATTRIB_SHAPEKEY:
         if act_ob != None and act_ob.type == 'MESH' and act_ob.data.attributes != None:
-            layout.prop_search(amh2b, "attr_conv_attribute", act_ob.data, "attributes")
+            layout.prop_search(amh2b, "attr_conv_attribute", act_ob.data, "attributes", text="")
         else:
-            layout.prop(amh2b, "attr_conv_attribute")
+            layout.prop(amh2b, "attr_conv_attribute", text="")

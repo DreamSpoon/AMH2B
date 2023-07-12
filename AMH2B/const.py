@@ -31,3 +31,5 @@ SC_DSKEY = "DSKey"
 SC_TEMP_SK_X = "TempSK_X"
 SC_TEMP_SK_Y = "TempSK_Y"
 SC_TEMP_SK_Z = "TempSK_Z"
+
+ADDON_BASE_FILE = __file__

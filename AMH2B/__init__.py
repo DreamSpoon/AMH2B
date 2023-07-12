@@ -32,15 +32,17 @@ bl_info = {
 
 import bpy
 from bpy.types import (Panel, PropertyGroup, Scene)
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty,
+from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty,
     StringProperty)
 
 from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 
-from .animation import AMH2B_OT_RatchetHold
-from .armature.operator import (AMH2B_OT_AdjustPose, AMH2B_OT_ApplyScale, AMH2B_OT_BridgeRepose, AMH2B_OT_BoneWoven,
-    AMH2B_OT_EnableModPreserveVolume, AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric,
-    AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos)
+from .animation.operator import (AMH2B_OT_RatchetPoint, AMH2B_OT_RatchetHold)
+from .animation.panel import draw_panel_animation
+from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items, stitch_armature_preset_items)
+from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
+    AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
+    AMH2B_OT_StitchArmature)
 from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
@@ -69,7 +71,7 @@ from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGro
     AMH2B_OT_SearchFileForAutoVGroups)
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
 
-def draw_panel_material(self, context, box):
+def draw_panel_material(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
     layout.separator()
@@ -86,7 +88,7 @@ def draw_panel_material(self, context, box):
     col.prop(scn.amh2b, "mat_name_delimiter")
     col.prop(scn.amh2b, "mat_name_delimiter_count")
 
-def draw_panel_vertex_group(self, context, box):
+def draw_panel_vertex_group(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
     layout.separator()
@@ -119,14 +121,7 @@ def draw_panel_weight_paint(self, context, func_grp_box):
     col.prop(scn.amh2b, "wp_tail_fill_value")
     col.prop(scn.amh2b, "wp_tail_fill_connected")
 
-def draw_panel_animation(self, context, box):
-    layout = self.layout
-    scn = context.scene
-    layout.label(text="Object Location")
-    layout.operator(AMH2B_OT_RatchetHold.bl_idname)
-    layout.prop(scn.amh2b, "anim_ratchet_frames")
-
-def draw_panel_eye_lid(self, context, box):
+def draw_panel_eye_lid(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
     layout.separator()
@@ -151,74 +146,97 @@ def draw_panel_eye_lid(self, context, box):
     box.prop(scn.amh2b, "elid_min_x_upper")
     box.prop(scn.amh2b, "elid_max_x_upper")
 
+EBLINK_SUB_FUNC_ADD = "EBLINK_SUB_FUNC_ADD"
+EBLINK_SUB_FUNC_REMOVE = "EBLINK_SUB_FUNC_REMOVE"
+EBLINK_SUB_FUNC_TEMPLATE = "EBLINK_SUB_FUNC_TEMPLATE"
+EBLINK_SUB_FUNC_ITEMS = [
+    (EBLINK_SUB_FUNC_ADD, "Add", "Add eyeblink track to active object Armature"),
+    (EBLINK_SUB_FUNC_REMOVE, "Remove", "Remove eyeblink track from active object Armature"),
+    (EBLINK_SUB_FUNC_TEMPLATE, "Template", "Bone name templates, and read/write Eye Blink bone name templates"),
+    ]
 def draw_panel_eye_blink(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
+    a = scn.amh2b
+    act_ob = context.active_object
+    func_grp_box.prop(a, "eblink_sub_func", text="")
     layout.separator()
-    layout.operator(AMH2B_OT_RemoveBlinkTrack.bl_idname)
-    box = layout.box()
-    box.label(text="Remove Options")
-    box.prop(scn.amh2b, "eblink_remove_start_enable")
-    sub = box.column()
-    sub.active = scn.amh2b.eblink_remove_start_enable
-    sub.prop(scn.amh2b, "eblink_remove_start_frame")
-    box.prop(scn.amh2b, "eblink_remove_end_enable")
-    sub = box.column()
-    sub.active = scn.amh2b.eblink_remove_end_enable
-    sub.prop(scn.amh2b, "eblink_remove_end_frame")
-    box.prop(scn.amh2b, "eblink_remove_left")
-    box.prop(scn.amh2b, "eblink_remove_right")
-    layout.operator(AMH2B_OT_AddBlinkTrack.bl_idname)
-    box = layout.box()
-    box.label(text="Add Options")
-    box.prop(scn.amh2b, "eblink_framerate")
-    box.prop(scn.amh2b, "eblink_start_frame")
-    box.prop(scn.amh2b, "eblink_random_start_frame")
-    box.prop(scn.amh2b, "eblink_allow_random_drift")
-    box.prop(scn.amh2b, "eblink_frame_count")
-    box.prop(scn.amh2b, "eblink_max_count_enable")
-    sub = box.column()
-    sub.active = scn.amh2b.eblink_max_count_enable
-    sub.prop(scn.amh2b, "eblink_max_count")
-    sub = box.column()
-    sub.active = not scn.amh2b.eblink_blink_period_enable
-    sub.prop(scn.amh2b, "eblink_blinks_per_min")
-    box.prop(scn.amh2b, "eblink_blink_period_enable")
-    sub = box.column()
-    sub.active = scn.amh2b.eblink_blink_period_enable
-    sub.prop(scn.amh2b, "eblink_blink_period")
-    box.prop(scn.amh2b, "eblink_random_period_enable")
-    box.prop(scn.amh2b, "eblink_eye_left_enable")
-    box.prop(scn.amh2b, "eblink_eye_right_enable")
-    box.prop(scn.amh2b, "eblink_shapekey_name")
-    box = layout.box()
-    box.label(text="Basis")
-    box.prop(scn.amh2b, "eblink_closing_time")
-    box.prop(scn.amh2b, "eblink_closed_time")
-    box.prop(scn.amh2b, "eblink_opening_time")
-    box = layout.box()
-    box.label(text="Random")
-    box.prop(scn.amh2b, "eblink_random_closing_time")
-    box.prop(scn.amh2b, "eblink_random_closed_time")
-    box.prop(scn.amh2b, "eblink_random_opening_time")
-    layout.label(text="Template Set/Reset")
-    layout.operator(AMH2B_OT_SetEyeOpened.bl_idname)
-    layout.operator(AMH2B_OT_ResetEyeOpened.bl_idname)
-    layout.operator(AMH2B_OT_SetEyeClosed.bl_idname)
-    layout.operator(AMH2B_OT_ResetEyeClosed.bl_idname)
-    box = layout.box()
-    box.label(text="Template Bone Names")
-    box.prop(scn.amh2b, "eblink_bone_name_left_lower")
-    box.prop(scn.amh2b, "eblink_bone_name_left_upper")
-    box.prop(scn.amh2b, "eblink_bone_name_right_lower")
-    box.prop(scn.amh2b, "eblink_bone_name_right_upper")
-    layout.label(text="Template Save/Load")
-    layout.operator(AMH2B_OT_SaveBlinkCSV.bl_idname)
-    layout.prop(scn.amh2b, "eblink_text_save_name")
-    layout.operator(AMH2B_OT_LoadBlinkCSV.bl_idname)
-    layout.prop_search(scn.amh2b, "eblink_text_load_name", bpy.data, "texts")
+    if a.eblink_sub_func == EBLINK_SUB_FUNC_ADD:
+        layout.operator(AMH2B_OT_AddBlinkTrack.bl_idname)
+        box = layout.box()
+        box.label(text="Add Options")
+        box.prop(a, "eblink_framerate")
+        box.prop(a, "eblink_start_frame")
+        box.prop(a, "eblink_random_start_frame")
+        box.prop(a, "eblink_allow_random_drift")
+        box.prop(a, "eblink_frame_count")
+        box.prop(a, "eblink_max_count_enable")
+        sub = box.column()
+        sub.active = a.eblink_max_count_enable
+        sub.prop(a, "eblink_max_count")
+        sub = box.column()
+        sub.active = not a.eblink_blink_period_enable
+        sub.prop(a, "eblink_blinks_per_min")
+        box.prop(a, "eblink_blink_period_enable")
+        sub = box.column()
+        sub.active = a.eblink_blink_period_enable
+        sub.prop(a, "eblink_blink_period")
+        box.prop(a, "eblink_random_period_enable")
+        box.prop(a, "eblink_eye_left_enable")
+        box.prop(a, "eblink_eye_right_enable")
+        if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
+            box.prop_search(a, "eblink_shapekey_name", act_ob.data.shape_keys, "key_blocks", text="")
+        else:
+            box.prop(a, "eblink_shapekey_name", text="")
+        box = layout.box()
+        box.label(text="Basis")
+        box.prop(a, "eblink_closing_time")
+        box.prop(a, "eblink_closed_time")
+        box.prop(a, "eblink_opening_time")
+        box = layout.box()
+        box.label(text="Random")
+        box.prop(a, "eblink_random_closing_time")
+        box.prop(a, "eblink_random_closed_time")
+        box.prop(a, "eblink_random_opening_time")
+    elif a.eblink_sub_func == EBLINK_SUB_FUNC_REMOVE:
+        layout.operator(AMH2B_OT_RemoveBlinkTrack.bl_idname)
+        box = layout.box()
+        box.label(text="Remove Options")
+        box.prop(a, "eblink_remove_start_enable")
+        sub = box.column()
+        sub.active = a.eblink_remove_start_enable
+        sub.prop(a, "eblink_remove_start_frame")
+        box.prop(a, "eblink_remove_end_enable")
+        sub = box.column()
+        sub.active = a.eblink_remove_end_enable
+        sub.prop(a, "eblink_remove_end_frame")
+        box.prop(a, "eblink_remove_left")
+        box.prop(a, "eblink_remove_right")
+    elif a.eblink_sub_func == EBLINK_SUB_FUNC_TEMPLATE:
+        layout.label(text="Template Set/Reset")
+        layout.operator(AMH2B_OT_SetEyeOpened.bl_idname)
+        layout.operator(AMH2B_OT_ResetEyeOpened.bl_idname)
+        layout.operator(AMH2B_OT_SetEyeClosed.bl_idname)
+        layout.operator(AMH2B_OT_ResetEyeClosed.bl_idname)
+        box = layout.box()
+        box.label(text="Template Bone Names")
+        if act_ob != None and act_ob.type == 'ARMATURE':
+            box.prop_search(a, "eblink_bone_name_left_lower", act_ob.data, "bones")
+            box.prop_search(a, "eblink_bone_name_left_upper", act_ob.data, "bones")
+            box.prop_search(a, "eblink_bone_name_right_lower", act_ob.data, "bones")
+            box.prop_search(a, "eblink_bone_name_right_upper", act_ob.data, "bones")
+        else:
+            box.prop(a, "eblink_bone_name_left_lower")
+            box.prop(a, "eblink_bone_name_left_upper")
+            box.prop(a, "eblink_bone_name_right_lower")
+            box.prop(a, "eblink_bone_name_right_upper")
+        layout.label(text="Template Save/Load")
+        layout.operator(AMH2B_OT_SaveBlinkCSV.bl_idname)
+        layout.prop(a, "eblink_text_save_name")
+        layout.operator(AMH2B_OT_LoadBlinkCSV.bl_idname)
+        layout.prop_search(a, "eblink_text_load_name", bpy.data, "texts")
 
-def draw_panel_template(self, context, box):
+def draw_panel_template(self, context, func_grp_box):
     layout = self.layout
     scn = context.scene
     layout.label(text="Material")
@@ -230,7 +248,7 @@ def draw_panel_template(self, context, box):
     layout.label(text="Vertex Group and ShapeKey")
     layout.operator(AMH2B_OT_MakeTailorObjectSearchable.bl_idname)
 
-def draw_panel_shrinkwrap(self, context, box):
+def draw_panel_shrinkwrap(self, context, func_grp_box):
     scn = context.scene
     layout = self.layout
     layout.operator(AMH2B_OT_CreateObjModDirectionalShrinkwrap.bl_idname)
@@ -315,107 +333,41 @@ class AMH2B_PT_View3d(Panel):
         if func_grp_draw != None:
             func_grp_draw(self, context, box)
 
-def dt_vert_mapping_items(self, context):
-    return [ ("NEAREST", "Nearest Vertex", ""),
-            ("TOPOLOGY", "Topology", ""),
-            ("EDGE_NEAREST", "Nearest Edge Vertex", ""),
-            ("EDGEINTERP_NEAREST", "Nearest Edge Interpolated", ""),
-            ("POLY_NEAREST", "Nearest Face Vertex", ""),
-            ("POLYINTERP_NEAREST", "Nearest Face Interpolated", ""),
-            ("POLYINTERP_VNORPROJ", "Projected Face Interpolated", ""),
-    ]
+class AMH2B_PG_ScnAMH2B(PropertyGroup):
+    function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to " \
+        "perform")
+    nodes_override_create: BoolProperty(name="Override Create", description="Geometry Nodes and custom " +
+        "Node Groups will be re-created if this option is enabled. When custom Node Groups are " +
+        "override created, old Node Groups of the same name are renamed and deprecated", default=False)
 
-class AMH2B_PG_Amh2b(PropertyGroup):
-    function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to perform")
-    mat_active_slot_only: BoolProperty(name="Active Slot Only",
-        description="Try to swap only the Active Slot material, instead of trying to swap all material slots",
-        default=False)
-    mat_exact_name_only: BoolProperty(name="Exact Name Only",
-        description="Search for the exact same material name when trying to swap from another file", default=False)
-    mat_ignore_autoname: BoolProperty(name="Ignore Autoname",
-        description="If material swap function is tried and fails, re-try swap with material's 'auto-name' " +
-        "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
-        "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
-    mat_keep_original_name: BoolProperty(name="Keep Original Name",
-        description="Ensure that the material name in each material slot is the same before and after swap", default=False)
-    mat_name_delimiter: StringProperty(name="Delimiter",
-        description="Delimiter between sections of material names (MakeHuman uses the colon : )\n : is the default value", default=":")
-    mat_name_delimiter_count: IntProperty(name="Delim. Count",
-        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will " +
-        "be ignored.\nDefault value is 1", default=1, min=0)
-    arm_textblock_name: StringProperty(name="Text Editor Script Name",
-        description="Script data-block name in text editor", default="Text")
-    arm_generic_prefix: StringProperty(name="G Prefix",
-        description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
-    arm_generic_mhx: BoolProperty(name="Include MHX bones",
-        description="Include MHX bones when renaming/un-naming", default=False)
-    sk_active_function: EnumProperty(name="Function", description="ShapeKey menu active function",
-        items=SK_FUNC_ITEMS)
-    sk_bind_frame: IntProperty(name="Bind frame",
-        description="Bind vertices in this frame. Choose a frame when mesh vertexes haven't moved from original " +
-        "locations.\nHint: vertex locations in OBJECT mode should be the same as in EDIT mode.", default=0, min=0)
-    sk_start_frame: IntProperty(name="Start frame",
-        description="Choose first frame of mesh animation to convert to Shape Key", default=1, min=0)
-    sk_end_frame: IntProperty(name="End frame",
-        description="Choose last frame of mesh animation to convert to Shape Key", default=2, min=0)
-    sk_animate: BoolProperty(name="Animate Shape Keys", description="Animate Shape Keys with keyframes", default=True)
-    sk_add_frame_to_name: BoolProperty(name="Add Frame to Name",
-        description="Append frame number to key name (e.g. DSKey005, DSKey006)", default=True)
-    sk_dynamic: BoolProperty(name="Dynamic",
-        description="Respect armature transformations when calculating deform shape keys. Dynamic is slower to " +
-        "run than not-Dynamic", default=True)
-    sk_extra_accuracy: IntProperty(name="",
-        description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
-    sk_deform_name_prefix: StringProperty(name="Prefix",
-        description="Prefix for naming mesh deform shape keys. Default value is " + SC_DSKEY, default=SC_DSKEY)
-    sk_adapt_size: BoolProperty(name="Adapt Size",
-        description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge " +
-        "lengths", default=True)
-    sk_swap_autoname_ext: BoolProperty(name="Swap Autoname Ext",
-        description="If shapekey copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
-        "\ne.g. Object Mass0007:Eyebrow010.003 shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
-    sk_function_prefix: StringProperty(name="Prefix",
-        description="Prefix used in shape key functions. Default value is " + SC_DSKEY, default=SC_DSKEY)
-    sk_mask_vgroup_name: StringProperty(name="Mask VGroup",
-        description="Name of vertex group to use as a mask when baking shapekeys.\nOptional: Use this feature for " +
-        "finer control over which vertexes are used to bake the shapekeys", default="")
-    sk_mask_invert: BoolProperty(name="Mask Invert",
-        description="If vertex group is given, and 'Invert' is enabled, then only mask vertex group vertexes " +
-        "are included when baking shapekey(s).\nIf vertex group is given, and 'Invert' is not enabled, " +
-        "then mask vertex group vertexes are excluded when baking shapekey(s)", default=False)
-    vg_func_name_prefix: StringProperty(name="Prefix",
-        description="Perform functions on selected MESH type objects, but only vertex groups with names " +
-        "beginning with this prefix. Default value is " + SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
-    vg_swap_autoname_ext: BoolProperty(name="Swap Autoname Ext",
-        description="If vertex group copy function is tried and fails, re-try swap with objects 'auto-name' extension removed." +
-        "\ne.g. Object Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups", default=True)
-    vg_create_name_only: BoolProperty(name="Create Groups Only in Name",
-        description="Create vertex groups 'in name only' when copying", default=False)
-    wp_select_vertex_min_w: FloatProperty(name="Min Weight",
-        description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
-    wp_select_vertex_max_w: FloatProperty(name="Max Weight",
-        description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
-    wp_select_vertex_deselect: BoolProperty(name="Deselect All First",
-        description="Deselect all vertexes before selecting by weight", default=True)
-    wp_grow_paint_iterations: IntProperty(name="Iterations",
-        description="Number of growth iterations - 'select more' is used each iteration to select more vertexes " +
-        "before applying weight paint", default=1, min=1)
-    wp_grow_paint_start_weight: FloatProperty(name="Start Weight",
-        description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
-    wp_grow_paint_end_weight: FloatProperty(name="End Weight",
-        description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0,
-        min=0.0, max=1.0)
-    wp_paint_initial_selection: BoolProperty(name="Paint Initial Selection",
-        description="Initial selection will be included when applying weight paints", default=True)
-    wp_tail_fill_enable: BoolProperty(name="Tail Fill",
-        description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail " +
-        "fill value, after applying weights to vertexes during 'select more' iterations", default=False)
-    wp_tail_fill_value: FloatProperty(name="Tail Value",
-        description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
-    wp_tail_fill_connected: BoolProperty(name="Fill Only Linked",
-        description="Only linked vertexes will be included in the tail fill process", default=True)
     anim_ratchet_frames: IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
+    anim_ratchet_point_object: StringProperty(name="Ratchet Point Object", description="Object which remains " \
+        "motionless, in World coordinates, or optionally relative to Ratchet Target Object's location " \
+        "(in World coordinates)")
+    anim_ratchet_target_object: StringProperty(name="Ratchet Target Object", description="Object with location " \
+        "(in World coordinates) which Ratchet Point will 'track' - i.e. Ratchet Point will remain motionless " \
+        "relative to Ratchet Target")
+    arm_function: EnumProperty(name="Sub-Function Group", description="Armature Sub-Function Group",
+        items=ARM_FUNC_ITEMS)
+    arm_add_layer_index: IntProperty(name="Bone Layer Index", description="Index of Bone Layer assigned to bones " \
+        "added to 'target' with Stitch Armature", default=17, min=0, max=31)
+    arm_apply_transforms: BoolProperty(name="Apply Transforms", description="Apply all transforms to 'source' " \
+        "Armature before joining with 'target' Armature", default=True)
+    arm_textblock_name: StringProperty(name="Text Editor Script Name",
+        description="Script data-block name in text editor", default="Text")
+    arm_use_textblock: BoolProperty(name="Use Custom Text", default=False)
+    arm_generic_prefix: StringProperty(name="G Prefix",
+        description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
+    arm_script_pose_preset: EnumProperty(name="Script Pose Preset", items=script_pose_preset_items)
+    arm_script_pose_reverse: BoolProperty(name="Reverse Order", description="Run Pose Script in reverse order, " \
+        "e.g. to undo previous use of Pose Script", default=False)
+    arm_stitch_armature_preset: EnumProperty(name="Stitch Armature Preset", items=stitch_armature_preset_items)
+    attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
+    attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
+    attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
+    eblink_sub_func: EnumProperty(name="Sub-Function Group", description="Eyeblink Sub-Function Group",
+        items=EBLINK_SUB_FUNC_ITEMS)
     eblink_remove_start_enable: BoolProperty(name="Remove Start",
         description="Enable removal of eyeblink keyframes starting at given frame number" +
         "\nKeyframes before the given frame number will not be affected by this operation", default=False)
@@ -451,13 +403,13 @@ class AMH2B_PG_Amh2b(PropertyGroup):
         description="Number of blinks per minute. Input can be floating point, so e.g. the number 6.35 is allowed",
         default=10, min=0)
     eblink_blink_period_enable: BoolProperty(name="Use Blink Period",
-        description="Instead of using Blinks Per Minute, use time (in seconds) between start of eyeblink and start of " +
-        "next eyeblink", default=False)
+        description="Instead of using Blinks Per Minute, use time (in seconds) between start of eyeblink and start " \
+        "of next eyeblink", default=False)
     eblink_blink_period: FloatProperty(name="Blink Period",
         description="Time, in seconds, between the start of a eyeblink and the start of the next eyeblink",
         default=6, min=0.001)
     eblink_random_period_enable: FloatProperty(name="Period Random",
-        description="Add a random amount of time, in seconds, between the start of a eyeblink and the start of the next eyeblink",
+        description="Add random amount of time, in seconds, between start of one blink and start of next blink",
         default=0, min=0)
     eblink_eye_left_enable: BoolProperty(name="Enable Left", description="Enable left eye eyeblink", default=True)
     eblink_eye_right_enable: BoolProperty(name="Enable Right", description="Enable right eye eyeblink", default=True)
@@ -484,9 +436,11 @@ class AMH2B_PG_Amh2b(PropertyGroup):
     eblink_bone_name_right_upper: StringProperty(name="Right Upper",
         description="Name of bone for right upper eyelid", default="uplid.R")
     eblink_text_save_name: StringProperty(name="Write Text",
-        description="Name of textblock in text editor where eyeblink settings will be written (saved)", default="Text")
+        description="Name of textblock in text editor where eyeblink settings will be written (saved)",
+        default="Text")
     eblink_text_load_name: StringProperty(name="Read Text",
-        description="Name of textblock in text editor from which eyeblink settings will be read (loaded)", default="Text")
+        description="Name of textblock in text editor from which eyeblink settings will be read (loaded)",
+        default="Text")
     elid_name_left_lower: StringProperty(name="Left Lower",
         description="Bone name for left lower eyelid", default="lolid.L")
     elid_name_left_upper: StringProperty(name="Left Upper",
@@ -515,17 +469,23 @@ class AMH2B_PG_Amh2b(PropertyGroup):
     elid_max_x_upper: FloatProperty(name="Upper Max X",
         description="Upper eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
         default=0.349066)
-    temp_active_slot_only: BoolProperty(name="Active Slot Only",
-        description="Rename only Active Slot material, instead of trying to rename all material slots",
+    mat_active_slot_only: BoolProperty(name="Active Slot Only",
+        description="Try to swap only the Active Slot material, instead of trying to swap all material slots",
         default=False)
-    temp_delimiter: StringProperty(name="Delimiter",
-        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
-    temp_delim_count: IntProperty(name="Delim. Count", description="Number of delimiters allowed in " +
-        "name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
-    nodes_override_create: BoolProperty(name="Override Create", description="Geometry Nodes and custom " +
-        "Node Groups will be re-created if this option is enabled. When custom Node Groups are " +
-        "override created, old Node Groups of the same name are renamed and deprecated", default=False)
-
+    mat_exact_name_only: BoolProperty(name="Exact Name Only",
+        description="Search for the exact same material name when trying to swap from another file", default=False)
+    mat_ignore_autoname: BoolProperty(name="Ignore Autoname",
+        description="If material swap function is tried and fails, re-try swap with material's 'auto-name' " +
+        "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
+        "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
+    mat_keep_original_name: BoolProperty(name="Keep Original Name",
+        description="Ensure that the material name in each material slot is the same before and after swap",
+        default=False)
+    mat_name_delimiter: StringProperty(name="Delimiter", description="Delimiter between sections of material names " \
+        "(MakeHuman uses the colon : )\n : is the default value", default=":")
+    mat_name_delimiter_count: IntProperty(name="Delim. Count",
+        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will " +
+        "be ignored.\nDefault value is 1", default=1, min=0)
     sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")
     sb_apply_sk_mix: BoolProperty(name="Apply SK Mix", description="Apply all ShapeKeys instead of deleting all " \
         "ShapeKeys - necessary before applying Geometry Nodes with 'Convert Test Weights' function", default=True)
@@ -534,32 +494,108 @@ class AMH2B_PG_Amh2b(PropertyGroup):
     sb_weight_geo_modifier: StringProperty(name="Weight GeoNodes Modifier", description="Name of Geometry Nodes " \
         "modifier, from 'Create Weight Test' function, for use with 'Convert Test Weights' function",
         default=SB_WEIGHT_GEO_NG_NAME)
-    sb_dt_gen_data_layers: BoolProperty(name="Generate Groups", description="With active object, create Vertex " \
-        "Groups for Soft Body weights if necessary", default=True)
     sb_dt_individual: BoolProperty(name="Transfer Individually", description="Instead of creating a single Data " \
         "Transfer modifier to transfer all vertex groups, create multiple modifiers to transfer individual groups",
         default=False)
     sb_dt_vg_mask: BoolProperty(name="Include Mask", description="Include 'SB-mask' vertex group when creating " \
         "individual data transfer modifiers ", default=True)
-    sb_dt_apply_mod: BoolProperty(name="Apply Modifier(s)", description="Apply Data Transfer modifier(s) to object",
+    sb_dt_apply_mod: BoolProperty(name="Apply Modifier", description="Apply Data Transfer modifier to object",
         default=True)
     sb_dt_include_goal: BoolProperty(name="Goal", description="Include 'SB-goal'", default=True)
     sb_dt_include_mask: BoolProperty(name="Mask", description="Include 'SB-mask'", default=True)
     sb_dt_include_mass: BoolProperty(name="Mass", description="Include 'SB-mass'", default=True)
     sb_dt_include_spring: BoolProperty(name="Spring", description="Include 'SB-spring'", default=True)
     sb_dt_vert_mapping: bpy.props.EnumProperty(name="Vertex Data Mapping", description="Method used to map source " \
-        "vertices to destination ones", items=dt_vert_mapping_items)
-    sb_dt_goal_vg_name: StringProperty(name="Goal", description="Goal vertex group name", default="SB-goal")
-    sb_dt_mask_vg_name: StringProperty(name="Mask", description="Mask vertex group name", default="SB-mask")
-    sb_dt_mass_vg_name: StringProperty(name="Mass", description="Mass vertex group name", default="SB-mass")
-    sb_dt_spring_vg_name: StringProperty(name="Spring", description="Spring vertex group name", default="SB-spring")
-
-    attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
-    attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
-    attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
+        "vertices to destination ones", items=[
+            ("NEAREST", "Nearest Vertex", ""),
+            ("TOPOLOGY", "Topology", ""),
+            ("EDGE_NEAREST", "Nearest Edge Vertex", ""),
+            ("EDGEINTERP_NEAREST", "Nearest Edge Interpolated", ""),
+            ("POLY_NEAREST", "Nearest Face Vertex", ""),
+            ("POLYINTERP_NEAREST", "Nearest Face Interpolated", ""),
+            ("POLYINTERP_VNORPROJ", "Projected Face Interpolated", ""), ])
+    sb_dt_goal_vg_name: StringProperty(name="Goal", description="Soft Body Goal vertex group name", default="SB-goal")
+    sb_dt_mask_vg_name: StringProperty(name="Mask", description="Mask object modifier vertex group name",
+        default="SB-mask")
+    sb_dt_mass_vg_name: StringProperty(name="Mass", description="Soft Body Mass vertex group name", default="SB-mass")
+    sb_dt_spring_vg_name: StringProperty(name="Spring", description="Soft Body Spring vertex group name",
+        default="SB-spring")
+    sk_active_function: EnumProperty(name="Function", description="ShapeKey menu active function",
+        items=SK_FUNC_ITEMS)
+    sk_bind_frame: IntProperty(name="Bind Frame", description="In this frame, modified (after viewport visible " \
+        "modifiers are applied) mesh vertices must be in their original locations\nHint: vertex locations in " \
+        "OBJECT mode must be same as in EDIT mode.", default=0, min=0)
+    sk_start_frame: IntProperty(name="Start Frame", description="Choose first frame of mesh animation to convert " \
+        "to Shape Key", default=1, min=0)
+    sk_end_frame: IntProperty(name="End Frame", description="Choose last frame of mesh animation to convert to " \
+        "Shape Key", default=2, min=0)
+    sk_animate: BoolProperty(name="Animate Shape Keys", description="Animate baked Deform Shape Keys by adding " \
+        "keyframes to ShapeKey 'Evaluation Time', from 'Start Frame' to 'End Frame'", default=True)
+    sk_add_frame_to_name: BoolProperty(name="Add Frame to Name", description="Append frame number to key name " \
+        "(e.g. DSKey005, DSKey006)", default=True)
+    sk_dynamic: BoolProperty(name="Dynamic", description="Respect armature transformations when calculating " \
+        "deform shape keys. Dynamic is slower to run than not-Dynamic", default=True)
+    sk_extra_accuracy: IntProperty(name="",
+        description="Extra accuracy iterations when baking shape keys with dynamic enabled", default=0, min=0)
+    sk_deform_name_prefix: StringProperty(name="Prefix",
+        description="Prefix for naming mesh deform shape keys. Default value is " + SC_DSKEY, default=SC_DSKEY)
+    sk_adapt_size: BoolProperty(name="Adapt Size",
+        description="Adapt size of shape key to size of mesh, per vertex, by ratio of sums of connected edge " +
+        "lengths", default=True)
+    sk_swap_autoname_ext: BoolProperty(name="Swap Autoname Ext", description="If shapekey copy function is tried " \
+        "and fails, re-try swap with objects 'auto-name' extension removed.\ne.g. Object Mass0007:Eyebrow010.003 " \
+        "shapekeys may be copied from object Mass0007:Eyebrow010 shapekeys", default=True)
+    sk_function_prefix: StringProperty(name="Prefix",
+        description="Prefix used in shape key functions. Default value is " + SC_DSKEY, default=SC_DSKEY)
+    sk_mask_vgroup_name: StringProperty(name="Mask VGroup",
+        description="Name of vertex group to use as a mask when baking shapekeys.\nOptional: Use this feature for " +
+        "finer control over which vertexes are used to bake the shapekeys", default="")
+    sk_mask_invert: BoolProperty(name="Mask Invert",
+        description="If vertex group is given, and 'Invert' is enabled, then only mask vertex group vertexes " +
+        "are included when baking shapekey(s).\nIf vertex group is given, and 'Invert' is not enabled, " +
+        "then mask vertex group vertexes are excluded when baking shapekey(s)", default=False)
+    temp_active_slot_only: BoolProperty(name="Active Slot Only",
+        description="Rename only Active Slot material, instead of trying to rename all material slots",
+        default=False)
+    temp_delimiter: StringProperty(name="Delimiter",
+        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
+    temp_delim_count: IntProperty(name="Delim. Count", description="Number of delimiters allowed in " +
+        "name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
+    vg_func_name_prefix: StringProperty(name="Prefix",
+        description="Perform functions on selected MESH type objects, but only vertex groups with names " +
+        "beginning with this prefix. Default value is " + SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
+    vg_swap_autoname_ext: BoolProperty(name="Swap Autoname Ext", description="If vertex group copy function is " \
+        "tried and fails, re-try swap with objects 'auto-name' extension removed.\ne.g. Object " \
+        "Mass0007:Eyebrow010.003 vertex groups may be copied from object Mass0007:Eyebrow010 vertex groups",
+        default=True)
+    vg_create_name_only: BoolProperty(name="Create Groups Only in Name",
+        description="Create vertex groups 'in name only' when copying", default=False)
+    wp_select_vertex_min_w: FloatProperty(name="Min Weight",
+        description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
+    wp_select_vertex_max_w: FloatProperty(name="Max Weight",
+        description="Maximum weight of vertex to select", default=1.0, min=0.0, max=1.0)
+    wp_select_vertex_deselect: BoolProperty(name="Deselect All First",
+        description="Deselect all vertexes before selecting by weight", default=True)
+    wp_grow_paint_iterations: IntProperty(name="Iterations",
+        description="Number of growth iterations - 'select more' is used each iteration to select more vertexes " +
+        "before applying weight paint", default=1, min=1)
+    wp_grow_paint_start_weight: FloatProperty(name="Start Weight",
+        description="Weight paint value applied to currently selected vertexes", default=1.0, min=0.0, max=1.0)
+    wp_grow_paint_end_weight: FloatProperty(name="End Weight",
+        description="Weight paint value applied to vertexes selected last, in the final iteration", default=0.0,
+        min=0.0, max=1.0)
+    wp_paint_initial_selection: BoolProperty(name="Paint Initial Selection",
+        description="Initial selection will be included when applying weight paints", default=True)
+    wp_tail_fill_enable: BoolProperty(name="Tail Fill",
+        description="All remaining non-hidden vertexes will have their vertex weight paint values set to tail " +
+        "fill value, after applying weights to vertexes during 'select more' iterations", default=False)
+    wp_tail_fill_value: FloatProperty(name="Tail Value",
+        description="Weight paint value applied to tail fill vertexes", default=0.0, min=0.0, max=1.0)
+    wp_tail_fill_connected: BoolProperty(name="Fill Only Linked",
+        description="Only linked vertexes will be included in the tail fill process", default=True)
 
 classes = [
-    AMH2B_PG_Amh2b,
+    AMH2B_PG_ScnAMH2B,
     AMH2B_OT_SwapMatWithFile,
     AMH2B_OT_SwapMatInternal,
     AMH2B_OT_SetupMatSwap,
@@ -583,14 +619,14 @@ classes = [
     AMH2B_OT_CreateObjModShrinkwrap,
     AMH2B_OT_CreateObjModThickShrinkwrap,
     AMH2B_OT_ApplyScale,
-    AMH2B_OT_AdjustPose,
-    AMH2B_OT_BridgeRepose,
-    AMH2B_OT_BoneWoven,
+    AMH2B_OT_ScriptPose,
     AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume,
     AMH2B_OT_RenameGeneric,
     AMH2B_OT_UnNameGeneric,
     AMH2B_OT_CleanupGizmos,
+    AMH2B_OT_StitchArmature,
+    AMH2B_OT_RatchetPoint,
     AMH2B_OT_RatchetHold,
     AMH2B_OT_RemoveBlinkTrack,
     AMH2B_OT_AddBlinkTrack,
@@ -615,10 +651,10 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.amh2b = PointerProperty(type=AMH2B_PG_Amh2b)
+    bpy.types.Scene.amh2b = PointerProperty(type=AMH2B_PG_ScnAMH2B)
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.amh2b
 

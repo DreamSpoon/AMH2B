@@ -114,9 +114,8 @@ def create_obj_directional_shrinkwrap(ob, override_create):
     geo_nodes_mod.node_group = node_group
 
 class AMH2B_OT_CreateObjModDirectionalShrinkwrap(bpy.types.Operator):
-    bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
-        "another geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
-        "'solid target'"
+    """Add geometry nodes modifier to active Mesh object to project one geometry onto another geometry. """ \
+        """Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'"""
     bl_idname = "amh2b.obj_mod_create_directional_shrinkwrap"
     bl_label = "Directional Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -225,9 +224,9 @@ def create_obj_directional_thick_shrinkwrap(ob, override_create):
     geo_nodes_mod.node_group = node_group
 
 class AMH2B_OT_CreateObjModDirectionalThickShrinkwrap(bpy.types.Operator):
-    bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
-        "another geometry. Projected geometry is optionally moved towards 'direction target' instead of original " \
-        "'solid target', with projected 'thickness' retained"
+    """Add geometry nodes modifier to active Mesh object to project one geometry onto another geometry. """ \
+        """Projected geometry is optionally moved towards 'direction target' instead of original 'solid target'""" \
+        """, with projected 'thickness' retained"""
     bl_idname = "amh2b.obj_mod_create_directional_thick_shrinkwrap"
     bl_label = "Directional Thick Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -313,8 +312,7 @@ def create_obj_shrinkwrap(ob, override_create):
     geo_nodes_mod.node_group = node_group
 
 class AMH2B_OT_CreateObjModShrinkwrap(bpy.types.Operator):
-    bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
-        "another geometry"
+    """Add geometry nodes modifier to active Mesh object to project one geometry onto another geometry"""
     bl_idname = "amh2b.obj_mod_create_shrinkwrap"
     bl_label = "Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}
@@ -403,9 +401,8 @@ def create_obj_thick_shrinkwrap(ob, override_create):
     geo_nodes_mod.node_group = node_group
 
 class AMH2B_OT_CreateObjModThickShrinkwrap(bpy.types.Operator):
-    bl_description = "Add geometry nodes modifier to active Mesh object to project one geometry onto " \
-        "another geometry. Projected geometry will retain it's 'thickness' after projection, by way of secondary " \
-        "'nearness' check"
+    """Add geometry nodes modifier to active Mesh object to project one geometry onto another geometry. """ \
+        """Projected geometry will retain it's 'thickness' after projection, by way of secondary 'nearness' check"""
     bl_idname = "amh2b.obj_mod_create_thick_shrinkwrap"
     bl_label = "Thick Shrinkwrap"
     bl_options = {'REGISTER', 'UNDO'}

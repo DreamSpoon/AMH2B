@@ -22,7 +22,7 @@ from bpy.types import Operator
 from .func import (ATTRIB_SHAPEKEY, SHAPEKEY_ATTRIB, shapekey_to_attribute, attribute_to_shapekey)
 
 class AMH2B_OT_AttributeConvert(Operator):
-    bl_description = "Use Attribute with selected action, e.g. convert ShapeKey to Attribute"
+    """Use Attribute with selected action, e.g. convert ShapeKey to Attribute"""
     bl_idname = "amh2b.attribute_convert"
     bl_label = "Convert"
     bl_options = {'REGISTER', 'UNDO'}

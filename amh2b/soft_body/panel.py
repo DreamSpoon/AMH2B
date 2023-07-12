@@ -47,7 +47,6 @@ def draw_panel_soft_body(self, context, box):
             layout.prop_search(a, "sb_weight_geo_modifier", act_ob, "modifiers", text="")
     elif a.sb_function == SB_FUNCTION_DATA_TRANSFER:
         layout.operator(AMH2B_OT_DataTransferSBWeight.bl_idname)
-        layout.prop(a, "sb_dt_gen_data_layers")
         layout.prop(a, "sb_dt_vert_mapping", text="")
         layout.prop(a, "sb_dt_apply_mod")
         layout.prop(a, "sb_dt_individual")
