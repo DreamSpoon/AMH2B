@@ -21,7 +21,8 @@ from bpy.props import (EnumProperty, StringProperty)
 from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
-    cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets)
+    cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets,
+    copy_armature_transforms)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -179,3 +180,46 @@ class AMH2B_OT_StitchArmature(Operator):
         row = layout.row()
         row.active = a.arm_use_textblock
         row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")
+
+class AMH2B_OT_CopyArmatureTransforms(Operator):
+    """Copy animation, with keyframes, from one Armature to another Armature. Temporary bone constraints are used""" \
+        """to Copy All Transforms, and then 'NLA Bake Action' is used to bake bone animation keyframes"""
+    bl_idname = "amh2b.copy_armature_transforms"
+    bl_label = "Copy Transforms"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        act_ob = context.active_object
+        sel_obs = context.selected_objects
+        return act_ob != None and len(sel_obs) == 2 and sel_obs[0].type == 'ARMATURE' and sel_obs[1].type == 'ARMATURE'
+
+    def execute(self, context):
+        a = context.scene.amh2b
+        act_ob = context.active_object
+        sel_obs = context.selected_objects
+        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
+            self.report({'ERROR'}, "Select exactly 2 Armatures and try again")
+            return {'CANCELLED'}
+        dest_rig_obj = act_ob
+        src_rig_obj = None
+        if sel_obs[0] != act_ob:
+            src_rig_obj = sel_obs[0]
+        else:
+            src_rig_obj = sel_obs[1]
+        copy_armature_transforms(context, src_rig_obj, dest_rig_obj, a.arm_copy_transforms_selected,
+                                 a.arm_copy_transforms_frame_start, a.arm_copy_transforms_frame_end,
+                                 a.arm_copy_transforms_frame_step)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        load_stitch_armature_presets()
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        a = context.scene.amh2b
+        layout.prop(a, "arm_copy_transforms_frame_start", text="Frame Start")
+        layout.prop(a, "arm_copy_transforms_frame_end", text="Frame End")
+        layout.prop(a, "arm_copy_transforms_frame_step", text="Frame Step")
+        layout.prop(a, "arm_copy_transforms_selected", text="Only Selected")

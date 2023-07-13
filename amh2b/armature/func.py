@@ -150,8 +150,8 @@ def load_script_pose_presets():
             continue
         script_pose_presets[fp] = pose_script
 
-def global_rotate_bone(rig_object, bone_name, axis_name, offset_deg):
-    the_bone = rig_object.pose.bones.get(bone_name)
+def global_rotate_bone(arm_ob, bone_name, axis_name, offset_deg):
+    the_bone = arm_ob.pose.bones.get(bone_name)
     if the_bone is None:
         return
     the_bone.bone.select = True
@@ -264,10 +264,10 @@ def armature_apply_scale(context, ob, apply_location=False, apply_rotation=False
     context.view_layer.objects.active = old_act_ob
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-def toggle_preserve_volume(context, new_state, sel_obj_list):
+def toggle_preserve_volume(context, new_state, sel_ob_list):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in sel_obj_list:
+    for ob in sel_ob_list:
         if ob.type != 'MESH':
             continue
         for mod in ob.modifiers:
@@ -281,10 +281,10 @@ def get_generic_bone_name(bone_name, generic_prefix):
     else:
         return generic_prefix + ":" + bone_name
 
-def rename_bone_generic(context, new_generic_prefix, sel_obj_list):
+def rename_bone_generic(context, new_generic_prefix, sel_ob_list):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in sel_obj_list:
+    for ob in sel_ob_list:
         if ob.type != 'ARMATURE':
             continue
         for ebone in ob.data.edit_bones.data.bones:
@@ -297,10 +297,10 @@ def get_non_generic_bone_name(bone_name):
     else:
         return bone_name
 
-def unname_bone_generic(context, sel_obj_list):
+def unname_bone_generic(context, sel_ob_list):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-    for ob in sel_obj_list:
+    for ob in sel_ob_list:
         if ob.type != 'ARMATURE':
             continue
         for ebone in ob.data.edit_bones.data.bones:
@@ -511,13 +511,13 @@ def op_dup_swap_stitch(context, op_data, script_state):
         # e.g. ("target", "LeftArm", "arm_base.L", 0.35, 0)
         if not is_types(dup_swap_data, (str, str, str, (float, int), (float, int)) ):
             return
-        rig_obj = None
+        arm_ob = None
         if dup_swap_data[0].lower() == "source":
-            rig_obj = script_state["source_object"]
+            arm_ob = script_state["source_object"]
             bone_to_dup_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[1])
             ref_bone_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[2])
         elif dup_swap_data[0].lower() == "target":
-            rig_obj = script_state["target_object"]
+            arm_ob = script_state["target_object"]
             bone_to_dup_name = bone_name_translation(target_bone_name_trans, target_bone_names, dup_swap_data[1])
             ref_bone_name = bone_name_translation(target_bone_name_trans, target_bone_names, dup_swap_data[2])
         else:
@@ -527,48 +527,48 @@ def op_dup_swap_stitch(context, op_data, script_state):
         dist_on_dup = dup_swap_data[3]
         dist_on_ref = dup_swap_data[4]
         # set the parenting type to offset (connect=False), to prevent geometry being warped when re-parented
-        rig_obj.data.edit_bones[bone_to_dup_name].use_connect = False
-        rig_obj.data.edit_bones[ref_bone_name].use_connect = False
+        arm_ob.data.edit_bones[bone_to_dup_name].use_connect = False
+        arm_ob.data.edit_bones[ref_bone_name].use_connect = False
         # get 3d translation vector as a point coincident with both bones, along a factor of each bone's length
-        t_vec = get_translation_vec(rig_obj.data.edit_bones[bone_to_dup_name], rig_obj.data.edit_bones[ref_bone_name],
+        t_vec = get_translation_vec(arm_ob.data.edit_bones[bone_to_dup_name], arm_ob.data.edit_bones[ref_bone_name],
                                     dist_on_dup, dist_on_ref)
         # duplicate bone
-        new_bone = rig_obj.data.edit_bones.new(rig_obj.data.edit_bones[bone_to_dup_name].name)
+        new_bone = arm_ob.data.edit_bones.new(arm_ob.data.edit_bones[bone_to_dup_name].name)
         # put new_bone in the 'added bones' layer
         for i in range(32):
             new_bone.layers[i] = script_state["add_layer_index"] == i
         # copy head and tail locations, with offset by distance factor along original bones' length
-        new_bone.head.x = rig_obj.data.edit_bones[bone_to_dup_name].head.x + t_vec[0]
-        new_bone.head.y = rig_obj.data.edit_bones[bone_to_dup_name].head.y + t_vec[1]
-        new_bone.head.z = rig_obj.data.edit_bones[bone_to_dup_name].head.z + t_vec[2]
-        new_bone.tail.x = rig_obj.data.edit_bones[bone_to_dup_name].tail.x + t_vec[0]
-        new_bone.tail.y = rig_obj.data.edit_bones[bone_to_dup_name].tail.y + t_vec[1]
-        new_bone.tail.z = rig_obj.data.edit_bones[bone_to_dup_name].tail.z + t_vec[2]
-        new_bone.roll = rig_obj.data.edit_bones[bone_to_dup_name].roll
+        new_bone.head.x = arm_ob.data.edit_bones[bone_to_dup_name].head.x + t_vec[0]
+        new_bone.head.y = arm_ob.data.edit_bones[bone_to_dup_name].head.y + t_vec[1]
+        new_bone.head.z = arm_ob.data.edit_bones[bone_to_dup_name].head.z + t_vec[2]
+        new_bone.tail.x = arm_ob.data.edit_bones[bone_to_dup_name].tail.x + t_vec[0]
+        new_bone.tail.y = arm_ob.data.edit_bones[bone_to_dup_name].tail.y + t_vec[1]
+        new_bone.tail.z = arm_ob.data.edit_bones[bone_to_dup_name].tail.z + t_vec[2]
+        new_bone.roll = arm_ob.data.edit_bones[bone_to_dup_name].roll
         # swap new bone for ref_bone
-        new_bone.parent = rig_obj.data.edit_bones[ref_bone_name].parent
-        rig_obj.data.edit_bones[ref_bone_name].parent = new_bone
+        new_bone.parent = arm_ob.data.edit_bones[ref_bone_name].parent
+        arm_ob.data.edit_bones[ref_bone_name].parent = new_bone
         # keep references to bones so bone constraints can be added later
         constraint_inputs.append( (new_bone.name, bone_to_dup_name) )
     # add constraints in Pose mode
     bpy.ops.object.mode_set(mode='POSE')
     for new_bone_name, bone_to_dup_name in constraint_inputs:
         # new bone will copy rotation from bone_to_dup
-        crc = rig_obj.pose.bones[new_bone_name].constraints.new('COPY_ROTATION')
-        crc.target = rig_obj
+        crc = arm_ob.pose.bones[new_bone_name].constraints.new('COPY_ROTATION')
+        crc.target = arm_ob
         crc.subtarget = bone_to_dup_name
         crc.target_space = 'LOCAL'
         crc.owner_space = 'LOCAL'
         crc.use_offset = True
         # new bone will also copy location from bone_to_dup (user can turn off / remove if needed)
-        clc = rig_obj.pose.bones[new_bone_name].constraints.new('COPY_LOCATION')
-        clc.target = rig_obj
+        clc = arm_ob.pose.bones[new_bone_name].constraints.new('COPY_LOCATION')
+        clc.target = arm_ob
         clc.subtarget = bone_to_dup_name
         clc.target_space = 'LOCAL'
         clc.owner_space = 'LOCAL'
         clc.use_offset = True
 
-def apply_stitch_armature_script(context, add_layer_index, source_object, target_object, stitch_script):
+def apply_stitch_armature_script(context, add_layer_index, source_ob, target_ob, stitch_script):
     stitch_data = stitch_script.get("data")
     try:
         if len(stitch_data) < 1:
@@ -583,8 +583,8 @@ def apply_stitch_armature_script(context, add_layer_index, source_object, target
         }
     script_state = {
         "add_layer_index": add_layer_index,
-        "source_object": source_object,
-        "target_object": target_object,
+        "source_object": source_ob,
+        "target_object": target_ob,
         "armatures_joined": False,
         }
     for item in stitch_data:
@@ -597,7 +597,6 @@ def apply_stitch_armature_script(context, add_layer_index, source_object, target
     if context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
 
-#####################################################
 #   Stitch Armature
 # Simplify the MakeHuman rig animation process re: Mixamo et al. via a stitched (joined) armature that connects
 # imported animated rigs to imported MHX2 rigs - leaving face panel and visemes intact, while allowing
@@ -611,12 +610,12 @@ def apply_stitch_armature_script(context, add_layer_index, source_object, target
 # Rig B controls Rig A, allowing the user to tweak the final animation by animating Rig A.
 # Caveat: Rig A and Rig B should be in the same pose.
 # Side-note: Ugly, But Works
-def stitch_armature(context, apply_transforms, add_layer_index, src_rig_obj, targ_rig_obj, preset_name, use_textblock,
+def stitch_armature(context, apply_transforms, add_layer_index, src_arm_ob, targ_arm_ob, preset_name, use_textblock,
                     textblock_name):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
     if apply_transforms:
-        armature_apply_scale(context, src_rig_obj, True, True)
+        armature_apply_scale(context, src_arm_ob, True, True)
     if use_textblock:
         stitch_script = get_textblock_eval_dict(textblock_name)
     else:
@@ -624,6 +623,32 @@ def stitch_armature(context, apply_transforms, add_layer_index, src_rig_obj, tar
     if stitch_script is None:
         ret_val = False
     else:
-        ret_val = apply_stitch_armature_script(context, add_layer_index, src_rig_obj, targ_rig_obj, stitch_script)
+        ret_val = apply_stitch_armature_script(context, add_layer_index, src_arm_ob, targ_arm_ob, stitch_script)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return ret_val
+
+# intended to be used after Stitch Armature, to remove extra bones from Armature while retaining animation of
+# all bones of Armature
+def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, frame_start, frame_end, frame_step):
+    old_3dview_mode = context.object.mode
+    bpy.ops.object.mode_set(mode='POSE')
+    remove_const = []
+    for bone in dest_arm_ob.pose.bones:
+        if only_selected and not dest_arm_ob.data.bones[bone.name].select:
+            continue
+        ct_const = bone.constraints.new(type='COPY_TRANSFORMS')
+        ct_const.target = src_arm_ob
+        ct_const.subtarget = bone.name
+        ct_const.head_tail = 0.0
+        ct_const.remove_target_shear = False
+        ct_const.mix_mode = 'REPLACE'
+        ct_const.target_space = 'WORLD'
+        ct_const.owner_space = 'WORLD'
+        ct_const.influence = 1.0
+        remove_const.append( (bone, ct_const) )
+    src_arm_ob.select_set(False)
+    bpy.ops.nla.bake(frame_start=frame_start, frame_end=frame_end, step=frame_step, only_selected=only_selected,
+                     bake_types={'POSE'})
+    for bone, const in remove_const:
+        bone.constraints.remove(const)
+    bpy.ops.object.mode_set(mode=old_3dview_mode)

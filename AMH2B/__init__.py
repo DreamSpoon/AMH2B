@@ -23,7 +23,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (2, 1, 0),
+    "version": (2, 2, 0),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -42,7 +42,7 @@ from .animation.panel import draw_panel_animation
 from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items, stitch_armature_preset_items)
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_StitchArmature)
+    AMH2B_OT_StitchArmature, AMH2B_OT_CopyArmatureTransforms)
 from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
@@ -350,8 +350,16 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         "relative to Ratchet Target")
     arm_function: EnumProperty(name="Sub-Function Group", description="Armature Sub-Function Group",
         items=ARM_FUNC_ITEMS)
+    arm_copy_transforms_selected: BoolProperty(name="Copy Transforms Selected Only", description="Use only " \
+        "selected bones, to Copy ALl Transforms")
+    arm_copy_transforms_frame_start: IntProperty(name="Copy Transforms Frame Start", description="Add keyframes " \
+        "bones starting this frame", min=0, default=1)
+    arm_copy_transforms_frame_end: IntProperty(name="Copy Transforms Frame End", description="Add keyframes " \
+        "bones ending this frame", min=0, default=250)
+    arm_copy_transforms_frame_step: IntProperty(name="Copy Transforms Frame Step", description="Increment this " \
+        "many frames between keyframes", min=1, default=1)
     arm_add_layer_index: IntProperty(name="Bone Layer Index", description="Index of Bone Layer assigned to bones " \
-        "added to 'target' with Stitch Armature", default=17, min=0, max=31)
+        "added to 'target' with Stitch Armature", default=24, min=0, max=31)
     arm_apply_transforms: BoolProperty(name="Apply Transforms", description="Apply all transforms to 'source' " \
         "Armature before joining with 'target' Armature", default=True)
     arm_textblock_name: StringProperty(name="Text Editor Script Name",
@@ -626,6 +634,7 @@ classes = [
     AMH2B_OT_UnNameGeneric,
     AMH2B_OT_CleanupGizmos,
     AMH2B_OT_StitchArmature,
+    AMH2B_OT_CopyArmatureTransforms,
     AMH2B_OT_RatchetPoint,
     AMH2B_OT_RatchetHold,
     AMH2B_OT_RemoveBlinkTrack,
