@@ -313,3 +313,10 @@ def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name):
     if vertex_attrib_name != None and vertex_attrib_name != "":
         connect_d["attribute_name"] = vertex_attrib_name
     set_geo_nodes_mod_inputs(geo_nodes_mod, ({}, {}, connect_d ) )
+
+def remove_soft_body_spring(context):
+    old_3dview_mode = context.object.mode
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.delete_loose(use_verts=True, use_edges=True, use_faces=False)
+    bpy.ops.object.mode_set(mode=old_3dview_mode)

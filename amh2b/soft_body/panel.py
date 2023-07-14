@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 from .operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring)
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
 from .func import (SB_FUNCTION_WEIGHT, SB_FUNCTION_MODIFIER, SB_FUNCTION_DATA_TRANSFER, SB_FUNCTION_SPRING)
 
 def draw_panel_soft_body(self, context, box):
@@ -29,6 +29,7 @@ def draw_panel_soft_body(self, context, box):
     layout.separator()
 
     if a.sb_function == SB_FUNCTION_SPRING:
+        layout.operator(AMH2B_OT_RemoveSoftBodySpring.bl_idname)
         layout.operator(AMH2B_OT_AddSoftBodySpring.bl_idname)
         if act_ob.type != 'MESH' or act_ob.data is None:
             layout.prop(a, "sb_add_spring_attrib", text="")

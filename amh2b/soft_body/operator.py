@@ -19,7 +19,7 @@
 from bpy.types import Operator
 
 from .func import (create_weighting_object, get_sbw_geo_nodes_mod, finish_weighting_object, data_transfer_sb_weights,
-    preset_soft_body, add_soft_body_spring)
+    preset_soft_body, add_soft_body_spring, remove_soft_body_spring)
 
 class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
     """Create Soft Body vertex weights test mesh by duplicating active object. Select two mesh objects, first """ \
@@ -131,4 +131,20 @@ class AMH2B_OT_AddSoftBodySpring(Operator):
         act_ob = context.active_object
         a = context.scene.amh2b
         add_soft_body_spring(a.nodes_override_create, act_ob, a.sb_add_spring_attrib)
+        return {'FINISHED'}
+
+class AMH2B_OT_RemoveSoftBodySpring(Operator):
+    """With active object and all selected objects Meshes, remove soft body springs by using Mesh Cleanup -> """ \
+        """Delete Loose (verts/edges) to """
+    bl_idname = "amh2b.remove_soft_body_spring"
+    bl_label = "Remove Springs"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        act_ob = context.active_object
+        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+
+    def execute(self, context):
+        remove_soft_body_spring(context)
         return {'FINISHED'}

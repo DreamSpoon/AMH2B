@@ -501,9 +501,18 @@ def copy_eval_bmesh_to_verts(context, from_ob, to_mesh):
     if vert_data is None:
         vert_data = to_mesh.vertices
     # copy locations of bmesh vertices to output
+    bm_vert_len = len(bm.verts)
+    vert_data_len = len(vert_data)
     for i, v in enumerate(bm.verts):
+        # exit loop if index out of range for original vertices
+        if i >= vert_data_len:
+            break
         vert_data[i].co = v.co
     bm.free()
+    if i >= vert_data_len:
+        return "Modified mesh vertex count greater than original mesh vertex count, (modified, original) = (%i, %i)" \
+            % (bm_vert_len, vert_data_len)
+    return None
 
 def apply_modifier_sk(context, mesh_ob):
     original_mesh = mesh_ob.data
@@ -546,14 +555,16 @@ def apply_modifier_sk(context, mesh_ob):
         mesh_ob.add_rest_position_attribute = False
         mesh_ob.show_only_shape_key = True
     # copy Basis
-    copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+    ret_msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
     # copy other ShapeKeys, if any
     if mesh_ob.data.shape_keys != None:
         for index in range(len(mesh_ob.data.shape_keys.key_blocks) - 1):
             dup_mesh_ob.active_shape_key_index = index + 1
             mesh_ob.active_shape_key_index = index + 1
-            copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
-    # return original Mesh to original Object
+            msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+            if msg != None:
+                ret_msg = msg
+    # restore original Mesh to original Object
     mesh_ob.data = original_mesh
     # delete temp Object
     bpy.data.objects.remove(temp_mesh_ob)
@@ -571,3 +582,5 @@ def apply_modifier_sk(context, mesh_ob):
         mesh_ob.active_shape_key_index = original_mesh_settings["active_shape_key_index"]
         mesh_ob.add_rest_position_attribute = original_mesh_settings["add_rest_position_attribute"]
         mesh_ob.show_only_shape_key = original_mesh_settings["show_only_shape_key"]
+    # returns None if no error occurred, or string with error message
+    return ret_msg

@@ -64,7 +64,7 @@ from .shrinkwrap_obj import (AMH2B_OT_CreateObjModDirectionalShrinkwrap,
 from .soft_body.func import SB_FUNCTION_ITEMS
 from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
 from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring)
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
 from .soft_body.panel import draw_panel_soft_body
 from .template import (AMH2B_OT_MakeTailorObjectSearchable, AMH2B_OT_SetupMatSwap)
 from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
@@ -652,6 +652,7 @@ classes = [
     AMH2B_OT_DataTransferSBWeight,
     AMH2B_OT_PresetSoftBody,
     AMH2B_OT_AddSoftBodySpring,
+    AMH2B_OT_RemoveSoftBodySpring,
     AMH2B_OT_AttributeConvert,
     AMH2B_PT_NodeEditorShrinkwrap,
     AMH2B_PT_View3d,

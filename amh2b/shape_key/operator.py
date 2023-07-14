@@ -112,5 +112,7 @@ class AMH2B_OT_ApplyModifierSK(Operator):
         return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
 
     def execute(self, context):
-        apply_modifier_sk(context, context.active_object)
+        ret = apply_modifier_sk(context, context.active_object)
+        if ret != None:
+            self.report({'INFO'}, ret)
         return {'FINISHED'}
