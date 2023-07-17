@@ -211,7 +211,6 @@ def script_pose(context, arm_ob, preset_name, use_textblock, textblock_name, in_
     else:
         pose_script = script_pose_presets.get(preset_name)
     if pose_script != None:
-        print("gotta run pose script")
         apply_run_pose_script(arm_ob, pose_script, in_reverse)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
@@ -370,7 +369,7 @@ def load_stitch_armature_presets():
             continue
         stitch_armature_presets[fp] = stitch_script
 
-# allow for filename match filtering (use of '*' operator) with bone name lookups,
+# allow for filename match filtering (use of '*' operator) with case-sensitive bone name lookups,
 # uses first bone name found in case of multiple matches,
 # previously found translations are stored in bone_name_trans and reused for efficiency
 def bone_name_translation(bone_name_trans, all_bone_names, bone_name):
@@ -378,10 +377,13 @@ def bone_name_translation(bone_name_trans, all_bone_names, bone_name):
     if trans_name != None:
         return trans_name
     found_names = fnmatch.filter(all_bone_names, bone_name)
-    if found_names is not None and len(found_names) > 0:
-        # use first bone name found
-        bone_name_trans[bone_name] = found_names[0]
-        return found_names[0]
+    if found_names is not None:
+        # case sensitive filter
+        found_names = [ name for name in found_names if fnmatch.fnmatchcase(name, bone_name) ]
+        if len(found_names) > 0:
+            # use first bone name found
+            bone_name_trans[bone_name] = found_names[0]
+            return found_names[0]
     return None
 
 def op_join_armatures(context, op_data, script_state):

@@ -55,10 +55,10 @@ from .shape_key.func import SK_FUNC_ITEMS
 from .shape_key.operator import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
     AMH2B_OT_SKFuncDelete, AMH2B_OT_CopyOtherSK, AMH2B_OT_ApplyModifierSK)
 from .shape_key.panel import draw_panel_shape_key
-from .shrinkwrap import (AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap,
+from .geo_nodes.panel import (AMH2B_PT_NodeEditorGeoNodes, draw_panel_geometry_nodes)
+from .geo_nodes.operator import (AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap,
     AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap, AMH2B_OT_CreateGeoNodesShrinkwrap,
-    AMH2B_OT_CreateGeoNodesThickShrinkwrap)
-from .shrinkwrap_obj import (AMH2B_OT_CreateObjModDirectionalShrinkwrap,
+    AMH2B_OT_CreateGeoNodesThickShrinkwrap, AMH2B_OT_CreateObjModDirectionalShrinkwrap,
     AMH2B_OT_CreateObjModDirectionalThickShrinkwrap, AMH2B_OT_CreateObjModShrinkwrap,
     AMH2B_OT_CreateObjModThickShrinkwrap)
 from .soft_body.func import SB_FUNCTION_ITEMS
@@ -248,41 +248,14 @@ def draw_panel_template(self, context, func_grp_box):
     layout.label(text="Vertex Group and ShapeKey")
     layout.operator(AMH2B_OT_MakeTailorObjectSearchable.bl_idname)
 
-def draw_panel_shrinkwrap(self, context, func_grp_box):
-    scn = context.scene
-    layout = self.layout
-    layout.operator(AMH2B_OT_CreateObjModDirectionalShrinkwrap.bl_idname)
-    layout.operator(AMH2B_OT_CreateObjModDirectionalThickShrinkwrap.bl_idname)
-    layout.operator(AMH2B_OT_CreateObjModShrinkwrap.bl_idname)
-    layout.operator(AMH2B_OT_CreateObjModThickShrinkwrap.bl_idname)
-    layout.prop(scn.amh2b, "nodes_override_create")
-
-class AMH2B_PT_NodeEditorShrinkwrap(Panel):
-    bl_label = "Shrinkwrap"
-    bl_space_type = "NODE_EDITOR"
-    bl_region_type = "UI"
-    bl_category = "AMH2B"
-
-    def draw(self, context):
-        scn = context.scene
-        layout = self.layout
-
-        box = layout.box()
-        box.label(text="Create Shrinkwrap Nodes")
-        box.operator(AMH2B_OT_CreateGeoNodesShrinkwrap.bl_idname)
-        box.operator(AMH2B_OT_CreateGeoNodesThickShrinkwrap.bl_idname)
-        box.operator(AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap.bl_idname)
-        box.operator(AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap.bl_idname)
-        box.prop(scn.amh2b, "nodes_override_create")
-
 FUNC_GRP_ANIMATION = "FUNC_GRP_ANIMATION"
 FUNC_GRP_ARMATURE = "FUNC_GRP_ARMATURE"
 FUNC_GRP_ATTRIBUTES = "FUNC_GRP_ATTRIBUTES"
 FUNC_GRP_EYE_BLINK = "FUNC_GRP_EYE_BLINK"
 FUNC_GRP_EYE_LID = "FUNC_GRP_EYE_LID"
+FUNC_GRP_GEO_NODES = "FUNC_GRP_GEO_NODES"
 FUNC_GRP_MAT_SWAP = "FUNC_GRP_MAT_SWAP"
 FUNC_GRP_SHAPE_KEY = "FUNC_GRP_SHAPE_KEY"
-FUNC_GRP_SHRINKWRAP = "FUNC_GRP_SHRINKWRAP"
 FUNC_GRP_SOFT_BODY = "FUNC_GRP_SOFT_BODY"
 FUNC_GRP_TEMPLATE = "FUNC_GRP_TEMPLATE"
 FUNC_GRP_VERTEX_GROUP = "FUNC_GRP_VERTEX_GROUP"
@@ -293,9 +266,9 @@ FUNC_GRP_ITEMS = [
     (FUNC_GRP_ATTRIBUTES, "Attributes", ""),
     (FUNC_GRP_EYE_BLINK, "Eye Blink", ""),
     (FUNC_GRP_EYE_LID, "Eye Lid", ""),
+    (FUNC_GRP_GEO_NODES, "Geometry Nodes", ""),
     (FUNC_GRP_MAT_SWAP, "Material Swap", ""),
     (FUNC_GRP_SHAPE_KEY, "Shape Key", ""),
-    (FUNC_GRP_SHRINKWRAP, "Shrinkwrap", ""),
     (FUNC_GRP_SOFT_BODY, "Soft Body", ""),
     (FUNC_GRP_TEMPLATE, "Template", ""),
     (FUNC_GRP_VERTEX_GROUP, "Vertex Group", ""),
@@ -310,7 +283,7 @@ function_group_draw = {
     FUNC_GRP_EYE_LID: draw_panel_eye_lid,
     FUNC_GRP_MAT_SWAP: draw_panel_material,
     FUNC_GRP_SHAPE_KEY: draw_panel_shape_key,
-    FUNC_GRP_SHRINKWRAP: draw_panel_shrinkwrap,
+    FUNC_GRP_GEO_NODES: draw_panel_geometry_nodes,
     FUNC_GRP_SOFT_BODY: draw_panel_soft_body,
     FUNC_GRP_TEMPLATE: draw_panel_template,
     FUNC_GRP_VERTEX_GROUP: draw_panel_vertex_group,
@@ -654,7 +627,7 @@ classes = [
     AMH2B_OT_AddSoftBodySpring,
     AMH2B_OT_RemoveSoftBodySpring,
     AMH2B_OT_AttributeConvert,
-    AMH2B_PT_NodeEditorShrinkwrap,
+    AMH2B_PT_NodeEditorGeoNodes,
     AMH2B_PT_View3d,
 ]
 
