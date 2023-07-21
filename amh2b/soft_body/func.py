@@ -290,7 +290,7 @@ def preset_soft_body(ob, goal_vg_name, mass_vg_name, spring_vg_name):
     sb_mod.settings.damping = 50 * 0.61803399
     sb_mod.settings.plastic = 0
     sb_mod.settings.bend = 1.61803399 * 1.61803399 * 1.61803399
-    sb_mod.settings.spring_length = 95
+    sb_mod.settings.spring_length = 0
     sb_mod.settings.use_stiff_quads = False
 
 def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name):

@@ -19,6 +19,7 @@
 import re
 import bpy
 from bpy_extras.io_utils import ImportHelper
+from bpy.types import Operator
 
 from .append_from_file_func import append_material_from_blend_file
 from .template import get_mat_template_name
@@ -93,7 +94,7 @@ def do_swap_mats_with_file(shaderswap_blendfile, selection_list, active_slot_onl
 
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-class AMH2B_OT_SwapMatWithFile(bpy.types.Operator, ImportHelper):
+class AMH2B_OT_SwapMatWithFile(Operator, ImportHelper):
     """Try to swap materials on all selected objects with replacement materials from another Blend File, based on following settings"""
     bl_idname = "amh2b.mat_search_file"
     bl_label = "Search File"
@@ -152,7 +153,7 @@ def do_mat_swaps_internal(sel_obj_list, active_slot_only, ignore_autoname, keep_
             if keep_original_name:
                 mat_slot.material.name = original_mat_name
 
-class AMH2B_OT_SwapMatInternal(bpy.types.Operator):
+class AMH2B_OT_SwapMatInternal(Operator):
     """Try to swap materials of all selected objects with replacement materials contained within this Blend file, based on following settings"""
     bl_idname = "amh2b.mat_search_internal"
     bl_label = "Search Internal"

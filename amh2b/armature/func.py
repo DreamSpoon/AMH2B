@@ -140,9 +140,8 @@ def load_script_pose_presets():
     # safely read each file and get pose script, trying ALL FILES in the presets path
     for fp in file_paths:
         try:
-            f = open(os.path.join(p, fp), 'r')
-            pose_script = get_file_eval_dict(f)
-            f.close()
+            with open(os.path.join(p, fp), 'r') as f:
+                pose_script = get_file_eval_dict(f)
         except:
             pose_script = "Error: cannot open Script Pose preset file named: " + fp
         if not isinstance(pose_script, dict):
@@ -359,9 +358,8 @@ def load_stitch_armature_presets():
     # safely read each file and get stitch armature script
     for fp in file_paths:
         try:
-            f = open(os.path.join(p, fp), 'r')
-            stitch_script = get_file_eval_dict(f)
-            f.close()
+            with open(os.path.join(p, fp), 'r') as f:
+                stitch_script = get_file_eval_dict(f)
         except:
             stitch_script = "Error: cannot open Stitch Armature preset file named: " + fp
         if not isinstance(stitch_script, dict):
