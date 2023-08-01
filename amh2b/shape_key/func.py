@@ -486,7 +486,9 @@ def do_bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_fr
 
     context.scene.frame_set(old_current_frame)
 
-def copy_eval_bmesh_to_verts(context, from_ob, to_mesh):
+# include_original is True to enable copying modified vertex coords to original vertex coords AND ShapeKey coords
+# (if ShapeKey(s) exist)
+def copy_eval_bmesh_to_verts(context, from_ob, to_mesh, include_original):
     # get 'from_ob' vertice locations, with modifiers applied (local space)
     depsgraph = context.evaluated_depsgraph_get()
     bm = bmesh.new()
@@ -500,18 +502,30 @@ def copy_eval_bmesh_to_verts(context, from_ob, to_mesh):
     # use Mesh vertices if ShapeKey data output is not available
     if vert_data is None:
         vert_data = to_mesh.vertices
-    # copy locations of bmesh vertices to output
-    bm_vert_len = len(bm.verts)
-    vert_data_len = len(vert_data)
-    for i, v in enumerate(bm.verts):
-        # exit loop if index out of range for original vertices
+        iterations = 1
+    elif include_original:
+        iterations = 2
+    else:
+        iterations = 1
+    while iterations > 0:
+        if include_original and iterations == 2:
+            iter_vert_data = to_mesh.vertices
+        else:
+            iter_vert_data = vert_data
+        # copy locations of bmesh vertices to output
+        bm_vert_len = len(bm.verts)
+        vert_data_len = len(iter_vert_data)
+        for i, v in enumerate(bm.verts):
+            # exit loop if index out of range for original vertices
+            if i >= vert_data_len:
+                break
+            iter_vert_data[i].co = v.co
         if i >= vert_data_len:
-            break
-        vert_data[i].co = v.co
+            bm.free()
+            return "Modified mesh vertex count greater than original mesh vertex count, (modified, original) = " \
+                "(%i, %i)" % (bm_vert_len, vert_data_len)
+        iterations -= 1
     bm.free()
-    if i >= vert_data_len:
-        return "Modified mesh vertex count greater than original mesh vertex count, (modified, original) = (%i, %i)" \
-            % (bm_vert_len, vert_data_len)
     return None
 
 def apply_modifier_sk(context, mesh_ob):
@@ -555,13 +569,13 @@ def apply_modifier_sk(context, mesh_ob):
         mesh_ob.add_rest_position_attribute = False
         mesh_ob.show_only_shape_key = True
     # copy Basis
-    ret_msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+    ret_msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh, True)
     # copy other ShapeKeys, if any
     if mesh_ob.data.shape_keys != None:
         for index in range(len(mesh_ob.data.shape_keys.key_blocks) - 1):
             dup_mesh_ob.active_shape_key_index = index + 1
             mesh_ob.active_shape_key_index = index + 1
-            msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh)
+            msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh, False)
             if msg != None:
                 ret_msg = msg
     # restore original Mesh to original Object

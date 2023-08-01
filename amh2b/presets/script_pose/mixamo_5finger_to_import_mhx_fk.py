@@ -1,5 +1,5 @@
 {
-    "label": "Mixamo 5 Finger to Import MHX",
+    "label": "Mixamo 5 Finger to Import MHX FK",
     "data": [
         { "op": "global_rotate_bone", "data": [
                 ("clavicle.L", "y", -15),

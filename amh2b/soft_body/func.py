@@ -18,8 +18,8 @@
 
 import bpy
 
-from .geo_nodes import (REFLECT_PROXIMITY_GEO_NG_NAME, SB_WEIGHT_GEO_NG_NAME, SPRING_CONNECT_VERT_GEO_NG_NAME,
-    create_geo_ng_weight_sb, create_weight_sb_mod_geo_node_group, create_spring_connect_mod_geo_node_group,
+from .geo_nodes import (SIGNED_NEAREST_GEO_NG_NAME, SB_WEIGHT_GEO_NG_NAME, SPRING_CONNECT_VERT_GEO_NG_NAME,
+    create_geo_ng_signed_nearest, create_weight_sb_mod_geo_node_group, create_spring_connect_mod_geo_node_group,
     create_geo_ng_spring_connect_vert)
 from .mat_nodes import create_weight_test_mat_nodes
 from ..node_other import ensure_node_group
@@ -108,8 +108,8 @@ def set_geo_nodes_mod_outputs(gn_mod, output_list):
 
 def create_prereq_sb_node_group(node_group_name, node_tree_type):
     if node_tree_type == 'GeometryNodeTree':
-        if node_group_name == REFLECT_PROXIMITY_GEO_NG_NAME:
-            return create_geo_ng_weight_sb()
+        if node_group_name == SIGNED_NEAREST_GEO_NG_NAME:
+            return create_geo_ng_signed_nearest()
         elif node_group_name == SPRING_CONNECT_VERT_GEO_NG_NAME:
             return create_geo_ng_spring_connect_vert()
     # error
@@ -127,7 +127,7 @@ def apply_weight_sb_mod_geo_nodes(override_create, recv_ob, send_ob, goal_vg_nam
         node_group = geo_nodes_mod.node_group
         geo_nodes_mod.node_group = None
 
-    ensure_node_group(override_create, REFLECT_PROXIMITY_GEO_NG_NAME, 'GeometryNodeTree',
+    ensure_node_group(override_create, SIGNED_NEAREST_GEO_NG_NAME, 'GeometryNodeTree',
                       create_prereq_sb_node_group)
     create_weight_sb_mod_geo_node_group(node_group)
     # assign node_group to Geometry Nodes modifier, which will populate modifier's default input
@@ -293,7 +293,7 @@ def preset_soft_body(ob, goal_vg_name, mass_vg_name, spring_vg_name):
     sb_mod.settings.spring_length = 0
     sb_mod.settings.use_stiff_quads = False
 
-def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name):
+def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name, other_ob):
     geo_nodes_mod = recv_ob.modifiers.new(name="SpringConnectVert Geometry Nodes", type='NODES')
     if geo_nodes_mod.node_group is None:
         node_group = bpy.data.node_groups.new(name="SpringConnectGeoNodes", type='GeometryNodeTree')
@@ -310,9 +310,11 @@ def add_soft_body_spring(override_create, recv_ob, vertex_attrib_name):
     # values from node_group's default input values
     geo_nodes_mod.node_group = node_group
     connect_d = { "use_attribute": True }
+    use_attr_input = False
     if vertex_attrib_name != None and vertex_attrib_name != "":
+        use_attr_input = True
         connect_d["attribute_name"] = vertex_attrib_name
-    set_geo_nodes_mod_inputs(geo_nodes_mod, ({}, {}, connect_d ) )
+    set_geo_nodes_mod_inputs(geo_nodes_mod, ({ "value": other_ob }, {}, connect_d, { "value": use_attr_input }) )
 
 def remove_soft_body_spring(context):
     old_3dview_mode = context.object.mode

@@ -129,8 +129,13 @@ class AMH2B_OT_AddSoftBodySpring(Operator):
 
     def execute(self, context):
         act_ob = context.active_object
+        other_sel = [ ob for ob in context.selected_objects if ob != context.active_object ]
+        if len(other_sel) == 0:
+            other_ob = None
+        else:
+            other_ob = other_sel[0]
         a = context.scene.amh2b
-        add_soft_body_spring(a.nodes_override_create, act_ob, a.sb_add_spring_attrib)
+        add_soft_body_spring(a.nodes_override_create, act_ob, a.sb_add_spring_attrib, other_ob)
         return {'FINISHED'}
 
 class AMH2B_OT_RemoveSoftBodySpring(Operator):

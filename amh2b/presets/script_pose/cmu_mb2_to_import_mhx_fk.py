@@ -1,5 +1,5 @@
 {
-    "label": "CMU MotionBuilder2 to Import MHX",
+    "label": "CMU MotionBuilder2 to Import MHX FK",
     "data": [
         { "op": "global_rotate_bone", "data": [
                 ("clavicle.L", "y", -15),
