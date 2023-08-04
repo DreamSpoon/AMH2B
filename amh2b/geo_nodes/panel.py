@@ -18,19 +18,20 @@
 
 from bpy.types import Panel
 
-from .operator import (AMH2B_OT_CreateObjModDirectionalShrinkwrap, AMH2B_OT_CreateObjModShrinkwrap,
-    AMH2B_OT_CreateObjModThickShrinkwrap, AMH2B_OT_CreateGeoNodesShrinkwrap, AMH2B_OT_CreateGeoNodesThickShrinkwrap,
-    AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap, AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap)
+from .operator import (AMH2B_OT_CreateObjModDirectionalShrinkwrap, AMH2B_OT_CreateObjModDirectionalThickShrinkwrap,
+    AMH2B_OT_CreateObjModShrinkwrap, AMH2B_OT_CreateObjModThickShrinkwrap, AMH2B_OT_CreateGeoNodesShrinkwrap,
+    AMH2B_OT_CreateGeoNodesThickShrinkwrap, AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap,
+    AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap)
 
 def draw_panel_geometry_nodes(self, context, func_grp_box):
     scn = context.scene
     layout = self.layout
     layout.prop(scn.amh2b, "nodes_override_create")
     layout.label(text="Shrinkwrap")
-    layout.operator(AMH2B_OT_CreateObjModDirectionalShrinkwrap.bl_idname)
-    layout.operator(AMH2B_OT_CreateObjModDirectionalShrinkwrap.bl_idname)
     layout.operator(AMH2B_OT_CreateObjModShrinkwrap.bl_idname)
     layout.operator(AMH2B_OT_CreateObjModThickShrinkwrap.bl_idname)
+    layout.operator(AMH2B_OT_CreateObjModDirectionalShrinkwrap.bl_idname)
+    layout.operator(AMH2B_OT_CreateObjModDirectionalThickShrinkwrap.bl_idname)
 
 class AMH2B_PT_NodeEditorGeoNodes(Panel):
     bl_label = "Geometry Nodes"

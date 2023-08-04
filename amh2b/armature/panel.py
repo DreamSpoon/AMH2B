@@ -21,7 +21,7 @@ import bpy
 from .func import (ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
 from .operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_StitchArmature, AMH2B_OT_CopyArmatureTransforms)
+    AMH2B_OT_StitchArmature, AMH2B_OT_CopyArmatureTransforms, AMH2B_OT_MonoBoneLayer)
 
 def draw_panel_armature(self, context, func_grp_box):
     layout = self.layout
@@ -42,6 +42,8 @@ def draw_panel_armature(self, context, func_grp_box):
         layout.operator(AMH2B_OT_DisableModPreserveVolume.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_ApplyScale.bl_idname)
+        layout.separator()
+        layout.operator(AMH2B_OT_MonoBoneLayer.bl_idname)
         layout.separator()
         layout.label(text="Bone Names")
         layout.operator(AMH2B_OT_RenameGeneric.bl_idname)

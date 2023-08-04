@@ -652,3 +652,10 @@ def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, fr
     for bone, const in remove_const:
         bone.constraints.remove(const)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+def set_mono_bone_layer(ob, layer_index):
+    bones = ob.data.bones
+    mono_layers = [ layer_index == i for i in range(32)]
+    for b in bones:
+        if b.layers[layer_index]:
+            b.layers = mono_layers
