@@ -21,7 +21,7 @@ import bpy
 SC_TEMP_VGRP_NAME = "TempVGroup"
 
 # iterations must be >= 1
-def do_grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weight, paint_initial_selection,
+def grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weight, paint_initial_selection,
     tail_fill, tail_fill_value, only_connected):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='EDIT')
@@ -113,12 +113,12 @@ class AMH2B_OT_GrowPaint(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_grow_paint(ob_act, vg_ai, scn.amh2b.wp_grow_paint_iterations, scn.amh2b.wp_grow_paint_start_weight,
+        grow_paint(ob_act, vg_ai, scn.amh2b.wp_grow_paint_iterations, scn.amh2b.wp_grow_paint_start_weight,
             scn.amh2b.wp_grow_paint_end_weight, scn.amh2b.wp_paint_initial_selection, scn.amh2b.wp_tail_fill_enable,
             scn.amh2b.wp_tail_fill_value, scn.amh2b.wp_tail_fill_connected)
         return {'FINISHED'}
 
-def do_select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
+def select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
     old_3dview_mode = bpy.context.object.mode
 
     if deselect_first:
@@ -156,5 +156,5 @@ class AMH2B_OT_SelectVertexByWeight(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_select_vertex_by_weight(ob_act, vg_ai, scn.amh2b.wp_select_vertex_min_w, scn.amh2b.wp_select_vertex_max_w, scn.amh2b.wp_select_vertex_deselect)
+        select_vertex_by_weight(ob_act, vg_ai, scn.amh2b.wp_select_vertex_min_w, scn.amh2b.wp_select_vertex_max_w, scn.amh2b.wp_select_vertex_deselect)
         return {'FINISHED'}

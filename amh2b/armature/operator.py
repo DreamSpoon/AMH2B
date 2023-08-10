@@ -22,7 +22,7 @@ from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets,
-    copy_armature_transforms, set_mono_bone_layer)
+    copy_armature_transforms)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -182,8 +182,9 @@ class AMH2B_OT_StitchArmature(Operator):
         row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")
 
 class AMH2B_OT_CopyArmatureTransforms(Operator):
-    """Copy animation, with keyframes, from one Armature to another Armature. Temporary bone constraints are used""" \
-        """to Copy All Transforms, and then 'NLA Bake Action' is used to bake bone animation keyframes"""
+    """Copy animation, with keyframes, from one Armature to another Armature. Temporary bone constraints are """ \
+        """used to Copy All Transforms, then 'NLA Bake Action' is used to bake bone animation keyframes. """ \
+        """Select source Armature first (from Stitch Armature), and destination Armature last"""
     bl_idname = "amh2b.copy_armature_transforms"
     bl_label = "Copy Transforms"
     bl_options = {'REGISTER', 'UNDO'}
@@ -223,32 +224,3 @@ class AMH2B_OT_CopyArmatureTransforms(Operator):
         layout.prop(a, "arm_copy_transforms_frame_end", text="Frame End")
         layout.prop(a, "arm_copy_transforms_frame_step", text="Frame Step")
         layout.prop(a, "arm_copy_transforms_selected", text="Only Selected")
-
-class AMH2B_OT_MonoBoneLayer(Operator):
-    """All bones on given bone (visible) layer will be moved to only that layer. May need to apply this after """ \
-        """using Armature -> Retarget -> Stitch Armature"""
-    bl_idname = "amh2b.mono_bone_layer"
-    bl_label = "Mono Bone Layer"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    bone_layer: IntProperty(default=24, options={'HIDDEN'})
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object != None and context.active_object.type == 'ARMATURE'
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None:
-            return {'CANCELLED'}
-        if context.active_object.type != 'ARMATURE':
-            return {'CANCELLED'}
-        set_mono_bone_layer(act_ob, self.bone_layer)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "bone_layer", text="Bone Layer Number")

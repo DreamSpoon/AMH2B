@@ -34,7 +34,7 @@ class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
     def poll(cls, context):
         act_ob = context.active_object
         sel_ob = context.selected_objects
-        return act_ob != None and act_ob.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
+        return act_ob != None and context.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
             len([ob for ob in sel_ob if ob.type == 'MESH']) == 2
 
     def execute(self, context):
@@ -58,7 +58,7 @@ class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         gn_mod = get_sbw_geo_nodes_mod(context.active_object, context.scene.amh2b.sb_weight_geo_modifier)
@@ -83,7 +83,7 @@ class AMH2B_OT_DataTransferSBWeight(Operator):
     def poll(cls, context):
         act_ob = context.active_object
         sel_ob = context.selected_objects
-        return act_ob != None and act_ob.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
+        return act_ob != None and context.mode == 'OBJECT' and len(sel_ob) == 2 and act_ob in sel_ob and \
             len([ob for ob in sel_ob if ob.type == 'MESH']) == 2
 
     def execute(self, context):
@@ -106,7 +106,7 @@ class AMH2B_OT_PresetSoftBody(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         act_ob = context.active_object
@@ -125,7 +125,7 @@ class AMH2B_OT_AddSoftBodySpring(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         act_ob = context.active_object
@@ -148,7 +148,7 @@ class AMH2B_OT_RemoveSoftBodySpring(Operator):
     @classmethod
     def poll(cls, context):
         act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         remove_soft_body_spring(context)

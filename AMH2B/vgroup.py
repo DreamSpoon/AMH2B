@@ -25,7 +25,7 @@ from .object_func import delete_all_objects_except
 from .template import get_searchable_object_name
 from .vgroup_func import (copy_vgroups_by_name_prefix, delete_vgroups_by_name_prefix)
 
-def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix, create_name_only):
+def copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix, create_name_only):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -35,7 +35,7 @@ def do_copy_vertex_groups_by_prefix(from_mesh_obj, sel_obj_list, vg_name_prefix,
         dvc = len(to_mesh_obj.data.vertices)
         svc = len(from_mesh_obj.data.vertices)
         if dvc != svc and create_name_only == False:
-            print("do_copy_vertex_groups_by_prefix(): Cannot copy vertex groups from source ("+from_mesh_obj.name+
+            print("copy_vertex_groups_by_prefix(): Cannot copy vertex groups from source ("+from_mesh_obj.name+
                 ") to dest ("+to_mesh_obj.name+"), source vertex count ("+str(svc)+
                 ") doesn't equal destination vertex count ("+str(dvc)+").")
             continue
@@ -59,7 +59,7 @@ class AMH2B_OT_CopyVertexGroupsByPrefix(bpy.types.Operator):
             return {'CANCELLED'}
 
         scn = context.scene
-        do_copy_vertex_groups_by_prefix(act_ob, context.selected_objects, scn.amh2b.vg_func_name_prefix, scn.amh2b.vg_create_name_only)
+        copy_vertex_groups_by_prefix(act_ob, context.selected_objects, scn.amh2b.vg_func_name_prefix, scn.amh2b.vg_create_name_only)
         return {'FINISHED'}
 
 def delete_prefixed_vertex_groups(selection_list, delete_prefix):
@@ -87,7 +87,7 @@ class AMH2B_OT_DeleteVertexGroupsByPrefix(bpy.types.Operator):
         delete_prefixed_vertex_groups(context.selected_objects, scn.amh2b.vg_func_name_prefix)
         return {'FINISHED'}
 
-def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext,
+def search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix, swap_autoname_ext,
                                     create_name_only):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -132,7 +132,7 @@ def do_search_file_for_auto_vgroups(sel_obj_list, chosen_blend_file, name_prefix
         if dvc == svc or create_name_only == False:
             copy_vgroups_by_name_prefix(appended_obj, sel, name_prefix, create_name_only)
         else:
-            print("do_search_file_for_auto_vgroups(): Cannot copy vertex groups from source ("+appended_obj.name+
+            print("search_file_for_auto_vgroups(): Cannot copy vertex groups from source ("+appended_obj.name+
                 ") to dest ("+sel.name+"), source vertex count ("+str(svc)+
                 ") doesn't equal destination vertex count ("+str(dvc)+").")
 
@@ -155,6 +155,6 @@ class AMH2B_OT_SearchFileForAutoVGroups(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         scn = context.scene
-        do_search_file_for_auto_vgroups(context.selected_objects, self.filepath,
+        search_file_for_auto_vgroups(context.selected_objects, self.filepath,
             scn.amh2b.vg_func_name_prefix, scn.amh2b.vg_swap_autoname_ext, scn.amh2b.vg_create_name_only)
         return {'FINISHED'}

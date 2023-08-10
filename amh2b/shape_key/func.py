@@ -62,7 +62,7 @@ def delete_shapekeys_by_prefix(obj, delete_prefix):
             # finally, remove the shapekey
             obj.shape_key_remove(sk)
 
-def do_sk_func_delete(sel_obj_list, delete_prefix):
+def sk_func_delete(sel_obj_list, delete_prefix):
     # iterate over selected 'MESH' type objects that have shape keys; more than just Basis key
     for mesh_obj in (x for x in sel_obj_list
                      if x.type == 'MESH' and x.data.shape_keys is not None and
@@ -161,7 +161,7 @@ def copy_shapekeys_by_name_prefix(context, src_obj, dest_objects, copy_prefix, a
 
     src_obj.select_set(False)
 
-def do_copy_shape_keys(context, src_object, dest_objects, copy_prefix, adapt_size):
+def copy_shape_keys(context, src_object, dest_objects, copy_prefix, adapt_size):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -172,7 +172,7 @@ def do_copy_shape_keys(context, src_object, dest_objects, copy_prefix, adapt_siz
     copy_shapekeys_by_name_prefix(context, src_object, dest_objects, copy_prefix, adapt_size)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
-def do_search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
+def search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_size, swap_autoname_ext):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -294,7 +294,7 @@ def is_deform_modifier(mod):
         return True
     return False
 
-def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+def simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
     vert_matches):
     # create shape keys in the "deform" frames
     for frame in range(start_frame_num, end_frame_num+1):
@@ -316,7 +316,7 @@ def do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys
             sk.value = 1
             sk.keyframe_insert(data_path='value', frame=frame)
 
-def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+def dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
     vert_matches, extra_accuracy):
     # create a shape key for each axis, with offset of +1.0 along respective axis
     check_create_basis_shape_key(obj)
@@ -439,7 +439,7 @@ def do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_key
     obj.shape_key_remove(sk_y)
     obj.shape_key_remove(sk_z)
 
-def do_bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
+def bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_frame_num, end_frame_num, animate_keys,
     append_frame_to_name, is_dynamic, extra_accuracy, mask_vgroup_name, mask_include):
     old_current_frame = context.scene.frame_current
 
@@ -466,7 +466,7 @@ def do_bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_fr
     # get "bind" vert matches, by location, in bind frame
     context.scene.frame_set(bind_frame_num)
     vert_matches = get_vert_matches(obj, mask_vgroup_name, mask_include)
-    print("do_bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
+    print("bake_deform_shape_keys(): Bind vertex count = " + str(len(vert_matches)))
 
     # after binding, restore visibility of muted shape keys
     for sk in muted_sk:
@@ -478,10 +478,10 @@ def do_bake_deform_shape_keys(context, obj, add_prefix, bind_frame_num, start_fr
         mod.show_render = show_r
 
     if is_dynamic:
-        do_dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+        dynamic_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
             vert_matches, extra_accuracy)
     else:
-        do_simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
+        simple_bind(obj, add_prefix, start_frame_num, end_frame_num, animate_keys, append_frame_to_name,
             vert_matches)
 
     context.scene.frame_set(old_current_frame)
@@ -528,73 +528,63 @@ def copy_eval_bmesh_to_verts(context, from_ob, to_mesh, include_original):
     bm.free()
     return None
 
-def apply_modifier_sk(context, mesh_ob):
-    original_mesh = mesh_ob.data
+def apply_modifier_sk(context, src_ob):
+    src_mesh = src_ob.data
     # save state of original Object properties
-    original_mesh_settings = {}
-    if original_mesh.shape_keys != None:
-        if original_mesh.shape_keys.use_relative:
-            original_mesh_settings["shape_keys.use_relative"] = True
-        original_mesh_settings["active_shape_key_index"] = mesh_ob.active_shape_key_index
-        original_mesh_settings["add_rest_position_attribute"] = mesh_ob.add_rest_position_attribute
-        original_mesh_settings["show_only_shape_key"] = mesh_ob.show_only_shape_key
+    src_mesh_settings = {}
+    if src_mesh.shape_keys != None:
+        if src_mesh.shape_keys.use_relative:
+            src_mesh_settings["shape_keys.use_relative"] = True
+        src_mesh_settings["active_shape_key_index"] = src_ob.active_shape_key_index
+        src_mesh_settings["add_rest_position_attribute"] = src_ob.add_rest_position_attribute
+        src_mesh_settings["show_only_shape_key"] = src_ob.show_only_shape_key
     # save selected state of all Objects
     sel_ob_names = [ ob.name for ob in bpy.data.objects if ob.select_get() ]
     for ob in bpy.data.objects:
         ob.select_set(False)
-    # create new Object with same mesh as original Object
-    dup_mesh_ob = bpy.data.objects.new("TempObject", mesh_ob.data)
-    context.scene.collection.objects.link(dup_mesh_ob)
-    # select only 'dup_mesh_ob' and duplicate it, which will duplicate the Mesh as well
-    dup_mesh_ob.select_set(True)
     # get old names list, duplicate object, and check new object names against old to get new object
     old_ob_names = [ ob.name for ob in bpy.data.objects ]
+    src_ob.select_set(True)
     bpy.ops.object.duplicate(linked=False)
-    temp_mesh_ob = [ ob for ob in bpy.data.objects if ob.name not in old_ob_names ][0]
+    temp_ob = [ ob for ob in bpy.data.objects if ob.name not in old_ob_names ][0]
     # remove all animation data from duplicate Mesh, so ShapeKey properties can be modified easily (Drivers on
     # some properties could cause problems)
-    dup_mesh = temp_mesh_ob.data
-    if dup_mesh.shape_keys != None:
-        dup_mesh.shape_keys.animation_data_clear()
-    # move duplicated Mesh to original Object
-    mesh_ob.data = dup_mesh
+    temp_mesh = temp_ob.data
+    if temp_mesh.shape_keys != None:
+        temp_mesh.shape_keys.animation_data_clear()
     # set ShapeKey to Basis, if any
-    if original_mesh.shape_keys != None:
-        original_mesh.shape_keys.use_relative = False
-        dup_mesh.shape_keys.use_relative = False
-        dup_mesh_ob.active_shape_key_index = 0
-        dup_mesh_ob.add_rest_position_attribute = False
-        dup_mesh_ob.show_only_shape_key = True
-        mesh_ob.active_shape_key_index = 0
-        mesh_ob.add_rest_position_attribute = False
-        mesh_ob.show_only_shape_key = True
+    if src_mesh.shape_keys != None:
+        src_mesh.shape_keys.use_relative = False
+        temp_mesh.shape_keys.use_relative = False
+        temp_ob.active_shape_key_index = 0
+        temp_ob.add_rest_position_attribute = False
+        temp_ob.show_only_shape_key = True
+        src_ob.active_shape_key_index = 0
+        src_ob.add_rest_position_attribute = False
+        src_ob.show_only_shape_key = True
     # copy Basis
-    ret_msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh, True)
+    ret_msg = copy_eval_bmesh_to_verts(context, temp_ob, src_mesh, True)
     # copy other ShapeKeys, if any
-    if mesh_ob.data.shape_keys != None:
-        for index in range(len(mesh_ob.data.shape_keys.key_blocks) - 1):
-            dup_mesh_ob.active_shape_key_index = index + 1
-            mesh_ob.active_shape_key_index = index + 1
-            msg = copy_eval_bmesh_to_verts(context, mesh_ob, original_mesh, False)
+    if src_ob.data.shape_keys != None:
+        for index in range(len(src_ob.data.shape_keys.key_blocks) - 1):
+            temp_ob.active_shape_key_index = index + 1
+            src_ob.active_shape_key_index = index + 1
+            msg = copy_eval_bmesh_to_verts(context, temp_ob, src_mesh, False)
             if msg != None:
                 ret_msg = msg
-    # restore original Mesh to original Object
-    mesh_ob.data = original_mesh
     # delete temp Object
-    bpy.data.objects.remove(temp_mesh_ob)
-    # delete dup mesh Object
-    bpy.data.objects.remove(dup_mesh_ob)
+    bpy.data.objects.remove(temp_ob)
     # restore selected state of all Objects
     for ob_name in sel_ob_names:
         ob = bpy.data.objects.get(ob_name)
         if ob != None:
             ob.select_set(True)
     # restore state of original Object properties
-    if original_mesh.shape_keys != None:
-        if original_mesh_settings.get("shape_keys.use_relative") == True:
-            original_mesh.shape_keys.use_relative = True
-        mesh_ob.active_shape_key_index = original_mesh_settings["active_shape_key_index"]
-        mesh_ob.add_rest_position_attribute = original_mesh_settings["add_rest_position_attribute"]
-        mesh_ob.show_only_shape_key = original_mesh_settings["show_only_shape_key"]
+    if src_mesh.shape_keys != None:
+        if src_mesh_settings.get("shape_keys.use_relative") == True:
+            src_mesh.shape_keys.use_relative = True
+        src_ob.active_shape_key_index = src_mesh_settings["active_shape_key_index"]
+        src_ob.add_rest_position_attribute = src_mesh_settings["add_rest_position_attribute"]
+        src_ob.show_only_shape_key = src_mesh_settings["show_only_shape_key"]
     # returns None if no error occurred, or string with error message
     return ret_msg

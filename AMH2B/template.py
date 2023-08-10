@@ -43,7 +43,7 @@ def get_mat_template_name(orig_name, delim, delim_count):
 #        return True
 #    return False
 
-def do_setup_mat_template(selection_list, active_slot_only, delimiter, delimiter_count):
+def setup_mat_template(selection_list, active_slot_only, delimiter, delimiter_count):
     for obj in selection_list:
         # iterate over the material slots and check/rename the materials
         for mat_slot in (s for s in obj.material_slots if s.material is not None):
@@ -62,7 +62,7 @@ class AMH2B_OT_SetupMatSwap(bpy.types.Operator):
 
     def execute(self, context):
         scn = context.scene
-        do_setup_mat_template(context.selected_objects, scn.amh2b.temp_active_slot_only, scn.amh2b.temp_delimiter,
+        setup_mat_template(context.selected_objects, scn.amh2b.temp_active_slot_only, scn.amh2b.temp_delimiter,
                               scn.amh2b.temp_delim_count)
         return {'FINISHED'}
 
@@ -72,7 +72,7 @@ def get_searchable_object_name(object_name):
     else:
         return object_name
 
-def do_rename_mhx_object_to_searchable(selection_list):
+def rename_mhx_object_to_searchable(selection_list):
     for obj in selection_list:
         if obj.type != 'MESH':
             continue
@@ -85,5 +85,5 @@ class AMH2B_OT_MakeTailorObjectSearchable(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        do_rename_mhx_object_to_searchable(context.selected_objects)
+        rename_mhx_object_to_searchable(context.selected_objects)
         return {'FINISHED'}

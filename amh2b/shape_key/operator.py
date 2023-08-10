@@ -20,8 +20,7 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty
 from bpy.types import Operator
 
-from .func import (do_sk_func_delete, do_copy_shape_keys, do_search_file_for_auto_sk,
-    do_bake_deform_shape_keys, apply_modifier_sk)
+from .func import (sk_func_delete, copy_shape_keys, search_file_for_auto_sk, bake_deform_shape_keys, apply_modifier_sk)
 
 class AMH2B_OT_SKFuncDelete(Operator):
     """With selected MESH type objects, delete shape keys by prefix"""
@@ -31,7 +30,7 @@ class AMH2B_OT_SKFuncDelete(Operator):
 
     def execute(self, context):
         delete_prefix = context.scene.amh2b.sk_function_prefix
-        do_sk_func_delete(context.selected_objects, delete_prefix)
+        sk_func_delete(context.selected_objects, delete_prefix)
         return {'FINISHED'}
 
 # TODO copy animation keyframes too
@@ -56,7 +55,7 @@ class AMH2B_OT_CopyOtherSK(Operator):
             self.report({'ERROR'}, "No meshes were selected to receive copied shape keys")
             return {'CANCELLED'}
 
-        do_copy_shape_keys(context, ob_act, other_obj_list, copy_prefix, context.scene.amh2b.sk_adapt_size)
+        copy_shape_keys(context, ob_act, other_obj_list, copy_prefix, context.scene.amh2b.sk_adapt_size)
         return {'FINISHED'}
 
 class AMH2B_OT_SearchFileForAutoShapeKeys(Operator, ImportHelper):
@@ -69,7 +68,7 @@ class AMH2B_OT_SearchFileForAutoShapeKeys(Operator, ImportHelper):
 
     def execute(self, context):
         scn = context.scene
-        do_search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
+        search_file_for_auto_sk(context.selected_objects, self.filepath, scn.amh2b.sk_function_prefix,
             scn.amh2b.sk_adapt_size, scn.amh2b.sk_swap_autoname_ext)
         return {'FINISHED'}
 
@@ -93,26 +92,32 @@ class AMH2B_OT_BakeDeformShapeKeys(Operator):
             self.report({'ERROR'}, "Start Frame number is higher than End Frame number")
             return {'CANCELLED'}
 
-        do_bake_deform_shape_keys(context, act_ob, scn.amh2b.sk_deform_name_prefix, scn.amh2b.sk_bind_frame,
+        bake_deform_shape_keys(context, act_ob, scn.amh2b.sk_deform_name_prefix, scn.amh2b.sk_bind_frame,
             scn.amh2b.sk_start_frame, scn.amh2b.sk_end_frame, scn.amh2b.sk_animate,
             scn.amh2b.sk_add_frame_to_name, scn.amh2b.sk_dynamic, scn.amh2b.sk_extra_accuracy,
             scn.amh2b.sk_mask_vgroup_name, scn.amh2b.sk_mask_invert)
         return {'FINISHED'}
 
 class AMH2B_OT_ApplyModifierSK(Operator):
-    """Apply active Object's active modifiers to its Mesh, with updates to Mesh's ShapeKeys. Object modifiers """ \
-        """are not removed. Mesh must have the same number of vertices before and after modifiers are applied"""
+    """Apply selected Object's active modifiers to their Meshes, with updates to Meshes' ShapeKeys. Object """ \
+        """modifiers are not removed. Mesh must have same number of vertices before and after modifiers are """ \
+        """applied. e.g. disable 'Mask' Object modifiers"""
     bl_idname = "amh2b.sk_apply_modifiers"
     bl_label = "Apply Modifiers"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and act_ob.mode == 'OBJECT'
+        return len( [ ob for ob in context.selected_objects if ob.type == 'MESH' ] ) > 0 and context.mode == 'OBJECT'
 
     def execute(self, context):
-        ret = apply_modifier_sk(context, context.active_object)
-        if ret != None:
-            self.report({'INFO'}, ret)
+        infos = ""
+        for ob in context.selected_objects:
+            if ob.type != 'MESH':
+                continue
+            apply_result = apply_modifier_sk(context, ob)
+            if apply_result != None:
+                infos += apply_result + "\n"
+        if infos != "":
+            self.report({'INFO'}, infos[:-1])
         return {'FINISHED'}

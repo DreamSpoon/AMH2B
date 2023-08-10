@@ -596,6 +596,14 @@ def apply_stitch_armature_script(context, add_layer_index, source_ob, target_ob,
         op_func(context, item.get("data"), script_state)
     if context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
+    set_mono_bone_layer(context.active_object, add_layer_index)
+
+def set_mono_bone_layer(ob, layer_index):
+    bones = ob.data.bones
+    mono_layers = [ layer_index == i for i in range(32)]
+    for b in bones:
+        if b.layers[layer_index]:
+            b.layers = mono_layers
 
 #   Stitch Armature
 # Simplify the MakeHuman rig animation process re: Mixamo et al. via a stitched (joined) armature that connects
@@ -652,10 +660,3 @@ def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, fr
     for bone, const in remove_const:
         bone.constraints.remove(const)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
-
-def set_mono_bone_layer(ob, layer_index):
-    bones = ob.data.bones
-    mono_layers = [ layer_index == i for i in range(32)]
-    for b in bones:
-        if b.layers[layer_index]:
-            b.layers = mono_layers

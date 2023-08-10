@@ -34,7 +34,7 @@ from .template import get_mat_template_name
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.
 
-def do_swap_mats_with_file(shaderswap_blendfile, selection_list, active_slot_only, exact_name_only, ignore_autoname,
+def swap_mats_with_file(shaderswap_blendfile, selection_list, active_slot_only, exact_name_only, ignore_autoname,
                            keep_original_name, delimiter, delimiter_count):
     old_3dview_mode = bpy.context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -104,7 +104,7 @@ class AMH2B_OT_SwapMatWithFile(Operator, ImportHelper):
 
     def execute(self, context):
         scn = context.scene
-        do_swap_mats_with_file(self.filepath, context.selected_objects, scn.amh2b.mat_active_slot_only,
+        swap_mats_with_file(self.filepath, context.selected_objects, scn.amh2b.mat_active_slot_only,
             scn.amh2b.mat_exact_name_only, scn.amh2b.mat_ignore_autoname, scn.amh2b.mat_keep_original_name,
             scn.amh2b.mat_name_delimiter, scn.amh2b.mat_name_delimiter_count)
         return {'FINISHED'}
@@ -117,7 +117,7 @@ class AMH2B_OT_SwapMatWithFile(Operator, ImportHelper):
 #
 # Search and swap materials for all material slots on all selected objects, unless active slot only.
 
-def do_mat_swaps_internal(sel_obj_list, active_slot_only, ignore_autoname, keep_original_name,
+def mat_swaps_internal(sel_obj_list, active_slot_only, ignore_autoname, keep_original_name,
                           delimiter, delimiter_count):
     # fix materials on all selected objects, swapping to correct materials if available
     for obj in sel_obj_list:
@@ -165,7 +165,7 @@ class AMH2B_OT_SwapMatInternal(Operator):
         # replacing a material with itself!
         if scn.amh2b.mat_exact_name_only:
             return {'FINISHED'}
-        do_mat_swaps_internal(context.selected_objects, scn.amh2b.mat_active_slot_only,
+        mat_swaps_internal(context.selected_objects, scn.amh2b.mat_active_slot_only,
             scn.amh2b.mat_ignore_autoname, scn.amh2b.mat_keep_original_name, scn.amh2b.mat_name_delimiter,
             scn.amh2b.mat_name_delimiter_count)
         return {'FINISHED'}
