@@ -167,9 +167,8 @@ def create_weighting_object(context, override_create, recv_ob, send_ob, goal_vg_
     weight_test_mat.use_nodes = True
     create_weight_test_mat_nodes(weight_test_mat, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_name)
     dup_recv_ob.material_slots[len(dup_recv_ob.material_slots)-1].material = weight_test_mat
-    # hide previous objects
+    # hide object that was duplicated
     recv_ob.hide_set(True)
-    send_ob.hide_set(True)
 
 def create_dup_geo_nodes_mod(ob, gn_mod):
     # get mod list before, so new modifier can be found - because modifier_copy does not return a ref to new modifier

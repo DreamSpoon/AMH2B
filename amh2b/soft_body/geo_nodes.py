@@ -38,13 +38,6 @@ def create_geo_ng_signed_nearest():
     tree_nodes.clear()
     # create nodes
     new_nodes = {}
-    # Raycast
-    node = tree_nodes.new(type="GeometryNodeRaycast")
-    node.width_hidden = 0.000000
-    node.location = (196, 568)
-    node.data_type = "FLOAT"
-    node.mapping = "INTERPOLATED"
-    new_nodes["Raycast"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.width_hidden = 0.000000
@@ -66,7 +59,7 @@ def create_geo_ng_signed_nearest():
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.width_hidden = 0.000000
     node.location = (-20, 39)
-    new_nodes["Position.001"] = node
+    new_nodes["Position"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.width_hidden = 0.000000
@@ -80,7 +73,7 @@ def create_geo_ng_signed_nearest():
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.width_hidden = 0.000000
     node.location = (196, 255)
-    new_nodes["Position.002"] = node
+    new_nodes["Position.001"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.width_hidden = 0.000000
@@ -91,7 +84,7 @@ def create_geo_ng_signed_nearest():
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.width_hidden = 0.000000
     node.location = (-235, 176)
-    new_nodes["Position"] = node
+    new_nodes["Position.002"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.width_hidden = 0.000000
@@ -100,11 +93,21 @@ def create_geo_ng_signed_nearest():
     node.use_clamp = False
     node.inputs[1].default_value = -1.000000
     node.inputs[2].default_value = 0.500000
-    new_nodes["Math.002"] = node
+    new_nodes["Math.001"] = node
+    # Group Input
+    node = tree_nodes.new(type="NodeGroupInput")
+    node.width_hidden = 0.000000
+    node.location = (-451, 392)
+    new_nodes["Group Input"] = node
+    # Group Output
+    node = tree_nodes.new(type="NodeGroupOutput")
+    node.width_hidden = 0.000000
+    node.location = (764, 745)
+    new_nodes["Group Output"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.width_hidden = 0.000000
-    node.location = (549, 333)
+    node.location = (549, 118)
     node.operation = "DOT_PRODUCT"
     node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
     node.inputs[3].default_value = 1.000000
@@ -112,12 +115,27 @@ def create_geo_ng_signed_nearest():
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.width_hidden = 0.000000
-    node.location = (549, 490)
-    node.operation = "LESS_THAN"
+    node.location = (549, 274)
+    node.operation = "GREATER_THAN"
     node.use_clamp = False
     node.inputs[1].default_value = 0.000000
     node.inputs[2].default_value = 0.500000
-    new_nodes["Math.001"] = node
+    new_nodes["Math.002"] = node
+    # Raycast
+    node = tree_nodes.new(type="GeometryNodeRaycast")
+    node.width_hidden = 0.000000
+    node.location = (196, 568)
+    node.data_type = "FLOAT"
+    node.mapping = "INTERPOLATED"
+    new_nodes["Raycast"] = node
+    # Math
+    node = tree_nodes.new(type="ShaderNodeMath")
+    node.width_hidden = 0.000000
+    node.location = (549, 470)
+    node.operation = "MULTIPLY"
+    node.use_clamp = False
+    node.inputs[2].default_value = 0.500000
+    new_nodes["Math.003"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.width_hidden = 0.000000
@@ -133,16 +151,6 @@ def create_geo_ng_signed_nearest():
     node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
     node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
     new_nodes["Mix"] = node
-    # Group Input
-    node = tree_nodes.new(type="NodeGroupInput")
-    node.width_hidden = 0.000000
-    node.location = (-451, 392)
-    new_nodes["Group Input"] = node
-    # Group Output
-    node = tree_nodes.new(type="NodeGroupOutput")
-    node.width_hidden = 0.000000
-    node.location = (764, 745)
-    new_nodes["Group Output"] = node
     # create links
     tree_links = new_node_group.links
     tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Geometry Proximity"].inputs[0])
@@ -155,17 +163,19 @@ def create_geo_ng_signed_nearest():
     tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Group Output"].inputs[2])
     tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Vector Math.002"].inputs[0])
     tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Vector Math.002"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[1], new_nodes["Math.001"].inputs[0])
-    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix"].inputs[3])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.002"].inputs[0])
-    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Mix"].inputs[2])
+    tree_links.new(new_nodes["Vector Math.002"].outputs[1], new_nodes["Math.002"].inputs[0])
+    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.001"].inputs[0])
     tree_links.new(new_nodes["Mix"].outputs[0], new_nodes["Group Output"].inputs[1])
     tree_links.new(new_nodes["Raycast"].outputs[0], new_nodes["Group Output"].inputs[3])
     tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
-    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Vector Math"].inputs[1])
-    tree_links.new(new_nodes["Position.002"].outputs[0], new_nodes["Raycast"].inputs[6])
+    tree_links.new(new_nodes["Position.002"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
+    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Vector Math"].inputs[1])
+    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Raycast"].inputs[6])
+    tree_links.new(new_nodes["Raycast"].outputs[0], new_nodes["Math.003"].inputs[0])
+    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Math.003"].inputs[1])
+    tree_links.new(new_nodes["Math.003"].outputs[0], new_nodes["Mix"].inputs[0])
+    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix"].inputs[2])
+    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Mix"].inputs[3])
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group
