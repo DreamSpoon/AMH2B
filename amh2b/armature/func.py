@@ -660,3 +660,6 @@ def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, fr
     for bone, const in remove_const:
         bone.constraints.remove(const)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
+
+def is_mhx2_armature(ob):
+    return ob != None and hasattr(ob, "MhxRig") and ob.MhxRig in ('MHX', 'EXPORTED_MHX')

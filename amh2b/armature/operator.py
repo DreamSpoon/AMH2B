@@ -22,7 +22,7 @@ from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets,
-    copy_armature_transforms)
+    copy_armature_transforms, is_mhx2_armature)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -224,3 +224,61 @@ class AMH2B_OT_CopyArmatureTransforms(Operator):
         layout.prop(a, "arm_copy_transforms_frame_end", text="Frame End")
         layout.prop(a, "arm_copy_transforms_frame_step", text="Frame Step")
         layout.prop(a, "arm_copy_transforms_selected", text="Only Selected")
+
+class AMH2B_OT_SnapMHX_FK(Operator):
+    """Try to use MHX snap FK to IK"""
+    bl_idname = "amh2b.snap_mhx_fk"
+    bl_label = "Snap MHX FK"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+#        act_ob = context.active_object
+#        return act_ob != None and act_ob.type == 'ARMATURE'
+        return is_mhx2_armature(context.active_object)
+
+    def execute(self, context):
+        if not is_mhx2_armature(context.active_object):
+            return {'CANCELLED'}
+        old_mode = context.mode
+        bpy.ops.object.mode_set(mode='OBJECT')
+        try:
+            bpy.ops.mhx2.snap_fk_ik(data="MhaArmIk_L 2 3 12")
+            bpy.ops.mhx2.snap_fk_ik(data="MhaArmIk_R 18 19 28")
+            bpy.ops.mhx2.snap_fk_ik(data="MhaLegIk_L 4 5 12")
+            bpy.ops.mhx2.snap_fk_ik(data="MhaLegIk_R 20 21 28")
+        except:
+            self.report({'ERROR'}, "Unable to use MHX snap FK, ensure that Import MHX2 addon is enabled")
+            bpy.ops.object.mode_set(mode=old_mode)
+            return {'CANCELLED'}
+        bpy.ops.object.mode_set(mode=old_mode)
+        return {'FINISHED'}
+
+class AMH2B_OT_SnapMHX_IK(Operator):
+    """Try to use MHX snap IK to FK"""
+    bl_idname = "amh2b.snap_mhx_ik"
+    bl_label = "Snap MHX IK"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return is_mhx2_armature(context.active_object)
+
+    def execute(self, context):
+        if not is_mhx2_armature(context.active_object):
+            return {'CANCELLED'}
+        old_mode = context.mode
+        bpy.ops.object.mode_set(mode='OBJECT')
+        try:
+            bpy.ops.mhx2.snap_ik_fk(data="MhaArmIk_L 2 3 12")
+            bpy.ops.mhx2.snap_ik_fk(data="MhaArmIk_R 18 19 28")
+            bpy.ops.mhx2.snap_ik_fk(data="MhaLegIk_L 4 5 12")
+            bpy.ops.mhx2.snap_ik_fk(data="MhaLegIk_R 20 21 28")
+            context.active_object.pose.bones["elbow.pt.ik.L"].location = (0, 0, 0)
+            context.active_object.pose.bones["elbow.pt.ik.R"].location = (0, 0, 0)
+        except:
+            self.report({'ERROR'}, "Unable to use MHX snap IK, ensure that Import MHX2 addon is enabled")
+            bpy.ops.object.mode_set(mode=old_mode)
+            return {'CANCELLED'}
+        bpy.ops.object.mode_set(mode=old_mode)
+        return {'FINISHED'}

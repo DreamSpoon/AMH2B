@@ -60,10 +60,11 @@ def draw_panel_soft_body(self, context, box):
     elif a.sb_function == SB_FUNCTION_MODIFIER:
         layout.operator(AMH2B_OT_PresetSoftBody.bl_idname)
 
-    layout.separator()
-    layout.label(text="Vertex Group Name")
-    col = layout.box().column()
-    col.prop(a, "sb_dt_goal_vg_name")
-    col.prop(a, "sb_dt_mask_vg_name")
-    col.prop(a, "sb_dt_mass_vg_name")
-    col.prop(a, "sb_dt_spring_vg_name")
+    if a.sb_function != SB_FUNCTION_SPRING:
+        layout.separator()
+        layout.label(text="Vertex Group Name")
+        col = layout.box().column()
+        col.prop(a, "sb_dt_goal_vg_name")
+        col.prop(a, "sb_dt_mask_vg_name")
+        col.prop(a, "sb_dt_mass_vg_name")
+        col.prop(a, "sb_dt_spring_vg_name")
