@@ -22,7 +22,8 @@ from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
-    copy_armature_transforms, is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items)
+    copy_armature_transforms, is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items,
+    remove_transfer_constraints)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -300,4 +301,24 @@ class AMH2B_OT_SnapMHX_IK(Operator):
             bpy.ops.object.mode_set(mode=old_mode)
             return {'CANCELLED'}
         bpy.ops.object.mode_set(mode=old_mode)
+        return {'FINISHED'}
+
+class AMH2B_OT_RemoveTransferConstraints(Operator):
+    """Remove constraints on active object Armature that were used to transfer animation data with Armature -> """ \
+        """Retarget -> Retarget function. Consider using Nonlinear Animation -> Edit menu -> Bake Action before """ \
+        """using this function"""
+    bl_idname = "amh2b.remove_transfer_constraints"
+    bl_label = "Remove Transfer Constraints"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        act_ob = context.active_object
+        return act_ob != None and act_ob.type == 'ARMATURE'
+
+    def execute(self, context):
+        act_ob = context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            return
+        remove_transfer_constraints(context, act_ob)
         return {'FINISHED'}
