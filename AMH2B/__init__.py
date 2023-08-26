@@ -23,7 +23,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (2, 2, 1),
+    "version": (2, 3, 0),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -39,10 +39,10 @@ from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 
 from .animation.operator import (AMH2B_OT_RatchetPoint, AMH2B_OT_RatchetHold)
 from .animation.panel import draw_panel_animation
-from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items, stitch_armature_preset_items)
+from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items)
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_StitchArmature, AMH2B_OT_CopyArmatureTransforms, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK)
+    AMH2B_OT_RetargetArmature, AMH2B_OT_CopyArmatureTransforms, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK)
 from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
@@ -312,7 +312,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     nodes_override_create: BoolProperty(name="Override Create", description="Geometry Nodes and custom " +
         "Node Groups will be re-created if this option is enabled. When custom Node Groups are " +
         "override created, old Node Groups of the same name are renamed and deprecated", default=False)
-
     anim_ratchet_frames: IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
     anim_ratchet_point_object: StringProperty(name="Ratchet Point Object", description="Object which remains " \
@@ -323,27 +322,8 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         "relative to Ratchet Target")
     arm_function: EnumProperty(name="Sub-Function Group", description="Armature Sub-Function Group",
         items=ARM_FUNC_ITEMS)
-    arm_copy_transforms_selected: BoolProperty(name="Copy Transforms Selected Only", description="Use only " \
-        "selected bones, to Copy ALl Transforms")
-    arm_copy_transforms_frame_start: IntProperty(name="Copy Transforms Frame Start", description="Add keyframes " \
-        "bones starting this frame", min=0, default=1)
-    arm_copy_transforms_frame_end: IntProperty(name="Copy Transforms Frame End", description="Add keyframes " \
-        "bones ending this frame", min=0, default=250)
-    arm_copy_transforms_frame_step: IntProperty(name="Copy Transforms Frame Step", description="Increment this " \
-        "many frames between keyframes", min=1, default=1)
-    arm_add_layer_index: IntProperty(name="Bone Layer Index", description="Index of Bone Layer assigned to bones " \
-        "added to 'target' with Stitch Armature", default=24, min=0, max=31)
-    arm_apply_transforms: BoolProperty(name="Apply Transforms", description="Apply all transforms to 'source' " \
-        "Armature before joining with 'target' Armature", default=True)
-    arm_textblock_name: StringProperty(name="Text Editor Script Name",
-        description="Script data-block name in text editor", default="Text")
-    arm_use_textblock: BoolProperty(name="Use Custom Text", default=False)
     arm_generic_prefix: StringProperty(name="G Prefix",
         description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
-    arm_script_pose_preset: EnumProperty(name="Script Pose Preset", items=script_pose_preset_items)
-    arm_script_pose_reverse: BoolProperty(name="Reverse Order", description="Run Pose Script in reverse order, " \
-        "e.g. to undo previous use of Pose Script", default=False)
-    arm_stitch_armature_preset: EnumProperty(name="Stitch Armature Preset", items=stitch_armature_preset_items)
     attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
     attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
@@ -606,7 +586,7 @@ classes = [
     AMH2B_OT_RenameGeneric,
     AMH2B_OT_UnNameGeneric,
     AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_StitchArmature,
+    AMH2B_OT_RetargetArmature,
     AMH2B_OT_CopyArmatureTransforms,
     AMH2B_OT_SnapMHX_FK,
     AMH2B_OT_SnapMHX_IK,

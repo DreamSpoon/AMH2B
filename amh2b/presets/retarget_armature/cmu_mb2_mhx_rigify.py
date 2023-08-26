@@ -1,5 +1,5 @@
 {
-    "label": "CMU MotionBuilder2 to Rigify Human",
+    "label": "CMU MotionBuilder2 to MHX Rigify",
     "data": [
         { "op": "join_armatures" },
         { "op": "dup_swap_stitch", "data": [

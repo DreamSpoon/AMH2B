@@ -1,5 +1,5 @@
 {
-    "label": "CMU MotionBuilder2 to Import MHX",
+    "label": "CMU MotionBuilder2 to MHX Import MHX",
     "data": [
         { "op": "join_armatures" },
         { "op": "dup_swap_stitch", "data": [

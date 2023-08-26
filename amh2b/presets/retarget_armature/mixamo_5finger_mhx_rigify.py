@@ -1,5 +1,5 @@
 {
-    "label": "Mixamo 5 Finger to Rigify Human",
+    "label": "Mixamo 5 Finger to MHX Rigify",
     "data": [
         { "op": "join_armatures" },
         { "op": "dup_swap_stitch", "data": [

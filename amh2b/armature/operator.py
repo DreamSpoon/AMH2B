@@ -17,12 +17,12 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import (EnumProperty, IntProperty, StringProperty)
+from bpy.props import (BoolProperty, EnumProperty, IntProperty, StringProperty)
 from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
-    cleanup_gizmos, script_pose, load_script_pose_presets, stitch_armature, load_stitch_armature_presets,
-    copy_armature_transforms, is_mhx2_armature)
+    cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
+    copy_armature_transforms, is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -30,18 +30,24 @@ class AMH2B_OT_ScriptPose(Operator):
     bl_label = "Script Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
+    use_textblock: BoolProperty(name="Use Custom Text", default=False)
+    textblock_name: StringProperty(name="Text Editor Script Name",
+                                       description="Script data-block name in text editor")
+    script_pose_reverse: BoolProperty(name="Reverse Order", description="Run Pose Script in reverse order, " \
+        "e.g. to undo previous use of Pose Script", default=False)
+    script_pose_preset: EnumProperty(name="Script Pose Preset", items=script_pose_preset_items)
+
     @classmethod
     def poll(cls, context):
         return context.active_object != None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
-        a = context.scene.amh2b
         act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
-        script_pose(context, act_ob, a.arm_script_pose_preset, a.arm_use_textblock, a.arm_textblock_name,
-                    a.arm_script_pose_reverse)
+        script_pose(context, act_ob, self.script_pose_preset, self.use_textblock, self.textblock_name,
+                    self.script_pose_reverse)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -50,17 +56,16 @@ class AMH2B_OT_ScriptPose(Operator):
 
     def draw(self, context):
         layout = self.layout
-        a = context.scene.amh2b
         row = layout.row()
-        row.active = not a.arm_use_textblock
-        row.prop(a, "arm_script_pose_preset", text="Preset")
+        row.active = not self.use_textblock
+        row.prop(self, "script_pose_preset", text="Preset")
         layout.separator()
-        layout.prop(a, "arm_use_textblock", text="Use Custom Text")
+        layout.prop(self, "use_textblock", text="Use Custom Text")
         row = layout.row()
-        row.active = a.arm_use_textblock
-        row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")
+        row.active = self.use_textblock
+        row.prop_search(self, "textblock_name", bpy.data, "texts", text="")
         layout.separator()
-        layout.prop(a, "arm_script_pose_reverse")
+        layout.prop(self, "script_pose_reverse")
 
 class AMH2B_OT_ApplyScale(Operator):
     """Apply Object Scale to active object Armature without corrupting Armature pose data (i.e. location)"""
@@ -133,12 +138,20 @@ class AMH2B_OT_UnNameGeneric(Operator):
         unname_bone_generic(context, context.selected_objects)
         return {'FINISHED'}
 
-class AMH2B_OT_StitchArmature(Operator):
-    """Stitch source Armature to target Armature, to retarget animation from source Armature to target """ \
-        """Armature. Select source Armature first, select target Armature last - so target Armature is active object"""
-    bl_idname = "amh2b.stitch_armature"
-    bl_label = "Stitch Armature"
+class AMH2B_OT_RetargetArmature(Operator):
+    """Select exactly two Armatures. Retarget animation from source Armature to destination Armature via script. """ \
+        """Select source Armature first, select destination Armature last - so destination Armature is active object"""
+    bl_idname = "amh2b.retarget_armature"
+    bl_label = "Retarget"
     bl_options = {'REGISTER', 'UNDO'}
+
+    retarget_armature_preset: EnumProperty(name="Retarget Armature Preset", items=retarget_armature_preset_items)
+    apply_transforms: BoolProperty(name="Apply Transforms", description="Apply all transforms to 'source' " \
+        "Armature before joining with 'target' Armature", default=True)
+    add_layer_index: IntProperty(name="Bone Layer Index", description="Index of Bone Layer assigned to bones " \
+        "added to 'destination' with Retarget Armature", default=24, min=0, max=31)
+    use_textblock: BoolProperty(name="Use Custom Text", default=False)
+    textblock_name: StringProperty(name="Text Editor Script Name", description="Script data-block name in text editor")
 
     @classmethod
     def poll(cls, context):
@@ -147,7 +160,6 @@ class AMH2B_OT_StitchArmature(Operator):
         return act_ob != None and len(sel_obs) == 2 and sel_obs[0].type == 'ARMATURE' and sel_obs[1].type == 'ARMATURE'
 
     def execute(self, context):
-        a = context.scene.amh2b
         act_ob = context.active_object
         sel_obs = context.selected_objects
         if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
@@ -159,35 +171,44 @@ class AMH2B_OT_StitchArmature(Operator):
             src_rig_obj = sel_obs[0]
         else:
             src_rig_obj = sel_obs[1]
-        stitch_armature(context, a.arm_apply_transforms, a.arm_add_layer_index, src_rig_obj, dest_rig_obj,
-                        a.arm_stitch_armature_preset, a.arm_use_textblock, a.arm_textblock_name)
+        retarget_armature(context, self.apply_transforms, src_rig_obj, dest_rig_obj,
+                          self.retarget_armature_preset, self.use_textblock, self.textblock_name,
+                          self.add_layer_index)
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        load_stitch_armature_presets()
+        load_retarget_armature_presets()
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
-        a = context.scene.amh2b
-        layout.prop(a, "arm_add_layer_index")
-        layout.prop(a, "arm_apply_transforms")
+        layout.prop(self, "add_layer_index")
+        layout.prop(self, "apply_transforms")
         row = layout.row()
-        row.active = not a.arm_use_textblock
-        row.prop(a, "arm_stitch_armature_preset", text="Preset")
+        row.active = not self.use_textblock
+        row.prop(self, "retarget_armature_preset", text="Preset")
         layout.separator()
-        layout.prop(a, "arm_use_textblock", text="Use Custom Text")
+        layout.prop(self, "use_textblock", text="Use Custom Text")
         row = layout.row()
-        row.active = a.arm_use_textblock
-        row.prop_search(a, "arm_textblock_name", bpy.data, "texts", text="")
+        row.active = self.use_textblock
+        row.prop_search(self, "textblock_name", bpy.data, "texts", text="")
 
 class AMH2B_OT_CopyArmatureTransforms(Operator):
     """Copy animation, with keyframes, from one Armature to another Armature. Temporary bone constraints are """ \
         """used to Copy All Transforms, then 'NLA Bake Action' is used to bake bone animation keyframes. """ \
-        """Select source Armature first (from Stitch Armature), and destination Armature last"""
+        """Select source Armature first (from Retarget), and destination Armature last"""
     bl_idname = "amh2b.copy_armature_transforms"
     bl_label = "Copy Transforms"
     bl_options = {'REGISTER', 'UNDO'}
+
+    copy_transforms_selected: BoolProperty(name="Copy Transforms Selected Only", description="Use only " \
+        "selected bones, to Copy ALl Transforms")
+    copy_transforms_frame_start: IntProperty(name="Copy Transforms Frame Start", description="Add keyframes " \
+        "bones starting this frame", min=0, default=1)
+    copy_transforms_frame_end: IntProperty(name="Copy Transforms Frame End", description="Add keyframes " \
+        "bones ending this frame", min=0, default=250)
+    copy_transforms_frame_step: IntProperty(name="Copy Transforms Frame Step", description="Increment this " \
+        "many frames between keyframes", min=1, default=1)
 
     @classmethod
     def poll(cls, context):
@@ -196,7 +217,6 @@ class AMH2B_OT_CopyArmatureTransforms(Operator):
         return act_ob != None and len(sel_obs) == 2 and sel_obs[0].type == 'ARMATURE' and sel_obs[1].type == 'ARMATURE'
 
     def execute(self, context):
-        a = context.scene.amh2b
         act_ob = context.active_object
         sel_obs = context.selected_objects
         if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
@@ -208,22 +228,21 @@ class AMH2B_OT_CopyArmatureTransforms(Operator):
             src_rig_obj = sel_obs[0]
         else:
             src_rig_obj = sel_obs[1]
-        copy_armature_transforms(context, src_rig_obj, dest_rig_obj, a.arm_copy_transforms_selected,
-                                 a.arm_copy_transforms_frame_start, a.arm_copy_transforms_frame_end,
-                                 a.arm_copy_transforms_frame_step)
+        copy_armature_transforms(context, src_rig_obj, dest_rig_obj, self.copy_transforms_selected,
+                                 self.copy_transforms_frame_start, self.copy_transforms_frame_end,
+                                 self.copy_transforms_frame_step)
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        load_stitch_armature_presets()
+        load_retarget_armature_presets()
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
-        a = context.scene.amh2b
-        layout.prop(a, "arm_copy_transforms_frame_start", text="Frame Start")
-        layout.prop(a, "arm_copy_transforms_frame_end", text="Frame End")
-        layout.prop(a, "arm_copy_transforms_frame_step", text="Frame Step")
-        layout.prop(a, "arm_copy_transforms_selected", text="Only Selected")
+        layout.prop(self, "copy_transforms_frame_start", text="Frame Start")
+        layout.prop(self, "copy_transforms_frame_end", text="Frame End")
+        layout.prop(self, "copy_transforms_frame_step", text="Frame Step")
+        layout.prop(self, "copy_transforms_selected", text="Only Selected")
 
 class AMH2B_OT_SnapMHX_FK(Operator):
     """Try to use MHX snap FK to IK"""

@@ -35,7 +35,7 @@ ARM_FUNC_ITEMS = [
     ]
 
 script_pose_presets = {}
-stitch_armature_presets = {}
+retarget_armature_presets = {}
 
 # check all values for matches with types, where values and types can be individuals, or arrays / tuples
 def is_types(values, types):
@@ -145,7 +145,6 @@ def load_script_pose_presets():
         except:
             pose_script = "Error: cannot open Script Pose preset file named: " + fp
         if not isinstance(pose_script, dict):
-            print(pose_script)
             continue
         script_pose_presets[fp] = pose_script
 
@@ -183,16 +182,16 @@ def op_global_rotate_bone(arm_ob, op_data, in_reverse):
         global_rotate_bone(arm_ob, trans_name, pose_data[1], rot_value)
 
 def apply_run_pose_script(pose_ob, pose_script, in_reverse):
-    stitch_data = pose_script.get("data")
+    pose_data = pose_script.get("data")
     try:
-        if len(stitch_data) < 1:
+        if len(pose_data) < 1:
             return
     except:
         return
     operation_functions = {
         "global_rotate_bone": op_global_rotate_bone,
         }
-    for item in stitch_data:
+    for item in pose_data:
         if not isinstance(item, dict):
             continue
         op_func = operation_functions.get(item.get("op"))
@@ -336,10 +335,10 @@ def cleanup_gizmos(context):
             cs_coll.objects.unlink(cs_ob)
             hidden_coll.objects.link(cs_ob)
 
-def stitch_armature_preset_items(self, context):
+def retarget_armature_preset_items(self, context):
     items = []
-    for filename, stitch_script in stitch_armature_presets.items():
-        label = stitch_script.get("label")
+    for filename, retarget_script in retarget_armature_presets.items():
+        label = retarget_script.get("label")
         if label is None:
             label = filename
         items.append ( (filename, label, "") )
@@ -347,25 +346,24 @@ def stitch_armature_preset_items(self, context):
         return [ (" ", "", "") ]
     return items
 
-def load_stitch_armature_presets():
+def load_retarget_armature_presets():
     # do not re-load
-    if len(stitch_armature_presets) > 0:
+    if len(retarget_armature_presets) > 0:
         return
     # get paths to presets files
     base_path = os.path.dirname(os.path.realpath(ADDON_BASE_FILE))
-    p = os.path.join(base_path, "presets", "stitch_armature")
+    p = os.path.join(base_path, "presets", "retarget_armature")
     file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
-    # safely read each file and get stitch armature script
+    # safely read each file and get retarget armature script
     for fp in file_paths:
         try:
             with open(os.path.join(p, fp), 'r') as f:
-                stitch_script = get_file_eval_dict(f)
+                retarget_script = get_file_eval_dict(f)
         except:
-            stitch_script = "Error: cannot open Stitch Armature preset file named: " + fp
-        if not isinstance(stitch_script, dict):
-            print(stitch_script)
+            retarget_script = "Error: cannot open Retarget Armature preset file named: " + fp
+        if not isinstance(retarget_script, dict):
             continue
-        stitch_armature_presets[fp] = stitch_script
+        retarget_armature_presets[fp] = retarget_script
 
 # allow for filename match filtering (use of '*' operator) with case-sensitive bone name lookups,
 # uses first bone name found in case of multiple matches,
@@ -388,17 +386,17 @@ def op_join_armatures(context, op_data, script_state):
     if script_state["armatures_joined"]:
         return
     script_state["armatures_joined"] = True
-    old_bone_names = [ bone.name for bone in script_state["target_object"].data.bones ]
-    target_ob_name = script_state["target_object"].name
+    old_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
+    dest_ob_name = script_state["dest_object"].name
     if context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.join()
-    script_state["target_object"] = context.active_object
+    script_state["dest_object"] = context.active_object
     # ensure 'joined' armature has original 'target object' name
-    script_state["target_object"].name = target_ob_name
+    script_state["dest_object"].name = dest_ob_name
     script_state["source_object"] = None
     # assign bone layers
-    for bone in script_state["target_object"].data.bones:
+    for bone in script_state["dest_object"].data.bones:
         # do not change bone layers of original bones
         if bone.name in old_bone_names:
             continue
@@ -413,10 +411,10 @@ def op_rename_bone(context, op_data, script_state):
         source_bone_names = []
     else:
         source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["target_object"] is None:
-        target_bone_names = []
+    if script_state["dest_object"] is None:
+        dest_bone_names = []
     else:
-        target_bone_names = [ bone.name for bone in script_state["target_object"].data.bones ]
+        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
     bone_name_trans = {}
     for rename_data in op_data:
         if not is_types(rename_data, (str, str, str) ) or rename_data[2] == "":
@@ -427,8 +425,8 @@ def op_rename_bone(context, op_data, script_state):
                 trans_name = bone_name_translation(bone_name_trans, source_bone_names, rename_data[1])
                 bone = script_state["source_object"].data.bones.get(trans_name)
         elif rename_data[0].lower() == "target":
-            trans_name = bone_name_translation(bone_name_trans, target_bone_names, rename_data[1])
-            bone = script_state["target_object"].data.bones.get(trans_name)
+            trans_name = bone_name_translation(bone_name_trans, dest_bone_names, rename_data[1])
+            bone = script_state["dest_object"].data.bones.get(trans_name)
         if bone != None:
             bone.name = rename_data[2]
 
@@ -441,14 +439,14 @@ def op_set_parent_bone(context, op_data, script_state):
         source_bone_names = []
     else:
         source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["target_object"] is None:
-        target_bone_names = []
+    if script_state["dest_object"] is None:
+        dest_bone_names = []
     else:
-        target_bone_names = [ bone.name for bone in script_state["target_object"].data.bones ]
+        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
     bone_name_trans = {}
     for set_parent_data in op_data:
         if not is_types(set_parent_data, (str, str, str) ):
-            return
+            continue
         bone_from = None
         bone_to = None
         if set_parent_data[0].lower() == "source":
@@ -460,12 +458,12 @@ def op_set_parent_bone(context, op_data, script_state):
                 bone_from = script_state["source_object"].data.edit_bones.get(from_trans_name)
                 bone_to = script_state["source_object"].data.edit_bones.get(to_trans_name)
         elif set_parent_data[0].lower() == "target":
-            from_trans_name = bone_name_translation(bone_name_trans, target_bone_names, set_parent_data[1])
-            to_trans_name = bone_name_translation(bone_name_trans, target_bone_names, set_parent_data[2])
+            from_trans_name = bone_name_translation(bone_name_trans, dest_bone_names, set_parent_data[1])
+            to_trans_name = bone_name_translation(bone_name_trans, dest_bone_names, set_parent_data[2])
             if from_trans_name is None or to_trans_name is None:
                 continue
-            bone_from = script_state["target_object"].data.edit_bones.get(from_trans_name)
-            bone_to = script_state["target_object"].data.edit_bones.get(to_trans_name)
+            bone_from = script_state["dest_object"].data.edit_bones.get(from_trans_name)
+            bone_to = script_state["dest_object"].data.edit_bones.get(to_trans_name)
         if bone_from is None or bone_to is None:
             continue
         bone_from.use_connect = False
@@ -500,28 +498,28 @@ def op_dup_swap_stitch(context, op_data, script_state):
         source_bone_names = []
     else:
         source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["target_object"] is None:
-        target_bone_names = []
+    if script_state["dest_object"] is None:
+        dest_bone_names = []
     else:
-        target_bone_names = [ bone.name for bone in script_state["target_object"].data.bones ]
+        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
     source_bone_name_trans = {}
-    target_bone_name_trans = {}
+    dest_bone_name_trans = {}
     constraint_inputs = []
     for dup_swap_data in op_data:
         # e.g. ("target", "LeftArm", "arm_base.L", 0.35, 0)
         if not is_types(dup_swap_data, (str, str, str, (float, int), (float, int)) ):
-            return
+            continue
         arm_ob = None
         if dup_swap_data[0].lower() == "source":
             arm_ob = script_state["source_object"]
             bone_to_dup_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[1])
             ref_bone_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[2])
         elif dup_swap_data[0].lower() == "target":
-            arm_ob = script_state["target_object"]
-            bone_to_dup_name = bone_name_translation(target_bone_name_trans, target_bone_names, dup_swap_data[1])
-            ref_bone_name = bone_name_translation(target_bone_name_trans, target_bone_names, dup_swap_data[2])
+            arm_ob = script_state["dest_object"]
+            bone_to_dup_name = bone_name_translation(dest_bone_name_trans, dest_bone_names, dup_swap_data[1])
+            ref_bone_name = bone_name_translation(dest_bone_name_trans, dest_bone_names, dup_swap_data[2])
         else:
-            return
+            continue
         if bone_to_dup_name is None or ref_bone_name is None:
             continue
         dist_on_dup = dup_swap_data[3]
@@ -568,10 +566,141 @@ def op_dup_swap_stitch(context, op_data, script_state):
         clc.owner_space = 'LOCAL'
         clc.use_offset = True
 
-def apply_stitch_armature_script(context, add_layer_index, source_ob, target_ob, stitch_script):
-    stitch_data = stitch_script.get("data")
+def op_create_transfer_armature(context, op_data, script_state):
+    if script_state["transfer_armature_ob"] != None:
+        return
+    if context.object.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
+    loc = context.active_object.location
+    bpy.ops.object.armature_add(enter_editmode=False, align='WORLD',  location=loc, scale=(1, 1, 1))
+    script_state["transfer_armature_ob"] = context.active_object
+    script_state["transfer_armature_ob"].name = "TransferRig"
+    xfer_arm = context.active_object.data
+    xfer_arm.name = "TransferArmature"
+    # remove all bones, to start with empty armature
+    bpy.ops.object.mode_set(mode='EDIT')
+    for b in xfer_arm.edit_bones:
+        xfer_arm.edit_bones.remove(b)
+
+def op_transfer_constraint(context, op_data, script_state, constraint_type):
+    if script_state["transfer_armature_ob"] is None:
+        return
+    if not isinstance(op_data, (list, tuple)):
+        return
+    if constraint_type not in ( 'COPY_TRANSFORMS', 'COPY_ROTATION' ):
+        return
+    source_arm = script_state["source_object"].data
+    dest_arm = script_state["dest_object"].data
+    all_src_bone_names = [ bone.name for bone in source_arm.bones ]
+    all_dest_bone_names = [ bone.name for bone in dest_arm.bones ]
+    src_name_trans = {}
+    dest_name_trans = {}
+    if script_state["transfer_armature_ob"] is None:
+        return
+    xfer_arm = script_state["transfer_armature_ob"].data
+    constraint_inputs = []
+    if context.object.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
+    # ensure these armatures are selected in order to get their edit_bone.roll values later
+    script_state["source_object"].select_set(True)
+    script_state["dest_object"].select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    for d in op_data:
+        if not isinstance(d, tuple):
+            continue
+        if constraint_type == 'COPY_TRANSFORMS':
+            if len(d) != 5 or not isinstance(d[0], str) or not isinstance(d[1], str) \
+                or not isinstance(d[2], (float, int)) or not isinstance(d[3], (float, int)) \
+                or not isinstance(d[4], (float, int)):
+                continue
+        elif constraint_type == 'COPY_ROTATION':
+            if len(d) != 2 or not isinstance(d[0], str) or not isinstance(d[1], str):
+                continue
+        source_bone_name = bone_name_translation(src_name_trans, all_src_bone_names, d[0])
+        dest_bone_name = bone_name_translation(dest_name_trans, all_dest_bone_names, d[1])
+        if source_bone_name is None or dest_bone_name is None:
+            continue
+        source_bone = source_arm.bones.get(source_bone_name)
+        dest_bone = dest_arm.bones.get(dest_bone_name)
+        if source_bone is None or dest_bone is None:
+            continue
+        # create bones in Transfer Armature, copying from Source and Destination Armatures
+        xfer_source_bone = xfer_arm.edit_bones.new(source_bone_name)
+        xfer_dest_bone = xfer_arm.edit_bones.new(dest_bone_name)
+        # put new bones in first and second layers
+        for i in range(32):
+            xfer_source_bone.layers[i] = i == 0
+            xfer_dest_bone.layers[i] = i == 1
+        # copy source bone exactly to Transfer Armature
+        xfer_source_bone.head.x = source_arm.edit_bones[source_bone_name].head.x
+        xfer_source_bone.head.y = source_arm.edit_bones[source_bone_name].head.y
+        xfer_source_bone.head.z = source_arm.edit_bones[source_bone_name].head.z
+        xfer_source_bone.tail.x = source_arm.edit_bones[source_bone_name].tail.x
+        xfer_source_bone.tail.y = source_arm.edit_bones[source_bone_name].tail.y
+        xfer_source_bone.tail.z = source_arm.edit_bones[source_bone_name].tail.z
+        xfer_source_bone.roll = source_arm.edit_bones[source_bone_name].roll
+
+        t_vec = (0, 0, 0)
+        fac = 0
+        if constraint_type == 'COPY_TRANSFORMS':
+            # get 3d translation vector as a point coincident with both bones, along a factor of each bone's length
+            t_vec = get_translation_vec(source_bone, dest_bone, d[2], d[3])
+            # copy destination bone head and tail locations, with offset by distance factor along original bones' length,
+            # to Transfer Armature - with a factor from 0.0 to 1.0 applied, where 0 is 100% translate new destination bone
+            # to source bone position, and 1 is keep destination bone at its original location
+            fac = d[4] if d[4] < 1.0 else 1.0
+            fac = fac if fac > 0.0 else 0.0
+            fac = 1.0 - fac
+        print("tvec =", t_vec, ", fac =", fac)
+        xfer_dest_bone.head.x = dest_arm.edit_bones[dest_bone_name].head.x - t_vec[0] * fac
+        xfer_dest_bone.head.y = dest_arm.edit_bones[dest_bone_name].head.y - t_vec[1] * fac
+        xfer_dest_bone.head.z = dest_arm.edit_bones[dest_bone_name].head.z - t_vec[2] * fac
+        xfer_dest_bone.tail.x = dest_arm.edit_bones[dest_bone_name].tail.x - t_vec[0] * fac
+        xfer_dest_bone.tail.y = dest_arm.edit_bones[dest_bone_name].tail.y - t_vec[1] * fac
+        xfer_dest_bone.tail.z = dest_arm.edit_bones[dest_bone_name].tail.z - t_vec[2] * fac
+        xfer_dest_bone.roll = dest_arm.edit_bones[dest_bone_name].roll
+        # parent new destination bone to new source bone
+        xfer_dest_bone.parent = xfer_source_bone
+        # keep references to bones so bone constraints can be added later
+        constraint_inputs.append( (source_bone_name, dest_bone_name, xfer_source_bone.name, xfer_dest_bone.name) )
+
+    # add constraints in Pose mode
+    bpy.ops.object.mode_set(mode='POSE')
+    xfer_pose_bones = script_state["transfer_armature_ob"].pose.bones
+    dest_pose_bones = script_state["dest_object"].pose.bones
+    for s_bone_name, d_bone_name, x_source_bone_name, x_dest_bone_name in constraint_inputs:
+        # Copy Transforms constraint from: s_bone_name, to: x_source_bone_name
+        xfer_ctc = xfer_pose_bones[x_source_bone_name].constraints.new('COPY_TRANSFORMS')
+        xfer_ctc.target = script_state["source_object"]
+        xfer_ctc.subtarget = s_bone_name
+        xfer_ctc.target_space = 'WORLD'
+        xfer_ctc.owner_space = 'WORLD'
+        xfer_ctc.mix_mode = 'REPLACE'
+        # Copy X constraint from: x_dest_bone_name, to: d_bone_name
+        dest_ctc = dest_pose_bones[d_bone_name].constraints.new(constraint_type)
+        dest_ctc.target = script_state["transfer_armature_ob"]
+        dest_ctc.subtarget = x_dest_bone_name
+        dest_ctc.target_space = 'WORLD'
+        dest_ctc.owner_space = 'WORLD'
+        dest_ctc.mix_mode = 'REPLACE'
+
+def op_transfer_transforms(context, op_data, script_state):
+    op_transfer_constraint(context, op_data, script_state, 'COPY_TRANSFORMS')
+
+def op_transfer_rotation(context, op_data, script_state):
+    op_transfer_constraint(context, op_data, script_state, 'COPY_ROTATION')
+
+def set_mono_bone_layer(ob, layer_index):
+    bones = ob.data.bones
+    mono_layers = [ layer_index == i for i in range(32) ]
+    for b in bones:
+        if b.layers[layer_index]:
+            b.layers = mono_layers
+
+def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script, add_layer_index):
+    retarget_data = retarget_script.get("data")
     try:
-        if len(stitch_data) < 1:
+        if len(retarget_data) < 1:
             return
     except:
         return
@@ -580,14 +709,18 @@ def apply_stitch_armature_script(context, add_layer_index, source_ob, target_ob,
         "rename_bone": op_rename_bone,
         "set_parent_bone": op_set_parent_bone,
         "dup_swap_stitch": op_dup_swap_stitch,
+        "create_transfer_armature": op_create_transfer_armature,
+        "transfer_transforms": op_transfer_transforms,
+        "transfer_rotation": op_transfer_rotation,
         }
     script_state = {
         "add_layer_index": add_layer_index,
         "source_object": source_ob,
-        "target_object": target_ob,
+        "dest_object": dest_ob,
         "armatures_joined": False,
+        "transfer_armature_ob": None,
         }
-    for item in stitch_data:
+    for item in retarget_data:
         if not isinstance(item, dict):
             continue
         op_func = operation_functions.get(item.get("op"))
@@ -596,15 +729,12 @@ def apply_stitch_armature_script(context, add_layer_index, source_ob, target_ob,
         op_func(context, item.get("data"), script_state)
     if context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
-    set_mono_bone_layer(context.active_object, add_layer_index)
+    if script_state["armatures_joined"]:
+        set_mono_bone_layer(context.active_object, add_layer_index)
 
-def set_mono_bone_layer(ob, layer_index):
-    bones = ob.data.bones
-    mono_layers = [ layer_index == i for i in range(32)]
-    for b in bones:
-        if b.layers[layer_index]:
-            b.layers = mono_layers
-
+# Retarget Armature has two Methods:
+#    1) Stitch Armature (old method)
+#    2) Transfer Armature (new method)
 #   Stitch Armature
 # Simplify the MakeHuman rig animation process re: Mixamo et al. via a stitched (joined) armature that connects
 # imported animated rigs to imported MHX2 rigs - leaving face panel and visemes intact, while allowing
@@ -617,26 +747,30 @@ def set_mono_bone_layer(ob, layer_index):
 # are mapped to Rig A so that Rig B acts like "marionettist" to the Rig A "marionette".
 # Rig B controls Rig A, allowing the user to tweak the final animation by animating Rig A.
 # Caveat: Rig A and Rig B should be in the same pose.
-# Side-note: Ugly, But Works
-def stitch_armature(context, apply_transforms, add_layer_index, src_arm_ob, targ_arm_ob, preset_name, use_textblock,
-                    textblock_name):
+#   Transfer Armature:
+# Create a Transfer Armature, with bones copied from source and destination rigs, bones parented together only
+# in the Transfer Armature. Bones in Transfer Armature will be given bone constraints to copy location/rotation
+# from Mixamo armature. Then, bones in MPFB2 armature will be given constraints to copy locaiton/rotation from
+# Transfer Armature.
+def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset_name,
+                      use_textblock, textblock_name, add_layer_index):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
     if apply_transforms:
         armature_apply_scale(context, src_arm_ob, True, True)
     if use_textblock:
-        stitch_script = get_textblock_eval_dict(textblock_name)
+        retarget_script = get_textblock_eval_dict(textblock_name)
     else:
-        stitch_script = stitch_armature_presets.get(preset_name)
-    if stitch_script is None:
+        retarget_script = retarget_armature_presets.get(preset_name)
+    if retarget_script is None:
         ret_val = False
     else:
-        ret_val = apply_stitch_armature_script(context, add_layer_index, src_arm_ob, targ_arm_ob, stitch_script)
+        ret_val = apply_retarget_armature_script(context, src_arm_ob, targ_arm_ob, retarget_script, add_layer_index)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return ret_val
 
-# intended to be used after Stitch Armature, to remove extra bones from Armature while retaining animation of
-# all bones of Armature
+# intended to be used after Stitch Armature (Retarget Armature), to remove extra bones from Armature while
+# retaining animation of all bones of Armature
 def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, frame_start, frame_end, frame_step):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
