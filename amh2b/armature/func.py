@@ -655,7 +655,6 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
             fac = d[4] if d[4] < 1.0 else 1.0
             fac = fac if fac > 0.0 else 0.0
             fac = 1.0 - fac
-        print("tvec =", t_vec, ", fac =", fac)
         xfer_dest_bone.head.x = dest_arm.edit_bones[dest_bone_name].head.x - t_vec[0] * fac
         xfer_dest_bone.head.y = dest_arm.edit_bones[dest_bone_name].head.y - t_vec[1] * fac
         xfer_dest_bone.head.z = dest_arm.edit_bones[dest_bone_name].head.z - t_vec[2] * fac
@@ -672,12 +671,21 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
     bpy.ops.object.mode_set(mode='POSE')
     xfer_pose_bones = script_state["transfer_armature_ob"].pose.bones
     dest_pose_bones = script_state["dest_object"].pose.bones
+    src_pose_bones = script_state["source_object"].pose.bones
     for s_bone_name, d_bone_name, x_source_bone_name, x_dest_bone_name in constraint_inputs:
         # Copy Transforms constraint from: s_bone_name, to: x_source_bone_name
         xfer_ctc = xfer_pose_bones[x_source_bone_name].constraints.new('COPY_TRANSFORMS')
         xfer_ctc.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Transforms"
-        xfer_ctc.target = script_state["source_object"]
-        xfer_ctc.subtarget = s_bone_name
+        # if source pose bone has a Copy Transforms bone constraint, then copy its data
+        constraints = [ c for c in src_pose_bones[s_bone_name].constraints if c.type == 'COPY_TRANSFORMS' ]
+        if len(constraints) > 0:
+            # copy targets of first Copy Transforms constraint found
+            xfer_ctc.target = constraints[0].target
+            xfer_ctc.subtarget = constraints[0].subtarget
+        # otherwise link bone constraint to source bone
+        else:
+            xfer_ctc.target = script_state["source_object"]
+            xfer_ctc.subtarget = s_bone_name
         xfer_ctc.target_space = 'WORLD'
         xfer_ctc.owner_space = 'WORLD'
         xfer_ctc.mix_mode = 'REPLACE'
@@ -689,6 +697,16 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
         dest_ctc.target_space = 'WORLD'
         dest_ctc.owner_space = 'WORLD'
         dest_ctc.mix_mode = 'REPLACE'
+
+        # copy pose bone Custom Shape data to Transfer armature pose bones
+        dub_list = [ (src_pose_bones[s_bone_name], xfer_pose_bones[x_source_bone_name]),
+                    (dest_pose_bones[d_bone_name], xfer_pose_bones[x_dest_bone_name]) ]
+        for from_pb, to_pb in dub_list:
+            to_pb.custom_shape = from_pb.custom_shape
+            to_pb.custom_shape_scale_xyz = from_pb.custom_shape_scale_xyz
+            to_pb.custom_shape_translation = from_pb.custom_shape_translation
+            to_pb.custom_shape_transform = from_pb.custom_shape_transform
+            to_pb.use_custom_shape_bone_size = from_pb.use_custom_shape_bone_size
 
 def op_transfer_transforms(context, op_data, script_state):
     op_transfer_constraint(context, op_data, script_state, 'COPY_TRANSFORMS')
@@ -758,8 +776,8 @@ def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script,
 # in the Transfer Armature. Bones in Transfer Armature will be given bone constraints to copy location/rotation
 # from Mixamo armature. Then, bones in MPFB2 armature will be given constraints to copy locaiton/rotation from
 # Transfer Armature.
-def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset_name,
-                      use_textblock, textblock_name, add_layer_index):
+def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset_name, use_textblock, textblock_name,
+                      add_layer_index):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
     if apply_transforms:
@@ -788,12 +806,9 @@ def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, fr
         ct_const.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Transforms"
         ct_const.target = src_arm_ob
         ct_const.subtarget = bone.name
-        ct_const.head_tail = 0.0
-        ct_const.remove_target_shear = False
         ct_const.mix_mode = 'REPLACE'
         ct_const.target_space = 'WORLD'
         ct_const.owner_space = 'WORLD'
-        ct_const.influence = 1.0
         remove_const.append( (bone, ct_const) )
     src_arm_ob.select_set(False)
     bpy.ops.nla.bake(frame_start=frame_start, frame_end=frame_end, step=frame_step, only_selected=only_selected,
@@ -808,6 +823,8 @@ def is_mhx2_armature(ob):
 def remove_transfer_constraints(context, ob):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
+    bone_count = 0
+    const_count = 0
     for pose_bone in ob.pose.bones:
         remove_c_list = []
         for const in pose_bone.constraints:
@@ -815,4 +832,27 @@ def remove_transfer_constraints(context, ob):
                 remove_c_list.append(const)
         for const in remove_c_list:
             pose_bone.constraints.remove(const)
+            const_count += 1
+        if len(remove_c_list) > 0:
+            bone_count += 1
     bpy.ops.object.mode_set(mode=old_3dview_mode)
+    return bone_count, const_count
+
+def snap_transfer_target_constraints(context, target_ob, transfer_ob):
+    old_3dview_mode = context.object.mode
+    bpy.ops.object.mode_set(mode='POSE')
+    target_bone_names = [ b.name for b in target_ob.data.bones ]
+    bone_count = 0
+    for xfer_bone in transfer_ob.pose.bones:
+        if xfer_bone.name not in target_bone_names:
+            continue
+        ct_const = xfer_bone.constraints.new(type='COPY_TRANSFORMS')
+        ct_const.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Transforms"
+        ct_const.target = target_ob
+        ct_const.subtarget = xfer_bone.name
+        ct_const.mix_mode = 'REPLACE'
+        ct_const.target_space = 'WORLD'
+        ct_const.owner_space = 'WORLD'
+        bone_count += 1
+    bpy.ops.object.mode_set(mode=old_3dview_mode)
+    return bone_count

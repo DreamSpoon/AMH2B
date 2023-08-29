@@ -1,5 +1,5 @@
 {
-    "label": "Mixamo 5 Finger to MHX Import",
+    "label": "Mixamo 65 Bone to MHX Import",
     "data": [
         { "op": "join_armatures" },
         { "op": "dup_swap_stitch", "data": [

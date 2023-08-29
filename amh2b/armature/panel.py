@@ -22,7 +22,7 @@ from .func import (ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
 from .operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_CopyArmatureTransforms, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK,
-    AMH2B_OT_RemoveTransferConstraints)
+    AMH2B_OT_RemoveTransferConstraints, AMH2B_OT_SnapTransferTarget)
 
 def draw_panel_armature(self, context, func_grp_box):
     layout = self.layout
@@ -31,14 +31,27 @@ def draw_panel_armature(self, context, func_grp_box):
     func_grp_box.prop(a, "arm_function", text="")
     layout.separator()
     if a.arm_function == ARM_FUNC_RETARGET:
+        src_name = " "
+        dest_name = " "
+        act_ob = context.active_object
+        sel_obs = [ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]
+        if act_ob in sel_obs and len(sel_obs) == 2:
+            other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
+            dest_name += act_ob.name
+            src_name += other_ob.name
         layout.operator(AMH2B_OT_ScriptPose.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_SnapMHX_FK.bl_idname)
         layout.operator(AMH2B_OT_SnapMHX_IK.bl_idname)
         layout.separator()
-        layout.operator(AMH2B_OT_RetargetArmature.bl_idname)
-        layout.separator()
-        layout.operator(AMH2B_OT_CopyArmatureTransforms.bl_idname)
+        box = layout.box()
+        box.label(text="Source:" + src_name)
+        box.label(text="Dest:" + dest_name)
+        box.operator(AMH2B_OT_RetargetArmature.bl_idname)
+        box.separator()
+        box.operator(AMH2B_OT_CopyArmatureTransforms.bl_idname)
+        box.separator()
+        box.operator(AMH2B_OT_SnapTransferTarget.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_RemoveTransferConstraints.bl_idname)
     elif a.arm_function == ARM_FUNC_UTILITY:

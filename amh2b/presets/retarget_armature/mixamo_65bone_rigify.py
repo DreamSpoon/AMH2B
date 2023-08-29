@@ -1,5 +1,5 @@
 {
-    "label": "MPFB2 Mixamo to MPFB2 Rigify",
+    "label": "Mixamo 65 Bone to Rigify",
     "data": [
         { "op": "create_transfer_armature" },
         { "op": "transfer_transforms", "data": [ ("*:Hips", "torso", 0.0, 0.0, 1.0) ] },

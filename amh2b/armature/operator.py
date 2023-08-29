@@ -23,7 +23,7 @@ from bpy.types import Operator
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
     copy_armature_transforms, is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items,
-    remove_transfer_constraints)
+    remove_transfer_constraints, snap_transfer_target_constraints)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -304,7 +304,7 @@ class AMH2B_OT_SnapMHX_IK(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_RemoveTransferConstraints(Operator):
-    """Remove constraints on active object Armature that were used to transfer animation data with Armature -> """ \
+    """Remove constraints on selected Armatures that were used to transfer animation data with Armature -> """ \
         """Retarget -> Retarget function. Consider using Nonlinear Animation -> Edit menu -> Bake Action before """ \
         """using this function"""
     bl_idname = "amh2b.remove_transfer_constraints"
@@ -313,12 +313,41 @@ class AMH2B_OT_RemoveTransferConstraints(Operator):
 
     @classmethod
     def poll(cls, context):
-        act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'ARMATURE'
+        return len([ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]) > 0
+
+    def execute(self, context):
+        total_ob = 0
+        total_bc = 0
+        total_cc = 0
+        for ob in context.selected_objects:
+            if ob.type != 'ARMATURE':
+                continue
+            bone_count, const_count = remove_transfer_constraints(context, ob)
+            total_bc += bone_count
+            total_cc += const_count
+            total_ob += 1
+        self.report({'INFO'}, "Removed %d constraints from %d bones of %d armatures" % (total_cc, total_bc, total_ob))
+        return {'FINISHED'}
+
+class AMH2B_OT_SnapTransferTarget(Operator):
+    """Snap Transfer armature to Target armature so Transfer armature will copy animation from Target armature. """ \
+        """Select Target armature first and Transfer armature last. See Armature -> Retarget for creation of """ \
+        """Transfer armatures"""
+    bl_idname = "amh2b.snap_transfer_target"
+    bl_label = "Snap Transfer Target"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        sel_obs = [ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]
+        return context.active_object in sel_obs and len(sel_obs) == 2
 
     def execute(self, context):
         act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
+        sel_obs = [ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]
+        if act_ob not in sel_obs or len(sel_obs) != 2:
             return
-        remove_transfer_constraints(context, act_ob)
+        other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
+        bone_count = snap_transfer_target_constraints(context, other_ob, act_ob)
+        self.report({'INFO'}, "Snapped %d Transfer bones to Target bones" % bone_count)
         return {'FINISHED'}
