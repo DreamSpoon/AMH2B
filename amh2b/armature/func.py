@@ -628,9 +628,16 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
         dest_bone = dest_arm.bones.get(dest_bone_name)
         if source_bone is None or dest_bone is None:
             continue
-        # create bones in Transfer Armature, copying from Source and Destination Armatures
-        xfer_source_bone = xfer_arm.edit_bones.new(source_bone_name)
-        xfer_dest_bone = xfer_arm.edit_bones.new(dest_bone_name)
+        # create bones in Transfer Armature, copying from Source and Destination Armatures, only if bones don't
+        # already exist
+        xfer_source_bone = xfer_arm.edit_bones.get(source_bone_name)
+        if xfer_source_bone is None:
+            xfer_source_bone = xfer_arm.edit_bones.new(source_bone_name)
+        # prevent doubling of 'destination' bones in Transfer armature, only create bone if it doesn't already exist
+        xfer_dest_bone = xfer_arm.edit_bones.get(dest_bone_name)
+        if xfer_dest_bone is None:
+            xfer_dest_bone = xfer_arm.edit_bones.new(dest_bone_name)
+        dest_bone_name = xfer_dest_bone.name
         # put new bones in first and second layers
         for i in range(32):
             xfer_source_bone.layers[i] = i == 0
