@@ -1,5 +1,5 @@
 {
-    "label": "Mixamo 65 Bone to MPFB2 Game Rig",
+    "label": "Mixamo 65 Bone to MPFB2 Game engine",
     "data": [
         { "op": "create_transfer_armature" },
         { "op": "transfer_transforms", "data": [ ("*:Hips", "pelvis", 0.0, 0.0, 1.0), ] },
@@ -14,8 +14,7 @@
             ("*:LeftHandRing1", "ring_01_l"), ("*:LeftHandRing2", "ring_02_l"),
             ("*:LeftHandRing3", "ring_03_l"), ("*:LeftHandPinky1", "pinky_01_l"),
             ("*:LeftHandPinky2", "pinky_02_l"), ("*:LeftHandPinky3", "pinky_03_l"), ] },
-        { "op": "transfer_transforms", "data": [ ("*:LeftUpLeg", "thigh_l", 0.0, 0.0, 1.0), ] },
-        { "op": "transfer_rotation", "data": [ ("*:LeftLeg", "calf_l"),
+        { "op": "transfer_rotation", "data": [ ("*:LeftUpLeg", "thigh_l"), ("*:LeftLeg", "calf_l"),
             ("*:LeftFoot", "foot_l"), ("*:LeftToeBase", "ball_l"), ] },
         { "op": "transfer_rotation", "data": [ ("*:RightShoulder", "clavicle_r"), ("*:RightArm", "upperarm_r"),
             ("*:RightForeArm", "lowerarm_r"), ("*:RightHand", "hand_r"), ("*:RightHandThumb1", "thumb_01_r"),
@@ -26,8 +25,7 @@
             ("*:RightHandRing1", "ring_01_r"), ("*:RightHandRing2", "ring_02_r"),
             ("*:RightHandRing3", "ring_03_r"), ("*:RightHandPinky1", "pinky_01_r"),
             ("*:RightHandPinky2", "pinky_02_r"), ("*:RightHandPinky3", "pinky_03_r"), ] },
-        { "op": "transfer_transforms", "data": [ ("*:RightUpLeg", "thigh_r", 0.0, 0.0, 1.0), ] },
-        { "op": "transfer_rotation", "data": [ ("*:RightLeg", "calf_r"),
+        { "op": "transfer_rotation", "data": [ ("*:RightUpLeg", "thigh_r"), ("*:RightLeg", "calf_r"),
             ("*:RightFoot", "foot_r"), ("*:RightToeBase", "ball_r"), ] },
 
         ],

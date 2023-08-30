@@ -22,8 +22,8 @@ from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
-    copy_armature_transforms, is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items,
-    remove_transfer_constraints, snap_transfer_target_constraints)
+    is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_transfer_constraints,
+    snap_transfer_target_constraints)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -194,57 +194,6 @@ class AMH2B_OT_RetargetArmature(Operator):
         row.active = self.use_textblock
         row.prop_search(self, "textblock_name", bpy.data, "texts", text="")
 
-class AMH2B_OT_CopyArmatureTransforms(Operator):
-    """Copy animation, with keyframes, from one Armature to another Armature. Temporary bone constraints are """ \
-        """used to Copy All Transforms, then 'NLA Bake Action' is used to bake bone animation keyframes. """ \
-        """Select source Armature first (from Retarget), and destination Armature last"""
-    bl_idname = "amh2b.copy_armature_transforms"
-    bl_label = "Copy Transforms"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    copy_transforms_selected: BoolProperty(name="Copy Transforms Selected Only", description="Use only " \
-        "selected bones, to Copy ALl Transforms")
-    copy_transforms_frame_start: IntProperty(name="Copy Transforms Frame Start", description="Add keyframes " \
-        "bones starting this frame", min=0, default=1)
-    copy_transforms_frame_end: IntProperty(name="Copy Transforms Frame End", description="Add keyframes " \
-        "bones ending this frame", min=0, default=250)
-    copy_transforms_frame_step: IntProperty(name="Copy Transforms Frame Step", description="Increment this " \
-        "many frames between keyframes", min=1, default=1)
-
-    @classmethod
-    def poll(cls, context):
-        act_ob = context.active_object
-        sel_obs = context.selected_objects
-        return act_ob != None and len(sel_obs) == 2 and sel_obs[0].type == 'ARMATURE' and sel_obs[1].type == 'ARMATURE'
-
-    def execute(self, context):
-        act_ob = context.active_object
-        sel_obs = context.selected_objects
-        if act_ob is None or len(sel_obs) != 2 or sel_obs[0].type != 'ARMATURE' or sel_obs[1].type != 'ARMATURE':
-            self.report({'ERROR'}, "Select exactly 2 Armatures and try again")
-            return {'CANCELLED'}
-        dest_rig_obj = act_ob
-        src_rig_obj = None
-        if sel_obs[0] != act_ob:
-            src_rig_obj = sel_obs[0]
-        else:
-            src_rig_obj = sel_obs[1]
-        copy_armature_transforms(context, src_rig_obj, dest_rig_obj, self.copy_transforms_selected,
-                                 self.copy_transforms_frame_start, self.copy_transforms_frame_end,
-                                 self.copy_transforms_frame_step)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        load_retarget_armature_presets()
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "copy_transforms_frame_start", text="Frame Start")
-        layout.prop(self, "copy_transforms_frame_end", text="Frame End")
-        layout.prop(self, "copy_transforms_frame_step", text="Frame Step")
-        layout.prop(self, "copy_transforms_selected", text="Only Selected")
-
 class AMH2B_OT_SnapMHX_FK(Operator):
     """Try to use MHX snap FK to IK"""
     bl_idname = "amh2b.snap_mhx_fk"
@@ -337,6 +286,11 @@ class AMH2B_OT_SnapTransferTarget(Operator):
     bl_label = "Snap Transfer Target"
     bl_options = {'REGISTER', 'UNDO'}
 
+    limit_ct_hips_ik: BoolProperty(name="Limit 'Copy Transforms' to Hips / IK", description="Only Hips / Pelvis / " \
+        "IK bones will use 'Copy Transforms' constraint, remaining bones will use 'Copy Rotation' constraint " \
+        "instead. Enable to improve accuracy when armatures are different sizes / heights, e.g. Game Rig",
+        default=False, options={'HIDDEN'})
+
     @classmethod
     def poll(cls, context):
         sel_obs = [ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]
@@ -348,6 +302,15 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         if act_ob not in sel_obs or len(sel_obs) != 2:
             return
         other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
-        bone_count = snap_transfer_target_constraints(context, other_ob, act_ob)
+        bone_count = snap_transfer_target_constraints(context, other_ob, act_ob, self.limit_ct_hips_ik)
         self.report({'INFO'}, "Snapped %d Transfer bones to Target bones" % bone_count)
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        load_retarget_armature_presets()
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Limit 'Copy Transforms'")
+        layout.prop(self, "limit_ct_hips_ik", text="Limit to Hips / IK")

@@ -1,37 +1,34 @@
 {
     "label": "CMU MotionBuilder2 to Rigify",
     "data": [
-        { "op": "join_armatures" },
-        { "op": "dup_swap_stitch", "data": [
-                # hips to head
-                ("target", "Neck", "neck", 0, 0),
-                ("target", "Head", "head", 0, 0),
-                # left arm
-                ("target", "LeftShoulder", "shoulder.L", 0, 0),
-                ("target", "LeftArm", "upper_arm_ik.L", 0, 0),
-                # left leg
-                ("target", "LeftUpLeg", "thigh_ik.L", 0, 0),
-                ("target", "LeftToeBase", "toe.L", 0, 0),
-                # right arm
-                ("target", "RightShoulder", "shoulder.R", 0, 0),
-                ("target", "RightArm", "upper_arm_ik.R", 0, 0),
-                # right leg
-                ("target", "RightUpLeg", "thigh_ik.R", 0, 0),
-                ("target", "RightToeBase", "toe.R", 0, 0),
-                 ]
-             },
-        { "op": "set_parent_bone", "data": [
-                # hips to head
-                ("target", "torso", "Hips"),
-                # left arm
-                ("target", "hand_ik.L", "LeftHand"),
-                # left leg
-                ("target", "foot_ik.L", "LeftFoot"),
-                # right arm
-                ("target", "hand_ik.R", "RightHand"),
-                # right leg
-                ("target", "foot_ik.R", "RightFoot"),
-                ]
-            }
+        { "op": "create_transfer_armature" },
+        { "op": "transfer_transforms", "data": [ ("Hips", "torso", 0.0, 0.0, 1.0) ] },
+        { "op": "transfer_rotation", "data": [ ("LowerBack", "spine_fk.002"), ("Spine", "spine_fk.003"),
+            ("Spine1", "spine_fk.004"), ("Neck", "neck"), ("Neck1", "neck02"), ("Head", "head"),
+            ] },
+        { "op": "transfer_transforms", "data": [ ("LeftForeArm", "forearm_tweak.L", 0.0, 0.0, 1.0),
+            ("LeftHand", "hand_ik.L", 0.0, 0.0, 1.0), ("LeftUpLeg", "thigh_ik.L", 0.0, 0.0, 1.0),
+            ("LeftLeg", "shin_tweak.L", 0.0, 0.0, 1.0), ("LeftFoot", "foot_ik.L", 0.0, 0.0, 1.0),
+            ] },
+        { "op": "transfer_rotation", "data": [ ("LeftShoulder", "shoulder.L"), ("LeftArm", "upper_arm_ik.L"),
+            ("LeftFingerBase", "palm.L"), ("LThumb", "thumb.01.L"), ("LeftHandFinger1", "f_index.01_master.L"),
+            ("LeftHandFinger1", "f_middle.01_master.L"), ("LeftHandFinger1", "f_ring.01_master.L"),
+            ("LeftHandFinger1", "f_pinky.01_master.L"),
+            ("LeftToeBase", "toe1-1_master.L"), ("LeftToeBase", "toe2-1_master.L"),
+            ("LeftToeBase", "toe3-1_master.L"), ("LeftToeBase", "toe4-1_master.L"),
+            ("LeftToeBase", "toe5-1_master.L"),
+            ] },
+        { "op": "transfer_transforms", "data": [ ("RightForeArm", "forearm_tweak.R", 0.0, 0.0, 1.0),
+            ("RightHand", "hand_ik.R", 0.0, 0.0, 1.0), ("RightUpLeg", "thigh_ik.R", 0.0, 0.0, 1.0),
+            ("RightLeg", "shin_tweak.R", 0.0, 0.0, 1.0), ("RightFoot", "foot_ik.R", 0.0, 0.0, 1.0),
+            ] },
+        { "op": "transfer_rotation", "data": [ ("RightShoulder", "shoulder.R"), ("RightArm", "upper_arm_ik.R"),
+            ("RightFingerBase", "palm.R"), ("LThumb", "thumb.01.R"), ("RightHandFinger1", "f_index.01_master.R"),
+            ("RightHandFinger1", "f_middle.01_master.R"), ("RightHandFinger1", "f_ring.01_master.R"),
+            ("RightHandFinger1", "f_pinky.01_master.R"),
+            ("RightToeBase", "toe1-1_master.R"), ("RightToeBase", "toe2-1_master.R"),
+            ("RightToeBase", "toe3-1_master.R"), ("RightToeBase", "toe4-1_master.R"),
+            ("RightToeBase", "toe5-1_master.R"),
+            ] },
         ]
     }

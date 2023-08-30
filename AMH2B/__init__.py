@@ -42,8 +42,8 @@ from .animation.panel import draw_panel_animation
 from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items)
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_RetargetArmature, AMH2B_OT_CopyArmatureTransforms, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK,
-    AMH2B_OT_RemoveTransferConstraints, AMH2B_OT_SnapTransferTarget)
+    AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveTransferConstraints,
+    AMH2B_OT_SnapTransferTarget)
 from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
@@ -588,7 +588,6 @@ classes = [
     AMH2B_OT_UnNameGeneric,
     AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature,
-    AMH2B_OT_CopyArmatureTransforms,
     AMH2B_OT_SnapMHX_FK,
     AMH2B_OT_SnapMHX_IK,
     AMH2B_OT_RemoveTransferConstraints,

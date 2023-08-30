@@ -800,30 +800,6 @@ def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return ret_val
 
-# intended to be used after Stitch Armature (Retarget Armature), to remove extra bones from Armature while
-# retaining animation of all bones of Armature
-def copy_armature_transforms(context, src_arm_ob, dest_arm_ob, only_selected, frame_start, frame_end, frame_step):
-    old_3dview_mode = context.object.mode
-    bpy.ops.object.mode_set(mode='POSE')
-    remove_const = []
-    for bone in dest_arm_ob.pose.bones:
-        if only_selected and not dest_arm_ob.data.bones[bone.name].select:
-            continue
-        ct_const = bone.constraints.new(type='COPY_TRANSFORMS')
-        ct_const.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Transforms"
-        ct_const.target = src_arm_ob
-        ct_const.subtarget = bone.name
-        ct_const.mix_mode = 'REPLACE'
-        ct_const.target_space = 'WORLD'
-        ct_const.owner_space = 'WORLD'
-        remove_const.append( (bone, ct_const) )
-    src_arm_ob.select_set(False)
-    bpy.ops.nla.bake(frame_start=frame_start, frame_end=frame_end, step=frame_step, only_selected=only_selected,
-                     bake_types={'POSE'})
-    for bone, const in remove_const:
-        bone.constraints.remove(const)
-    bpy.ops.object.mode_set(mode=old_3dview_mode)
-
 def is_mhx2_armature(ob):
     return ob != None and hasattr(ob, "MhxRig") and ob.MhxRig in ('MHX', 'EXPORTED_MHX')
 
@@ -845,16 +821,35 @@ def remove_transfer_constraints(context, ob):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return bone_count, const_count
 
-def snap_transfer_target_constraints(context, target_ob, transfer_ob):
+def is_hips_ik_bone_name(bone_name, all_bone_names):
+    bn = bone_name.lower()
+    # Rigify
+    if "root" in all_bone_names and "torso" in all_bone_names:
+        return bn == "torso"
+    if "_ik." in bn and not bn.startswith("thigh_"):
+        return True
+    if "tweak" in bn:
+        return True
+    # everything else
+    return bn.endswith( ("_ik", ".ik") ) or bn in ("hips", "pelvis", "root") or bn.endswith("hips")
+
+def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
     target_bone_names = [ b.name for b in target_ob.data.bones ]
+    transfer_bone_names = [ b.name for b in transfer_ob.data.bones ]
     bone_count = 0
     for xfer_bone in transfer_ob.pose.bones:
         if xfer_bone.name not in target_bone_names:
             continue
-        ct_const = xfer_bone.constraints.new(type='COPY_TRANSFORMS')
-        ct_const.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Transforms"
+        if limit_ct_hips_ik and not is_hips_ik_bone_name(xfer_bone.name, transfer_bone_names):
+            c_type = 'COPY_ROTATION'
+            c_name_str = "Copy Rotation"
+        else:
+            c_type = 'COPY_TRANSFORMS'
+            c_name_str = "Copy Transforms"
+        ct_const = xfer_bone.constraints.new(type=c_type)
+        ct_const.name = RETARGET_CONSTRAINT_NAME_PREFIX + c_name_str
         ct_const.target = target_ob
         ct_const.subtarget = xfer_bone.name
         ct_const.mix_mode = 'REPLACE'

@@ -1,5 +1,5 @@
 {
-    "label": "Mixamo 65 Bone to MPFB2 Default",
+    "label": "Mixamo 65 Bone to MPFB2 Default IK",
     "data": [
         { "op": "create_transfer_armature" },
         { "op": "transfer_transforms", "data": [ ("*:Hips", "root", 0.0, 0.0, 1.0),
