@@ -830,8 +830,11 @@ def is_hips_ik_bone_name(bone_name, all_bone_names):
         return True
     if "tweak" in bn:
         return True
+    # MHX import
+    if "master" in all_bone_names and "root" in all_bone_names and "hips" in all_bone_names:
+        return bn == "root"
     # everything else
-    return bn.endswith( ("_ik", ".ik") ) or bn in ("hips", "pelvis", "root") or bn.endswith("hips")
+    return bn.endswith( ("_ik", ".ik") ) or bn in ("hips", "pelvis", "root") or bn.endswith("hips") or ".ik." in bn
 
 def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik):
     old_3dview_mode = context.object.mode
