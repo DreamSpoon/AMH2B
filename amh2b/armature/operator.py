@@ -22,8 +22,8 @@ from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
-    is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_transfer_constraints,
-    snap_transfer_target_constraints)
+    is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_retarget_constraints,
+    snap_transfer_target_constraints, select_retarget_bones)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -252,12 +252,12 @@ class AMH2B_OT_SnapMHX_IK(Operator):
         bpy.ops.object.mode_set(mode=old_mode)
         return {'FINISHED'}
 
-class AMH2B_OT_RemoveTransferConstraints(Operator):
+class AMH2B_OT_RemoveRetargetConstraints(Operator):
     """Remove constraints on selected Armatures that were used to transfer animation data with Armature -> """ \
         """Retarget -> Retarget function. Consider using Nonlinear Animation -> Edit menu -> Bake Action before """ \
         """using this function"""
-    bl_idname = "amh2b.remove_transfer_constraints"
-    bl_label = "Remove Transfer Constraints"
+    bl_idname = "amh2b.remove_retarget_constraints"
+    bl_label = "Remove Retarget Constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -271,7 +271,7 @@ class AMH2B_OT_RemoveTransferConstraints(Operator):
         for ob in context.selected_objects:
             if ob.type != 'ARMATURE':
                 continue
-            bone_count, const_count = remove_transfer_constraints(context, ob)
+            bone_count, const_count = remove_retarget_constraints(context, ob)
             total_bc += bone_count
             total_cc += const_count
             total_ob += 1
@@ -307,10 +307,28 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        load_retarget_armature_presets()
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
         layout.label(text="Limit 'Copy Transforms'")
         layout.prop(self, "limit_ct_hips_ik", text="Limit to Hips / IK")
+
+class AMH2B_OT_SelectRetargetBones(Operator):
+    """Select all bones in active object Armature that copy animation from another Armature. i.e. remove bone """ \
+        """constraints ('Copy Transforms', 'Location', 'Rotation') that have 'target' set to other Armature object"""
+    bl_idname = "amh2b.select_retarget_bones"
+    bl_label = "Select Retarget Bones"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object.type == 'ARMATURE'
+
+    def execute(self, context):
+        act_ob = context.active_object
+        if act_ob is None:
+            return
+        bone_count = select_retarget_bones(context, act_ob)
+        self.report({'INFO'}, "Selected %d retarget bones" % bone_count)
+        return {'FINISHED'}

@@ -343,7 +343,10 @@ def retarget_armature_preset_items(self, context):
         label = retarget_script.get("label")
         if label is None:
             label = filename
-        items.append ( (filename, label, "") )
+        desc = retarget_script.get("description")
+        if desc is None:
+            desc = ""
+        items.append ( (filename, label, desc) )
     if len(items) < 1:
         return [ (" ", "", "") ]
     return items
@@ -803,7 +806,7 @@ def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset
 def is_mhx2_armature(ob):
     return ob != None and hasattr(ob, "MhxRig") and ob.MhxRig in ('MHX', 'EXPORTED_MHX')
 
-def remove_transfer_constraints(context, ob):
+def remove_retarget_constraints(context, ob):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
     bone_count = 0
@@ -811,7 +814,7 @@ def remove_transfer_constraints(context, ob):
     for pose_bone in ob.pose.bones:
         remove_c_list = []
         for const in pose_bone.constraints:
-            if const.name.startswith(RETARGET_CONSTRAINT_NAME_PREFIX):
+            if hasattr(const, "target") and const.target != None and const.target != ob:
                 remove_c_list.append(const)
         for const in remove_c_list:
             pose_bone.constraints.remove(const)
@@ -859,5 +862,23 @@ def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_h
         ct_const.target_space = 'WORLD'
         ct_const.owner_space = 'WORLD'
         bone_count += 1
-    bpy.ops.object.mode_set(mode=old_3dview_mode)
+    if context.object.mode != old_3dview_mode:
+        bpy.ops.object.mode_set(mode=old_3dview_mode)
+    return bone_count
+
+def select_retarget_bones(context, ob):
+    old_3dview_mode = context.object.mode
+    if context.object.mode != 'POSE':
+        bpy.ops.object.mode_set(mode='POSE')
+    bone_count = 0
+    for pose_bone in ob.pose.bones:
+        did_sel = False
+        for const in pose_bone.constraints:
+            if hasattr(const, "target") and const.target != None and const.target != ob:
+                did_sel = True
+                ob.data.bones[pose_bone.name].select = True
+        if did_sel:
+            bone_count += 1
+    if context.object.mode != old_3dview_mode:
+        bpy.ops.object.mode_set(mode=old_3dview_mode)
     return bone_count

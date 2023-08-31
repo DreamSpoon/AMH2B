@@ -1,5 +1,6 @@
 {
     "label": "CMU MotionBuilder2 to MPFB2 Default IK",
+    "description": "Requires MPFB2 Default IK with Finger Helpers set to include 'Individual grip' or 'IK point'",
     "data": [
         { "op": "create_transfer_armature" },
         { "op": "transfer_transforms", "data": [ ("Hips", "root", 0.0, 0.0, 1.0),
@@ -10,7 +11,7 @@
             ("LeftArm", "left_elbow_ik", 0.0, 0.0, 1.0), ("LeftHand", "left_hand_ik", 0.0, 0.0, 1.0),
             ("LeftLeg", "left_knee_ik", 0.0, 0.0, 1.0), ("LeftFoot", "left_foot_ik", 0.0, 0.0, 1.0)] },
         { "op": "transfer_rotation", "data": [ ("LeftShoulder", "clavicle.L"),
-            ("LeftHandFinger1", "left_finger1_grip"), ("LeftHandFinger1", "left_finger2_grip"),
+            ("LThumb", "left_finger1_grip"), ("LeftHandFinger1", "left_finger2_grip"),
             ("LeftHandFinger1", "left_finger3_grip"), ("LeftHandFinger1", "left_finger4_grip"),
             ("LeftHandFinger1", "left_finger5_grip"), ("LeftToeBase", "toe1-1.L"), ("LeftToeBase", "toe2-1.L"),
             ("LeftToeBase", "toe3-1.L"), ("LeftToeBase", "toe4-1.L"), ("LeftToeBase", "toe5-1.L") ] },
@@ -18,9 +19,19 @@
             ("RightArm", "right_elbow_ik", 0.0, 0.0, 1.0), ("RightHand", "right_hand_ik", 0.0, 0.0, 1.0),
             ("RightLeg", "right_knee_ik", 0.0, 0.0, 1.0), ("RightFoot", "right_foot_ik", 0.0, 0.0, 1.0)] },
         { "op": "transfer_rotation", "data": [ ("RightShoulder", "clavicle.R"),
-            ("RightHandFinger1", "right_finger1_grip"), ("RightHandFinger1", "right_finger2_grip"),
+            ("RThumb", "right_finger1_grip"), ("RightHandFinger1", "right_finger2_grip"),
             ("RightHandFinger1", "right_finger3_grip"), ("RightHandFinger1", "right_finger4_grip"),
             ("RightHandFinger1", "right_finger5_grip"), ("RightToeBase", "toe1-1.R"), ("RightToeBase", "toe2-1.R"),
             ("RightToeBase", "toe3-1.R"), ("RightToeBase", "toe4-1.R"), ("RightToeBase", "toe5-1.R") ] },
+        { "op": "transfer_transforms", "data": [ ("LThumb", "left_finger1_point_ik", 0.0, 0.0, 1.0),
+            ("LeftHandFinger1", "left_finger2_point_ik", 0.0, 0.0, 1.0),
+            ("LeftHandFinger1", "left_finger3_point_ik", 0.0, 0.0, 1.0),
+            ("LeftHandFinger1", "left_finger4_point_ik", 0.0, 0.0, 1.0),
+            ("LeftHandFinger1", "left_finger5_point_ik", 0.0, 0.0, 1.0), ] },
+        { "op": "transfer_transforms", "data": [ ("RThumb", "right_finger1_point_ik", 0.0, 0.0, 1.0),
+            ("RightHandFinger1", "right_finger2_point_ik", 0.0, 0.0, 1.0),
+            ("RightHandFinger1", "right_finger3_point_ik", 0.0, 0.0, 1.0),
+            ("RightHandFinger1", "right_finger4_point_ik", 0.0, 0.0, 1.0),
+            ("RightHandFinger1", "right_finger5_point_ik", 0.0, 0.0, 1.0), ] },
         ]
     }
