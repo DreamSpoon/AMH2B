@@ -54,45 +54,11 @@ MHX meshes with ShapeKeys will cause part a) to fail. There is a workaround, nex
   - use Pose menu -> Apply -> Apply Pose as Rest Pose
 - now, MHX armature's 'Rest Pose' will closely match Mixamo armature's 'Rest Pose'
 
-4) Duplicate MHX Armature
-This step is only necessary if the final animated armature needs to be an unmodified MHX armature, i.e. no extra bones from Stitch Armature process.
-- duplicate (not linked) the MHX armature, and hide this duplicate
-  - this duplicate will be used later for receiving animation from a modified MHX armature
-
-5) Stitch Armature
-This function joins the Mixamo armature with the MHX armature to retarget animation.
-
-Afterwards, using Armature -> Retarget -> Copy Transforms, animation can be transferred to a unmodified copy of the MHX armature (from step 4).
+5) Retarget Armature
+This function creates a Transfer armature to copy animation from the Mixamo armature to the MHX armature.
 
 Next steps:
 - select Mixamo armature first, and MHX armature last, so that MHX armature is active object
-- use Armature -> Retarget -> Stitch Armature
-- result is a joined armature with Mixamo pose bones moving MHX pose bones
-  - pose bones are not animated yet
-
-6) Animate Joined Armature
-- go to Dope Sheet context and change UI mode from 'Dope Sheet' to 'Action Editor'
-
-In about the middle of the Action Editor area, use 'Browse Action to be linked' to see list of animations available.
-- see button just to left of '+    New' button
-- choose animation from dropdown list of animations (Mixamo .fbx import animations)
-  - e.g. Armature|mixamo.com|Layer0
-- play animation in 3D Viewport to check results - the joined armature, and its attached meshes, should be animating correctly
-  - if it is not animating correctly (e.g. problems in IK Mode)
-    - then undo a few steps and redo the Snap IK to FK steps (just after Pose Matching)
-
-This may be enough, because the MHX armature is animating correctly. The next step is optional, but it will reduce 'clutter' by removing extra bones from armature.
-
-7) Copy Animation to Unmodified Armature
-The following steps will copy current animation from the modified MHX armature (joined armature), to a unmodified MHX armature.
-
-- un-hide the unmodified MHX armature that was created in step 4)
-  - this unmodified MHX armature will be animated to match the joined armature
-- set scene Timeline's 'Start Frame' and 'End Frame' to match the imported Mixamo animation start and end frame
-  - or use start and end frame of total animation of armature, e.g. if using NLA tracks and mixing multiple animations
-- select the joined armature (MHX + Mixamo) first, and the unmodified MHX armature last (MHX armature from step 4)
-- use Armature -> Retarget - > Copy Transforms to copy animation from joined armature to old MHX armature
-- with each mesh attached to the joined armature, change its Armature object modifier 'Object' to old MHX armature
-
-Now, all meshes that were animated by the joined armature are instead animated by the unmodified MHX armature.
-- delete the modified MHX armature (joined armature), because it has been replaced by the unmodified MHX armature
+- use Armature -> Retarget -> Retarget
+- result is 3 armatures selected, with Transfer armature active
+- Play the scene to see animation from Mixamo animating MHX armature

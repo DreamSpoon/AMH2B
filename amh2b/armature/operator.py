@@ -147,10 +147,6 @@ class AMH2B_OT_RetargetArmature(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     retarget_armature_preset: EnumProperty(name="Retarget Armature Preset", items=retarget_armature_preset_items)
-    apply_transforms: BoolProperty(name="Apply Transforms", description="Apply all transforms to 'source' " \
-        "Armature before joining with 'target' Armature", default=True)
-    add_layer_index: IntProperty(name="Bone Layer Index", description="Index of Bone Layer assigned to bones " \
-        "added to 'destination' with Retarget Armature", default=24, min=0, max=31)
     use_textblock: BoolProperty(name="Use Custom Text", default=False)
     textblock_name: StringProperty(name="Text Editor Script Name", description="Script data-block name in text editor")
 
@@ -172,9 +168,8 @@ class AMH2B_OT_RetargetArmature(Operator):
             src_rig_obj = sel_obs[0]
         else:
             src_rig_obj = sel_obs[1]
-        retarget_armature(context, self.apply_transforms, src_rig_obj, dest_rig_obj,
-                          self.retarget_armature_preset, self.use_textblock, self.textblock_name,
-                          self.add_layer_index)
+        retarget_armature(context, src_rig_obj, dest_rig_obj, self.retarget_armature_preset, self.use_textblock,
+                          self.textblock_name)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -183,8 +178,6 @@ class AMH2B_OT_RetargetArmature(Operator):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "add_layer_index")
-        layout.prop(self, "apply_transforms")
         row = layout.row()
         row.active = not self.use_textblock
         row.prop(self, "retarget_armature_preset", text="Preset")
@@ -290,6 +283,9 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         "IK bones will use 'Copy Transforms' constraint, remaining bones will use 'Copy Rotation' constraint " \
         "instead. Enable to improve accuracy when armatures are different sizes / heights, e.g. Game Rig",
         default=False, options={'HIDDEN'})
+    include_game_engine: BoolProperty(name="Include MPFB2 'Game engine' Bones", description="MPFB2 'Game engine' " \
+        "armature bones will have 'Copy Transforms' constraints too",
+        default=True, options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):
@@ -302,7 +298,8 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         if act_ob not in sel_obs or len(sel_obs) != 2:
             return
         other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
-        bone_count = snap_transfer_target_constraints(context, other_ob, act_ob, self.limit_ct_hips_ik)
+        bone_count = snap_transfer_target_constraints(context, other_ob, act_ob, self.limit_ct_hips_ik,
+                                                      self.include_game_engine)
         self.report({'INFO'}, "Snapped %d Transfer bones to Target bones" % bone_count)
         return {'FINISHED'}
 
@@ -313,6 +310,9 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         layout = self.layout
         layout.label(text="Limit 'Copy Transforms'")
         layout.prop(self, "limit_ct_hips_ik", text="Limit to Hips / IK")
+        row = layout.row()
+        row.active = self.limit_ct_hips_ik
+        row.prop(self, "include_game_engine")
 
 class AMH2B_OT_SelectRetargetBones(Operator):
     """Select all bones in active object Armature that copy animation from another Armature. i.e. remove bone """ \

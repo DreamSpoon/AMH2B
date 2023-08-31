@@ -1,0 +1,27 @@
+{
+    "label": "CMU MotionBuilder2 to MPFB2 Default FK",
+    "data": [
+        { "op": "create_transfer_armature" },
+        { "op": "transfer_transforms", "data": [ ("Hips", "root", 0.0, 0.0, 1.0) ] },
+        { "op": "transfer_rotation", "data": [ ("LowerBack", "spine04"), ("Spine", "spine02"),
+            ("Spine1", "spine01"), ("Neck", "neck01"), ("Head", "head") ] },
+        { "op": "transfer_rotation", "data": [ ("LeftShoulder", "clavicle.L"), ("LeftArm", "upperarm01.L"),
+            ("LeftForeArm", "lowerarm01.L"), ("LeftHand", "wrist.L"), ("LThumb", "finger1-1.L"),
+            ("LeftFingerBase", "metacarpal1.L"), ("LeftFingerBase", "metacarpal2.L"),
+            ("LeftFingerBase", "metacarpal3.L"), ("LeftFingerBase", "metacarpal4.L"),
+            ("LeftHandFinger1", "finger2-1.L"), ("LeftHandFinger1", "finger3-1.L"),
+            ("LeftHandFinger1", "finger4-1.L"), ("LeftHandFinger1", "finger5-1.L"), ] },
+        { "op": "transfer_rotation", "data": [ ("LeftUpLeg", "upperleg01.L"), ("LeftLeg", "lowerleg01.L"),
+            ("LeftFoot", "foot.L"), ("LeftToeBase", "toe1-1.L"), ("LeftToeBase", "toe2-1.L"),
+            ("LeftToeBase", "toe3-1.L"), ("LeftToeBase", "toe4-1.L"), ("LeftToeBase", "toe5-1.L"), ] },
+        { "op": "transfer_rotation", "data": [ ("RightShoulder", "clavicle.R"), ("RightArm", "upperarm01.R"),
+            ("RightForeArm", "lowerarm01.R"), ("RightHand", "wrist.R"), ("RThumb", "finger1-1.R"),
+            ("RightFingerBase", "metacarpal1.R"), ("RightFingerBase", "metacarpal2.R"),
+            ("RightFingerBase", "metacarpal3.R"), ("RightFingerBase", "metacarpal4.R"),
+            ("RightHandFinger1", "finger2-1.R"), ("RightHandFinger1", "finger3-1.R"),
+            ("RightHandFinger1", "finger4-1.R"), ("RightHandFinger1", "finger5-1.R"), ] },
+        { "op": "transfer_rotation", "data": [ ("RightUpLeg", "upperleg01.R"), ("RightLeg", "lowerleg01.R"),
+            ("RightFoot", "foot.R"), ("RightToeBase", "toe1-1.R"), ("RightToeBase", "toe2-1.R"),
+            ("RightToeBase", "toe3-1.R"), ("RightToeBase", "toe4-1.R"), ("RightToeBase", "toe5-1.R"), ] },
+        ]
+    }

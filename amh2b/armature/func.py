@@ -126,10 +126,11 @@ def script_pose_preset_items(self, context):
         label = pose_script.get("label")
         if label is None:
             label = filename
-        items.append ( (filename, label, "") )
-    if len(items) < 1:
-        return [ (" ", "", "") ]
-    return items
+        desc = pose_script.get("description")
+        if desc is None:
+            desc = ""
+        items.append ( (filename, str(label), str(desc)) )
+    return items if len(items) > 0 else [ (" ", "", "") ]
 
 def load_script_pose_presets():
     # do not re-load
@@ -346,10 +347,8 @@ def retarget_armature_preset_items(self, context):
         desc = retarget_script.get("description")
         if desc is None:
             desc = ""
-        items.append ( (filename, label, desc) )
-    if len(items) < 1:
-        return [ (" ", "", "") ]
-    return items
+        items.append ( (filename, str(label), str(desc)) )
+    return items if len(items) > 0 else [ (" ", "", "") ]
 
 def load_retarget_armature_presets():
     # do not re-load
@@ -387,94 +386,6 @@ def bone_name_translation(bone_name_trans, all_bone_names, bone_name):
             return found_names[0]
     return None
 
-def op_join_armatures(context, op_data, script_state):
-    if script_state["armatures_joined"]:
-        return
-    script_state["armatures_joined"] = True
-    old_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
-    dest_ob_name = script_state["dest_object"].name
-    if context.object.mode != 'OBJECT':
-        bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.ops.object.join()
-    script_state["dest_object"] = context.active_object
-    # ensure 'joined' armature has original 'target object' name
-    script_state["dest_object"].name = dest_ob_name
-    script_state["source_object"] = None
-    # assign bone layers
-    for bone in script_state["dest_object"].data.bones:
-        # do not change bone layers of original bones
-        if bone.name in old_bone_names:
-            continue
-        # new bones will be visible in layer 'add_layer_index' only
-        for i in range(32):
-            bone.layers[i] = script_state["add_layer_index"] == i
-
-def op_rename_bone(context, op_data, script_state):
-    if not isinstance(op_data, (list, tuple)):
-        return
-    if script_state["source_object"] is None:
-        source_bone_names = []
-    else:
-        source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["dest_object"] is None:
-        dest_bone_names = []
-    else:
-        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
-    bone_name_trans = {}
-    for rename_data in op_data:
-        if not is_types(rename_data, (str, str, str) ) or rename_data[2] == "":
-            continue
-        bone = None
-        if rename_data[0].lower() == "source":
-            if script_state["source_object"] != None:
-                trans_name = bone_name_translation(bone_name_trans, source_bone_names, rename_data[1])
-                bone = script_state["source_object"].data.bones.get(trans_name)
-        elif rename_data[0].lower() == "target":
-            trans_name = bone_name_translation(bone_name_trans, dest_bone_names, rename_data[1])
-            bone = script_state["dest_object"].data.bones.get(trans_name)
-        if bone != None:
-            bone.name = rename_data[2]
-
-def op_set_parent_bone(context, op_data, script_state):
-    if not isinstance(op_data, (list, tuple)):
-        return
-    if context.object.mode != 'EDIT':
-        bpy.ops.object.mode_set(mode='EDIT')
-    if script_state["source_object"] is None:
-        source_bone_names = []
-    else:
-        source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["dest_object"] is None:
-        dest_bone_names = []
-    else:
-        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
-    bone_name_trans = {}
-    for set_parent_data in op_data:
-        if not is_types(set_parent_data, (str, str, str) ):
-            continue
-        bone_from = None
-        bone_to = None
-        if set_parent_data[0].lower() == "source":
-            if script_state.get("source_object") != None:
-                from_trans_name = bone_name_translation(bone_name_trans, source_bone_names, set_parent_data[1])
-                to_trans_name = bone_name_translation(bone_name_trans, source_bone_names, set_parent_data[2])
-                if from_trans_name is None or to_trans_name is None:
-                    continue
-                bone_from = script_state["source_object"].data.edit_bones.get(from_trans_name)
-                bone_to = script_state["source_object"].data.edit_bones.get(to_trans_name)
-        elif set_parent_data[0].lower() == "target":
-            from_trans_name = bone_name_translation(bone_name_trans, dest_bone_names, set_parent_data[1])
-            to_trans_name = bone_name_translation(bone_name_trans, dest_bone_names, set_parent_data[2])
-            if from_trans_name is None or to_trans_name is None:
-                continue
-            bone_from = script_state["dest_object"].data.edit_bones.get(from_trans_name)
-            bone_to = script_state["dest_object"].data.edit_bones.get(to_trans_name)
-        if bone_from is None or bone_to is None:
-            continue
-        bone_from.use_connect = False
-        bone_to.use_connect = False
-        bone_from.parent = bone_to
-
 def get_translation_vec(bone_from, bone_to, from_dist, to_dist):
     delta_x_from = bone_from.tail.x - bone_from.head.x
     delta_y_from = bone_from.tail.y - bone_from.head.y
@@ -492,86 +403,6 @@ def get_translation_vec(bone_from, bone_to, from_dist, to_dist):
     t_z = t_z - delta_z_from * from_dist
     # translation vector
     return (t_x, t_y, t_z)
-
-def op_dup_swap_stitch(context, op_data, script_state):
-    if not isinstance(op_data, (list, tuple)):
-        return
-    # duplicate / move bones in Edit mode
-    if context.object.mode != 'EDIT':
-        bpy.ops.object.mode_set(mode='EDIT')
-    if script_state["source_object"] is None:
-        source_bone_names = []
-    else:
-        source_bone_names = [ bone.name for bone in script_state["source_object"].data.bones ]
-    if script_state["dest_object"] is None:
-        dest_bone_names = []
-    else:
-        dest_bone_names = [ bone.name for bone in script_state["dest_object"].data.bones ]
-    source_bone_name_trans = {}
-    dest_bone_name_trans = {}
-    constraint_inputs = []
-    for dup_swap_data in op_data:
-        # e.g. ("target", "LeftArm", "arm_base.L", 0.35, 0)
-        if not is_types(dup_swap_data, (str, str, str, (float, int), (float, int)) ):
-            continue
-        arm_ob = None
-        if dup_swap_data[0].lower() == "source":
-            arm_ob = script_state["source_object"]
-            bone_to_dup_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[1])
-            ref_bone_name = bone_name_translation(source_bone_name_trans, source_bone_names, dup_swap_data[2])
-        elif dup_swap_data[0].lower() == "target":
-            arm_ob = script_state["dest_object"]
-            bone_to_dup_name = bone_name_translation(dest_bone_name_trans, dest_bone_names, dup_swap_data[1])
-            ref_bone_name = bone_name_translation(dest_bone_name_trans, dest_bone_names, dup_swap_data[2])
-        else:
-            continue
-        if bone_to_dup_name is None or ref_bone_name is None:
-            continue
-        dist_on_dup = dup_swap_data[3]
-        dist_on_ref = dup_swap_data[4]
-        # set the parenting type to offset (connect=False), to prevent geometry being warped when re-parented
-        arm_ob.data.edit_bones[bone_to_dup_name].use_connect = False
-        arm_ob.data.edit_bones[ref_bone_name].use_connect = False
-        # get 3d translation vector as a point coincident with both bones, along a factor of each bone's length
-        t_vec = get_translation_vec(arm_ob.data.edit_bones[bone_to_dup_name], arm_ob.data.edit_bones[ref_bone_name],
-                                    dist_on_dup, dist_on_ref)
-        # duplicate bone
-        new_bone = arm_ob.data.edit_bones.new(arm_ob.data.edit_bones[bone_to_dup_name].name)
-        # put new_bone in the 'added bones' layer
-        for i in range(32):
-            new_bone.layers[i] = script_state["add_layer_index"] == i
-        # copy head and tail locations, with offset by distance factor along original bones' length
-        new_bone.head.x = arm_ob.data.edit_bones[bone_to_dup_name].head.x + t_vec[0]
-        new_bone.head.y = arm_ob.data.edit_bones[bone_to_dup_name].head.y + t_vec[1]
-        new_bone.head.z = arm_ob.data.edit_bones[bone_to_dup_name].head.z + t_vec[2]
-        new_bone.tail.x = arm_ob.data.edit_bones[bone_to_dup_name].tail.x + t_vec[0]
-        new_bone.tail.y = arm_ob.data.edit_bones[bone_to_dup_name].tail.y + t_vec[1]
-        new_bone.tail.z = arm_ob.data.edit_bones[bone_to_dup_name].tail.z + t_vec[2]
-        new_bone.roll = arm_ob.data.edit_bones[bone_to_dup_name].roll
-        # swap new bone for ref_bone
-        new_bone.parent = arm_ob.data.edit_bones[ref_bone_name].parent
-        arm_ob.data.edit_bones[ref_bone_name].parent = new_bone
-        # keep references to bones so bone constraints can be added later
-        constraint_inputs.append( (new_bone.name, bone_to_dup_name) )
-    # add constraints in Pose mode
-    bpy.ops.object.mode_set(mode='POSE')
-    for new_bone_name, bone_to_dup_name in constraint_inputs:
-        # new bone will copy rotation from bone_to_dup
-        crc = arm_ob.pose.bones[new_bone_name].constraints.new('COPY_ROTATION')
-        crc.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Rotation"
-        crc.target = arm_ob
-        crc.subtarget = bone_to_dup_name
-        crc.target_space = 'LOCAL'
-        crc.owner_space = 'LOCAL'
-        crc.use_offset = True
-        # new bone will also copy location from bone_to_dup (user can turn off / remove if needed)
-        clc = arm_ob.pose.bones[new_bone_name].constraints.new('COPY_LOCATION')
-        clc.name = RETARGET_CONSTRAINT_NAME_PREFIX + "Copy Location"
-        clc.target = arm_ob
-        clc.subtarget = bone_to_dup_name
-        clc.target_space = 'LOCAL'
-        clc.owner_space = 'LOCAL'
-        clc.use_offset = True
 
 def op_create_transfer_armature(context, op_data, script_state):
     if script_state["transfer_armature_ob"] != None:
@@ -724,14 +555,7 @@ def op_transfer_transforms(context, op_data, script_state):
 def op_transfer_rotation(context, op_data, script_state):
     op_transfer_constraint(context, op_data, script_state, 'COPY_ROTATION')
 
-def set_mono_bone_layer(ob, layer_index):
-    bones = ob.data.bones
-    mono_layers = [ layer_index == i for i in range(32) ]
-    for b in bones:
-        if b.layers[layer_index]:
-            b.layers = mono_layers
-
-def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script, add_layer_index):
+def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script):
     retarget_data = retarget_script.get("data")
     try:
         if len(retarget_data) < 1:
@@ -739,19 +563,13 @@ def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script,
     except:
         return
     operation_functions = {
-        "join_armatures": op_join_armatures,
-        "rename_bone": op_rename_bone,
-        "set_parent_bone": op_set_parent_bone,
-        "dup_swap_stitch": op_dup_swap_stitch,
         "create_transfer_armature": op_create_transfer_armature,
         "transfer_transforms": op_transfer_transforms,
         "transfer_rotation": op_transfer_rotation,
         }
     script_state = {
-        "add_layer_index": add_layer_index,
         "source_object": source_ob,
         "dest_object": dest_ob,
-        "armatures_joined": False,
         "transfer_armature_ob": None,
         }
     for item in retarget_data:
@@ -763,35 +581,15 @@ def apply_retarget_armature_script(context, source_ob, dest_ob, retarget_script,
         op_func(context, item.get("data"), script_state)
     if context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
-    if script_state["armatures_joined"]:
-        set_mono_bone_layer(context.active_object, add_layer_index)
 
-# Retarget Armature has two Methods:
-#    1) Stitch Armature (old method)
-#    2) Transfer Armature (new method)
-#   Stitch Armature
-# Simplify the MakeHuman rig animation process re: Mixamo et al. via a stitched (joined) armature that connects
-# imported animated rigs to imported MHX2 rigs - leaving face panel and visemes intact, while allowing
-# for great functionality e.g. finger movements.
-# In a perfect world, Blender and MakeHuman would work seamlessly with any and all motion capture data,
-# and any motion capture sharing website (including body, facial, etc. rig).
-# The real world includes problems with bone names, "bone roll", vertex groups, etc.
-# This addon bridges some real world gaps between different rigs.
-# Basically, bones from Rig B (this could be a downloaded rig from a mocap sharing website, etc.)
-# are mapped to Rig A so that Rig B acts like "marionettist" to the Rig A "marionette".
-# Rig B controls Rig A, allowing the user to tweak the final animation by animating Rig A.
-# Caveat: Rig A and Rig B should be in the same pose.
-#   Transfer Armature:
+# Retarget via Transfer Armature:
 # Create a Transfer Armature, with bones copied from source and destination rigs, bones parented together only
 # in the Transfer Armature. Bones in Transfer Armature will be given bone constraints to copy location/rotation
 # from Mixamo armature. Then, bones in MPFB2 armature will be given constraints to copy locaiton/rotation from
 # Transfer Armature.
-def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset_name, use_textblock, textblock_name,
-                      add_layer_index):
+def retarget_armature(context, src_arm_ob, targ_arm_ob, preset_name, use_textblock, textblock_name):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
-    if apply_transforms:
-        armature_apply_scale(context, src_arm_ob, True, True)
     if use_textblock:
         retarget_script = get_textblock_eval_dict(textblock_name)
     else:
@@ -799,7 +597,7 @@ def retarget_armature(context, apply_transforms, src_arm_ob, targ_arm_ob, preset
     if retarget_script is None:
         ret_val = False
     else:
-        ret_val = apply_retarget_armature_script(context, src_arm_ob, targ_arm_ob, retarget_script, add_layer_index)
+        ret_val = apply_retarget_armature_script(context, src_arm_ob, targ_arm_ob, retarget_script)
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return ret_val
 
@@ -824,7 +622,7 @@ def remove_retarget_constraints(context, ob):
     bpy.ops.object.mode_set(mode=old_3dview_mode)
     return bone_count, const_count
 
-def is_hips_ik_bone_name(bone_name, all_bone_names):
+def is_hips_ik_bone_name(bone_name, all_bone_names, include_game_engine):
     bn = bone_name.lower()
     # Rigify
     if "root" in all_bone_names and "torso" in all_bone_names:
@@ -836,10 +634,13 @@ def is_hips_ik_bone_name(bone_name, all_bone_names):
     # MHX import
     if "master" in all_bone_names and "root" in all_bone_names and "hips" in all_bone_names:
         return bn == "root"
+    # Game engine
+    if include_game_engine and bn in ("clavicle_l", "clavicle_r", "neck_01"):
+        return True
     # everything else
     return bn.endswith( ("_ik", ".ik") ) or bn in ("hips", "pelvis", "root") or bn.endswith("hips") or ".ik." in bn
 
-def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik):
+def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik, include_game_engine):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
     target_bone_names = [ b.name for b in target_ob.data.bones ]
@@ -848,7 +649,7 @@ def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_h
     for xfer_bone in transfer_ob.pose.bones:
         if xfer_bone.name not in target_bone_names:
             continue
-        if limit_ct_hips_ik and not is_hips_ik_bone_name(xfer_bone.name, transfer_bone_names):
+        if limit_ct_hips_ik and not is_hips_ik_bone_name(xfer_bone.name, transfer_bone_names, include_game_engine):
             c_type = 'COPY_ROTATION'
             c_name_str = "Copy Rotation"
         else:
