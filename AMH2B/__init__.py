@@ -48,9 +48,12 @@ from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
 from .attributes.func import ATTR_CONV_FUNC_ITEMS
-from .eyeblink import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack, AMH2B_OT_SaveBlinkCSV, AMH2B_OT_LoadBlinkCSV,
-    AMH2B_OT_ResetEyeOpened, AMH2B_OT_ResetEyeClosed, AMH2B_OT_SetEyeOpened, AMH2B_OT_SetEyeClosed)
-from .eyelid import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
+from .eyeblink.func import eblink_rig_type_items
+from .eyeblink.panel import (EBLINK_SUB_FUNC_ITEMS, draw_panel_eye_blink)
+from .eyeblink.operator import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack)
+from .eyelid.func import elid_rig_type_items
+from .eyelid.operator import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
+from .eyelid.panel import draw_panel_eye_lid
 from .material import (AMH2B_OT_SwapMatWithFile, AMH2B_OT_SwapMatInternal)
 from .shape_key.func import SK_FUNC_ITEMS
 from .shape_key.operator import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
@@ -121,121 +124,6 @@ def draw_panel_weight_paint(self, context, func_grp_box):
     col.active = scn.amh2b.wp_tail_fill_enable
     col.prop(scn.amh2b, "wp_tail_fill_value")
     col.prop(scn.amh2b, "wp_tail_fill_connected")
-
-def draw_panel_eye_lid(self, context, func_grp_box):
-    layout = self.layout
-    scn = context.scene
-    layout.separator()
-    layout.operator(AMH2B_OT_RemoveLidLook.bl_idname)
-    layout.operator(AMH2B_OT_AddLidLook.bl_idname)
-    box = layout.box()
-    box.label(text="Eyelid Bone Names")
-    box.prop(scn.amh2b, "elid_name_left_lower")
-    box.prop(scn.amh2b, "elid_name_left_upper")
-    box.prop(scn.amh2b, "elid_name_right_lower")
-    box.prop(scn.amh2b, "elid_name_right_upper")
-    box.label(text="Eye Bone Names")
-    box.prop(scn.amh2b, "elid_name_left_eye")
-    box.prop(scn.amh2b, "elid_name_right_eye")
-    box.label(text="Influence Amounts")
-    box.prop(scn.amh2b, "elid_influence_lower")
-    box.prop(scn.amh2b, "elid_influence_upper")
-    box.label(text="Min/Max Rotation Lower")
-    box.prop(scn.amh2b, "elid_min_x_lower")
-    box.prop(scn.amh2b, "elid_max_x_lower")
-    box.label(text="Min/Max Rotation Upper")
-    box.prop(scn.amh2b, "elid_min_x_upper")
-    box.prop(scn.amh2b, "elid_max_x_upper")
-
-EBLINK_SUB_FUNC_ADD = "EBLINK_SUB_FUNC_ADD"
-EBLINK_SUB_FUNC_REMOVE = "EBLINK_SUB_FUNC_REMOVE"
-EBLINK_SUB_FUNC_TEMPLATE = "EBLINK_SUB_FUNC_TEMPLATE"
-EBLINK_SUB_FUNC_ITEMS = [
-    (EBLINK_SUB_FUNC_ADD, "Add", "Add eyeblink track to active object Armature"),
-    (EBLINK_SUB_FUNC_REMOVE, "Remove", "Remove eyeblink track from active object Armature"),
-    (EBLINK_SUB_FUNC_TEMPLATE, "Template", "Bone name templates, and read/write Eye Blink bone name templates"),
-    ]
-def draw_panel_eye_blink(self, context, func_grp_box):
-    layout = self.layout
-    scn = context.scene
-    a = scn.amh2b
-    act_ob = context.active_object
-    func_grp_box.prop(a, "eblink_sub_func", text="")
-    layout.separator()
-    if a.eblink_sub_func == EBLINK_SUB_FUNC_ADD:
-        layout.operator(AMH2B_OT_AddBlinkTrack.bl_idname)
-        box = layout.box()
-        box.label(text="Add Options")
-        box.prop(a, "eblink_framerate")
-        box.prop(a, "eblink_start_frame")
-        box.prop(a, "eblink_random_start_frame")
-        box.prop(a, "eblink_allow_random_drift")
-        box.prop(a, "eblink_frame_count")
-        box.prop(a, "eblink_max_count_enable")
-        sub = box.column()
-        sub.active = a.eblink_max_count_enable
-        sub.prop(a, "eblink_max_count")
-        sub = box.column()
-        sub.active = not a.eblink_blink_period_enable
-        sub.prop(a, "eblink_blinks_per_min")
-        box.prop(a, "eblink_blink_period_enable")
-        sub = box.column()
-        sub.active = a.eblink_blink_period_enable
-        sub.prop(a, "eblink_blink_period")
-        box.prop(a, "eblink_random_period_enable")
-        box.prop(a, "eblink_eye_left_enable")
-        box.prop(a, "eblink_eye_right_enable")
-        if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
-            box.prop_search(a, "eblink_shapekey_name", act_ob.data.shape_keys, "key_blocks", text="")
-        else:
-            box.prop(a, "eblink_shapekey_name", text="")
-        box = layout.box()
-        box.label(text="Basis")
-        box.prop(a, "eblink_closing_time")
-        box.prop(a, "eblink_closed_time")
-        box.prop(a, "eblink_opening_time")
-        box = layout.box()
-        box.label(text="Random")
-        box.prop(a, "eblink_random_closing_time")
-        box.prop(a, "eblink_random_closed_time")
-        box.prop(a, "eblink_random_opening_time")
-    elif a.eblink_sub_func == EBLINK_SUB_FUNC_REMOVE:
-        layout.operator(AMH2B_OT_RemoveBlinkTrack.bl_idname)
-        box = layout.box()
-        box.label(text="Remove Options")
-        box.prop(a, "eblink_remove_start_enable")
-        sub = box.column()
-        sub.active = a.eblink_remove_start_enable
-        sub.prop(a, "eblink_remove_start_frame")
-        box.prop(a, "eblink_remove_end_enable")
-        sub = box.column()
-        sub.active = a.eblink_remove_end_enable
-        sub.prop(a, "eblink_remove_end_frame")
-        box.prop(a, "eblink_remove_left")
-        box.prop(a, "eblink_remove_right")
-    elif a.eblink_sub_func == EBLINK_SUB_FUNC_TEMPLATE:
-        layout.label(text="Template Set/Reset")
-        layout.operator(AMH2B_OT_SetEyeOpened.bl_idname)
-        layout.operator(AMH2B_OT_ResetEyeOpened.bl_idname)
-        layout.operator(AMH2B_OT_SetEyeClosed.bl_idname)
-        layout.operator(AMH2B_OT_ResetEyeClosed.bl_idname)
-        box = layout.box()
-        box.label(text="Template Bone Names")
-        if act_ob != None and act_ob.type == 'ARMATURE':
-            box.prop_search(a, "eblink_bone_name_left_lower", act_ob.data, "bones")
-            box.prop_search(a, "eblink_bone_name_left_upper", act_ob.data, "bones")
-            box.prop_search(a, "eblink_bone_name_right_lower", act_ob.data, "bones")
-            box.prop_search(a, "eblink_bone_name_right_upper", act_ob.data, "bones")
-        else:
-            box.prop(a, "eblink_bone_name_left_lower")
-            box.prop(a, "eblink_bone_name_left_upper")
-            box.prop(a, "eblink_bone_name_right_lower")
-            box.prop(a, "eblink_bone_name_right_upper")
-        layout.label(text="Template Save/Load")
-        layout.operator(AMH2B_OT_SaveBlinkCSV.bl_idname)
-        layout.prop(a, "eblink_text_save_name")
-        layout.operator(AMH2B_OT_LoadBlinkCSV.bl_idname)
-        layout.prop_search(a, "eblink_text_load_name", bpy.data, "texts")
 
 def draw_panel_template(self, context, func_grp_box):
     layout = self.layout
@@ -330,6 +218,8 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
     eblink_sub_func: EnumProperty(name="Sub-Function Group", description="Eyeblink Sub-Function Group",
         items=EBLINK_SUB_FUNC_ITEMS)
+    eblink_rig_type: EnumProperty(name="Eye Blink Rig Type", description="Rig type that will receive eye " \
+        "blink track", items=eblink_rig_type_items)
     eblink_remove_start_enable: BoolProperty(name="Remove Start",
         description="Enable removal of eyeblink keyframes starting at given frame number" +
         "\nKeyframes before the given frame number will not be affected by this operation", default=False)
@@ -340,11 +230,7 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         "\nKeyframes after the given frame number will not be affected by this operation", default=False)
     eblink_remove_end_frame: IntProperty(name="End Frame",
         description="Last frame to use in keyframe removal operation", default=250)
-    eblink_remove_left: BoolProperty(name="Remove Left",
-        description="Enable removal of eyeblink keyframes from left eye bones", default=True)
-    eblink_remove_right: BoolProperty(name="Remove Right",
-        description="Enable removal of eyeblink keyframes from right eye bones", default=True)
-    eblink_framerate: FloatProperty(name="Frame Rate", description="Frames per second. " +
+    eblink_frame_rate: FloatProperty(name="Frame Rate", description="Frames per second. " +
         "Input can be floating point, so e.g. the number 6.35 is allowed", default=30, min=0.001)
     eblink_start_frame: IntProperty(name="Start Frame",
         description="First frame of first eyeblink, before any random timing is applied", default=1)
@@ -373,8 +259,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     eblink_random_period_enable: FloatProperty(name="Period Random",
         description="Add random amount of time, in seconds, between start of one blink and start of next blink",
         default=0, min=0)
-    eblink_eye_left_enable: BoolProperty(name="Enable Left", description="Enable left eye eyeblink", default=True)
-    eblink_eye_right_enable: BoolProperty(name="Enable Right", description="Enable right eye eyeblink", default=True)
     eblink_shapekey_name: StringProperty(name="Closed Shapekey",
         description="Name of shapekey for closed eyes (leave blank to ignore)", default="")
     eblink_closing_time: FloatProperty(name="Closing Time",
@@ -389,48 +273,8 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Add a random amount of time, in seconds, to eyelid closed time", default=0, min=0)
     eblink_random_opening_time: FloatProperty(name="Opening Time",
         description="Add a random amount of time, in seconds, to eyelid opening time", default=0, min=0)
-    eblink_bone_name_left_lower: StringProperty(name="Left Lower",
-        description="Name of bone for left lower eyelid", default="lolid.L")
-    eblink_bone_name_left_upper: StringProperty(name="Left Upper",
-        description="Name of bone for left upper eyelid", default="uplid.L")
-    eblink_bone_name_right_lower: StringProperty(name="Right Lower",
-        description="Name of bone for right lower eyelid", default="lolid.R")
-    eblink_bone_name_right_upper: StringProperty(name="Right Upper",
-        description="Name of bone for right upper eyelid", default="uplid.R")
-    eblink_text_save_name: StringProperty(name="Write Text",
-        description="Name of textblock in text editor where eyeblink settings will be written (saved)",
-        default="Text")
-    eblink_text_load_name: StringProperty(name="Read Text",
-        description="Name of textblock in text editor from which eyeblink settings will be read (loaded)",
-        default="Text")
-    elid_name_left_lower: StringProperty(name="Left Lower",
-        description="Bone name for left lower eyelid", default="lolid.L")
-    elid_name_left_upper: StringProperty(name="Left Upper",
-        description="Bone name for left upper eyelid", default="uplid.L")
-    elid_name_right_lower: StringProperty(name="Right Lower",
-        description="Bone name for right lower eyelid", default="lolid.R")
-    elid_name_right_upper: StringProperty(name="Right Upper",
-        description="Bone name for right upper eyelid", default="uplid.R")
-    elid_name_left_eye: StringProperty(name="Left Eye",
-        description="Bone name for left eye (might need to use 'parent' of eye)", default="eye_parent.L")
-    elid_name_right_eye: StringProperty(name="Right Eye",
-        description="Bone name for right eye (might need to use 'parent' of eye)", default="eye_parent.R")
-    elid_influence_lower: FloatProperty(name="Influence Lower",
-        description="Lower eyelids bone constraint ('Copy Rotation') influence value", default=0.35, min=0, max=1)
-    elid_influence_upper: FloatProperty(name="Influence Upper",
-        description="Upper eyelids bone constraint ('Copy Rotation') influence value", default=0.5, min=0, max=1)
-    elid_min_x_lower: FloatProperty(name="Lower Min X",
-        description="Lower eyelids bone constraint ('Limit Rotation') minimum X rotation", subtype='ANGLE',
-        default=-0.244346)
-    elid_max_x_lower: FloatProperty(name="Lower Max X",
-        description="Lower eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
-        default=0.087266)
-    elid_min_x_upper: FloatProperty(name="Upper Min X",
-        description="Upper eyelids bone constraint ('Limit Rotation') minimum X rotation", subtype='ANGLE',
-        default=-0.087266)
-    elid_max_x_upper: FloatProperty(name="Upper Max X",
-        description="Upper eyelids bone constraint ('Limit Rotation') maximum X rotation", subtype='ANGLE',
-        default=0.349066)
+    elid_rig_type: EnumProperty(name="Lid Look Rig Type", description="Rig type that will receive Lid Look",
+        items=elid_rig_type_items)
     mat_active_slot_only: BoolProperty(name="Active Slot Only",
         description="Try to swap only the Active Slot material, instead of trying to swap all material slots",
         default=False)
@@ -597,12 +441,6 @@ classes = [
     AMH2B_OT_RatchetHold,
     AMH2B_OT_RemoveBlinkTrack,
     AMH2B_OT_AddBlinkTrack,
-    AMH2B_OT_SaveBlinkCSV,
-    AMH2B_OT_LoadBlinkCSV,
-    AMH2B_OT_ResetEyeOpened,
-    AMH2B_OT_ResetEyeClosed,
-    AMH2B_OT_SetEyeOpened,
-    AMH2B_OT_SetEyeClosed,
     AMH2B_OT_AddLidLook,
     AMH2B_OT_RemoveLidLook,
     AMH2B_OT_AddSoftBodyWeightTestCalc,

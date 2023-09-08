@@ -604,7 +604,7 @@ def retarget_armature(context, src_arm_ob, targ_arm_ob, preset_name, use_textblo
 def is_mhx2_armature(ob):
     return ob != None and hasattr(ob, "MhxRig") and ob.MhxRig in ('MHX', 'EXPORTED_MHX')
 
-def remove_retarget_constraints(context, ob):
+def remove_retarget_constraints(context, ob, include_target_none):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
     bone_count = 0
@@ -612,7 +612,9 @@ def remove_retarget_constraints(context, ob):
     for pose_bone in ob.pose.bones:
         remove_c_list = []
         for const in pose_bone.constraints:
-            if hasattr(const, "target") and const.target != None and const.target != ob:
+            if hasattr(const, "target") and const.target != ob:
+                if const.target is None and not include_target_none:
+                    continue
                 remove_c_list.append(const)
         for const in remove_c_list:
             pose_bone.constraints.remove(const)

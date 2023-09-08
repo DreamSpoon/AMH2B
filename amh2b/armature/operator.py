@@ -195,8 +195,6 @@ class AMH2B_OT_SnapMHX_FK(Operator):
 
     @classmethod
     def poll(cls, context):
-#        act_ob = context.active_object
-#        return act_ob != None and act_ob.type == 'ARMATURE'
         return is_mhx2_armature(context.active_object)
 
     def execute(self, context):
@@ -253,6 +251,9 @@ class AMH2B_OT_RemoveRetargetConstraints(Operator):
     bl_label = "Remove Retarget Constraints"
     bl_options = {'REGISTER', 'UNDO'}
 
+    include_target_none: BoolProperty(name="Include Blank Targets", description="Remove bone constraints where the " \
+        "bone constraint's 'target' is blank (None)", default=False)
+
     @classmethod
     def poll(cls, context):
         return len([ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]) > 0
@@ -264,7 +265,7 @@ class AMH2B_OT_RemoveRetargetConstraints(Operator):
         for ob in context.selected_objects:
             if ob.type != 'ARMATURE':
                 continue
-            bone_count, const_count = remove_retarget_constraints(context, ob)
+            bone_count, const_count = remove_retarget_constraints(context, ob, self.include_target_none)
             total_bc += bone_count
             total_cc += const_count
             total_ob += 1
@@ -296,7 +297,7 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         act_ob = context.active_object
         sel_obs = [ ob for ob in context.selected_objects if ob.type == 'ARMATURE' ]
         if act_ob not in sel_obs or len(sel_obs) != 2:
-            return
+            return {'CANCELLED'}
         other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
         bone_count = snap_transfer_target_constraints(context, other_ob, act_ob, self.limit_ct_hips_ik,
                                                       self.include_game_engine)
@@ -328,7 +329,7 @@ class AMH2B_OT_SelectRetargetBones(Operator):
     def execute(self, context):
         act_ob = context.active_object
         if act_ob is None:
-            return
+            return {'CANCELLED'}
         bone_count = select_retarget_bones(context, act_ob)
         self.report({'INFO'}, "Selected %d retarget bones" % bone_count)
         return {'FINISHED'}
