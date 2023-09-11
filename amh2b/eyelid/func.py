@@ -120,7 +120,7 @@ def elid_rig_type_items(self, context):
         if desc is None:
             desc = ""
         items.append( (rt, label, desc) )
-    return items if len(items) > 0 else [ (" ", "", "") ]
+    return sorted(items, key = lambda x: x[0]) if len(items) > 0 else [ (" ", "", "") ]
 
 def get_lidlook_data_by_rig_type(elid_rig_type):
     for d in LIDLOOK_DATA:

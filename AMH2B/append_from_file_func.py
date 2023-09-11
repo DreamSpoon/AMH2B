@@ -19,24 +19,6 @@
 import bpy
 import os
 
-def append_material_from_blend_file(mat_filepath, mat_name):
-    # path inside of file (i.e. like opening the "Append" window; see Action, Armature, Brush, Camera, ...)
-    inner_path = "Material"
-
-    try:
-        bpy.ops.wm.append(
-            filepath=os.path.join(mat_filepath, inner_path, mat_name),
-            directory=os.path.join(mat_filepath, inner_path),
-            filename=mat_name
-            )
-    except:
-        return False
-
-    if bpy.data.materials.get(mat_name) is None:
-        return False
-
-    return True
-
 # Returns True if material was successfully appended.
 # Checks if the material already exists in this file, if it does exist then rename the
 # current material, and then append the new material.

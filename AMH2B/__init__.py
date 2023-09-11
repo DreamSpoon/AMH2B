@@ -54,7 +54,6 @@ from .eyeblink.operator import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrac
 from .eyelid.func import elid_rig_type_items
 from .eyelid.operator import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
 from .eyelid.panel import draw_panel_eye_lid
-from .material import (AMH2B_OT_SwapMatWithFile, AMH2B_OT_SwapMatInternal)
 from .shape_key.func import SK_FUNC_ITEMS
 from .shape_key.operator import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
     AMH2B_OT_SKFuncDelete, AMH2B_OT_CopyOtherSK, AMH2B_OT_ApplyModifierSK)
@@ -70,27 +69,10 @@ from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
 from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
     AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
 from .soft_body.panel import draw_panel_soft_body
-from .template import (AMH2B_OT_MakeTailorObjectSearchable, AMH2B_OT_SetupMatSwap)
+from .template import AMH2B_OT_MakeTailorObjectSearchable
 from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
     AMH2B_OT_SearchFileForAutoVGroups)
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
-
-def draw_panel_material(self, context, func_grp_box):
-    layout = self.layout
-    scn = context.scene
-    layout.separator()
-    layout.operator(AMH2B_OT_SwapMatWithFile.bl_idname)
-    col = layout.column()
-    col.active = not scn.amh2b.mat_exact_name_only
-    col.operator(AMH2B_OT_SwapMatInternal.bl_idname)
-    layout.prop(scn.amh2b, "mat_active_slot_only")
-    layout.prop(scn.amh2b, "mat_exact_name_only")
-    col = layout.column()
-    col.active = not scn.amh2b.mat_exact_name_only
-    col.prop(scn.amh2b, "mat_ignore_autoname")
-    col.prop(scn.amh2b, "mat_keep_original_name")
-    col.prop(scn.amh2b, "mat_name_delimiter")
-    col.prop(scn.amh2b, "mat_name_delimiter_count")
 
 def draw_panel_vertex_group(self, context, func_grp_box):
     layout = self.layout
@@ -127,13 +109,6 @@ def draw_panel_weight_paint(self, context, func_grp_box):
 
 def draw_panel_template(self, context, func_grp_box):
     layout = self.layout
-    scn = context.scene
-    layout.label(text="Material")
-    layout.operator(AMH2B_OT_SetupMatSwap.bl_idname)
-    box = layout.box()
-    box.prop(scn.amh2b, "temp_active_slot_only")
-    box.prop(scn.amh2b, "temp_delimiter")
-    box.prop(scn.amh2b, "temp_delim_count")
     layout.label(text="Vertex Group and ShapeKey")
     layout.operator(AMH2B_OT_MakeTailorObjectSearchable.bl_idname)
 
@@ -143,7 +118,6 @@ FUNC_GRP_ATTRIBUTES = "FUNC_GRP_ATTRIBUTES"
 FUNC_GRP_EYE_BLINK = "FUNC_GRP_EYE_BLINK"
 FUNC_GRP_EYE_LID = "FUNC_GRP_EYE_LID"
 FUNC_GRP_GEO_NODES = "FUNC_GRP_GEO_NODES"
-FUNC_GRP_MAT_SWAP = "FUNC_GRP_MAT_SWAP"
 FUNC_GRP_SHAPE_KEY = "FUNC_GRP_SHAPE_KEY"
 FUNC_GRP_SOFT_BODY = "FUNC_GRP_SOFT_BODY"
 FUNC_GRP_TEMPLATE = "FUNC_GRP_TEMPLATE"
@@ -156,7 +130,6 @@ FUNC_GRP_ITEMS = [
     (FUNC_GRP_EYE_BLINK, "Eye Blink", ""),
     (FUNC_GRP_EYE_LID, "Eye Lid", ""),
     (FUNC_GRP_GEO_NODES, "Geometry Nodes", ""),
-    (FUNC_GRP_MAT_SWAP, "Material Swap", ""),
     (FUNC_GRP_SHAPE_KEY, "Shape Key", ""),
     (FUNC_GRP_SOFT_BODY, "Soft Body", ""),
     (FUNC_GRP_TEMPLATE, "Template", ""),
@@ -170,7 +143,6 @@ function_group_draw = {
     FUNC_GRP_ATTRIBUTES: draw_panel_attributes,
     FUNC_GRP_EYE_BLINK: draw_panel_eye_blink,
     FUNC_GRP_EYE_LID: draw_panel_eye_lid,
-    FUNC_GRP_MAT_SWAP: draw_panel_material,
     FUNC_GRP_SHAPE_KEY: draw_panel_shape_key,
     FUNC_GRP_GEO_NODES: draw_panel_geometry_nodes,
     FUNC_GRP_SOFT_BODY: draw_panel_soft_body,
@@ -204,11 +176,9 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     anim_ratchet_frames: IntProperty(name="Frame Count",
         description="Number of times to apply Ratchet Hold, i.e. number of frames to Ratchet Hold", default=1, min=1)
     anim_ratchet_point_object: StringProperty(name="Ratchet Point Object", description="Object which remains " \
-        "motionless, in World coordinates, or optionally relative to Ratchet Target Object's location " \
-        "(in World coordinates)")
-    anim_ratchet_target_object: StringProperty(name="Ratchet Target Object", description="Object with location " \
-        "(in World coordinates) which Ratchet Point will 'track' - i.e. Ratchet Point will remain motionless " \
-        "relative to Ratchet Target")
+        "motionless in World Coordinates, or optionally motionless relative to Ratchet Target Object")
+    anim_ratchet_target_object: StringProperty(name="Ratchet Target Object (optional)", description="Ratchet Point " \
+        "will remain motionless relative to Ratchet Target. Ratchet Target is optional")
     arm_function: EnumProperty(name="Sub-Function Group", description="Armature Sub-Function Group",
         items=ARM_FUNC_ITEMS)
     arm_generic_prefix: StringProperty(name="G Prefix",
@@ -275,23 +245,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Add a random amount of time, in seconds, to eyelid opening time", default=0, min=0)
     elid_rig_type: EnumProperty(name="Lid Look Rig Type", description="Rig type that will receive Lid Look",
         items=elid_rig_type_items)
-    mat_active_slot_only: BoolProperty(name="Active Slot Only",
-        description="Try to swap only the Active Slot material, instead of trying to swap all material slots",
-        default=False)
-    mat_exact_name_only: BoolProperty(name="Exact Name Only",
-        description="Search for the exact same material name when trying to swap from another file", default=False)
-    mat_ignore_autoname: BoolProperty(name="Ignore Autoname",
-        description="If material swap function is tried and fails, re-try swap with material's 'auto-name' " +
-        "extension removed.\ne.g. \"Mass0007:Eyebrow010:Eyebrow010.003\" material may be replaced " +
-        "with \"Mass0007:Eyebrow010:Eyebrow010 material\"", default=True)
-    mat_keep_original_name: BoolProperty(name="Keep Original Name",
-        description="Ensure that the material name in each material slot is the same before and after swap",
-        default=False)
-    mat_name_delimiter: StringProperty(name="Delimiter", description="Delimiter between sections of material names " \
-        "(MakeHuman uses the colon : )\n : is the default value", default=":")
-    mat_name_delimiter_count: IntProperty(name="Delim. Count",
-        description="Number of delimiters allowed in name search. Extra delimiters and related name sections will " +
-        "be ignored.\nDefault value is 1", default=1, min=0)
     sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")
     sb_apply_sk_mix: BoolProperty(name="Apply SK Mix", description="Apply all ShapeKeys instead of deleting all " \
         "ShapeKeys - necessary before applying Geometry Nodes with 'Convert Test Weights' function", default=True)
@@ -360,13 +313,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="If vertex group is given, and 'Invert' is enabled, then only mask vertex group vertexes " +
         "are included when baking shapekey(s).\nIf vertex group is given, and 'Invert' is not enabled, " +
         "then mask vertex group vertexes are excluded when baking shapekey(s)", default=False)
-    temp_active_slot_only: BoolProperty(name="Active Slot Only",
-        description="Rename only Active Slot material, instead of trying to rename all material slots",
-        default=False)
-    temp_delimiter: StringProperty(name="Delimiter",
-        description="Delimiter between sections of material names (MakeHuman uses the colon : )", default=":")
-    temp_delim_count: IntProperty(name="Delim. Count", description="Number of delimiters allowed in " +
-        "name search. Extra delimiters and related name sections will be ignored", default=1, min=0)
     vg_func_name_prefix: StringProperty(name="Prefix",
         description="Perform functions on selected MESH type objects, but only vertex groups with names " +
         "beginning with this prefix. Default value is " + SC_VGRP_AUTO_PREFIX, default=SC_VGRP_AUTO_PREFIX)
@@ -402,9 +348,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
 
 classes = [
     AMH2B_PG_ScnAMH2B,
-    AMH2B_OT_SwapMatWithFile,
-    AMH2B_OT_SwapMatInternal,
-    AMH2B_OT_SetupMatSwap,
     AMH2B_OT_CopyVertexGroupsByPrefix,
     AMH2B_OT_DeleteVertexGroupsByPrefix,
     AMH2B_OT_MakeTailorObjectSearchable,

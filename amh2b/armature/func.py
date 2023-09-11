@@ -130,7 +130,7 @@ def script_pose_preset_items(self, context):
         if desc is None:
             desc = ""
         items.append ( (filename, str(label), str(desc)) )
-    return items if len(items) > 0 else [ (" ", "", "") ]
+    return sorted(items, key = lambda x: x[0]) if len(items) > 0 else [ (" ", "", "") ]
 
 def load_script_pose_presets():
     # do not re-load
@@ -348,7 +348,7 @@ def retarget_armature_preset_items(self, context):
         if desc is None:
             desc = ""
         items.append ( (filename, str(label), str(desc)) )
-    return items if len(items) > 0 else [ (" ", "", "") ]
+    return sorted(items, key = lambda x: x[0]) if len(items) > 0 else [ (" ", "", "") ]
 
 def load_retarget_armature_presets():
     # do not re-load

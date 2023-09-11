@@ -138,9 +138,7 @@ EYEBLINK_DATA = [
     ]
 
 def eblink_rig_type_items(self, context):
-    items = [ (EB_RIG_SELECT_BONES, "Selected Bones", "Use current location/rotation of currently selected pose " \
-               "bones for 'closed' eye position, when generating eye blink track. 'Open' eye position is reset pose " \
-               "location/rotation, i.e. zero location/rotation") ]
+    items = []
     for eb_data in EYEBLINK_DATA:
         rt = eb_data.get("rig_type")
         if rt is None:
@@ -152,7 +150,10 @@ def eblink_rig_type_items(self, context):
         if desc is None:
             desc = ""
         items.append((rt, label, desc))
-    return items
+    items.append( (EB_RIG_SELECT_BONES, "Selected Bones", "Use current location/rotation of currently selected pose " \
+        "bones for 'closed' eye position, when generating eye blink track. 'Open' eye position is reset pose " \
+        "location/rotation, i.e. zero location/rotation") )
+    return sorted(items, key = lambda x: x[0])
 
 def get_eyeblink_data_by_rig_type(eblink_rig_type):
     for d in EYEBLINK_DATA:

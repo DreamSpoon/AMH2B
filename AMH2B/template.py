@@ -18,54 +18,6 @@
 
 import bpy
 
-from .material_func import rename_material
-
-def get_mat_template_name(orig_name, delim, delim_count):
-    pos = len(orig_name)
-    c = 0
-    while c < delim_count:
-        pos = orig_name.rfind(delim[0], 0, pos)
-        if pos < 0:
-            break
-        c = c + 1
-    if pos < 0 or pos == len(orig_name):
-        return orig_name
-    else:
-        return orig_name[pos+1:len(orig_name)]
-
-#def is_mat_mhx_name(mat_name):
-#    if mat_name.count(':') == 2:
-#        return True
-#    return False
-
-#def is_mat_template_name(mat_name):
-#    if mat_name.count(':') == 1:
-#        return True
-#    return False
-
-def setup_mat_template(selection_list, active_slot_only, delimiter, delimiter_count):
-    for obj in selection_list:
-        # iterate over the material slots and check/rename the materials
-        for mat_slot in (s for s in obj.material_slots if s.material is not None):
-            # skip this slot if 'active slot only' is enabled and if this is not the active slot
-            if active_slot_only and mat_slot != obj.material_slots[obj.active_material_index]:
-                continue
-            mat_name = mat_slot.material.name
-            new_mat_name = get_mat_template_name(mat_name, delimiter, delimiter_count+1)
-            rename_material(mat_name, new_mat_name)
-
-class AMH2B_OT_SetupMatSwap(bpy.types.Operator):
-    """Rename materials on all selected objects to make them searchable re: swap material from file"""
-    bl_idname = "amh2b.temp_setup_mat_swap"
-    bl_label = "Rename Materials"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        scn = context.scene
-        setup_mat_template(context.selected_objects, scn.amh2b.temp_active_slot_only, scn.amh2b.temp_delimiter,
-                              scn.amh2b.temp_delim_count)
-        return {'FINISHED'}
-
 def get_searchable_object_name(object_name):
     if object_name.rfind(":") != -1:
         return object_name[object_name.rfind(":")+1 : len(object_name)]

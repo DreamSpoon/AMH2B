@@ -97,7 +97,9 @@ def grow_paint(paint_object, paint_vg_index, iterations, start_weight, end_weigh
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_OT_GrowPaint(bpy.types.Operator):
-    """With active object, starting with currently selected vertexes, set weight paint in successive 'rings' by using 'select more' and weight painting only the newly selected vertexes - blending weight paint value by 'select more' iteration"""
+    """With active object, starting with currently selected vertexes, set weight paint in successive 'rings' by """ \
+        """using 'select more' and weight painting only the newly selected vertexes - blending weight paint value """ \
+        """over 'select more' iteration"""
     bl_idname = "amh2b.wp_grow_paint"
     bl_label = "Grow Paint"
     bl_options = {'REGISTER', 'UNDO'}
@@ -111,21 +113,18 @@ class AMH2B_OT_GrowPaint(bpy.types.Operator):
         if vg_ai < 0:
             self.report({'ERROR'}, "Active object does not have a vertex group")
             return {'CANCELLED'}
-
-        scn = context.scene
-        grow_paint(ob_act, vg_ai, scn.amh2b.wp_grow_paint_iterations, scn.amh2b.wp_grow_paint_start_weight,
-            scn.amh2b.wp_grow_paint_end_weight, scn.amh2b.wp_paint_initial_selection, scn.amh2b.wp_tail_fill_enable,
-            scn.amh2b.wp_tail_fill_value, scn.amh2b.wp_tail_fill_connected)
+        a = context.scene.amh2b
+        grow_paint(ob_act, vg_ai, a.wp_grow_paint_iterations, a.wp_grow_paint_start_weight,
+            a.wp_grow_paint_end_weight, a.wp_paint_initial_selection, a.wp_tail_fill_enable,
+            a.wp_tail_fill_value, a.wp_tail_fill_connected)
         return {'FINISHED'}
 
 def select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, deselect_first):
     old_3dview_mode = bpy.context.object.mode
-
     if deselect_first:
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_mode(type='VERT')
         bpy.ops.mesh.select_all(action='DESELECT')
-
     bpy.ops.object.mode_set(mode='OBJECT')
     verts = [v for v in obj.data.vertices]
     for v in verts:
@@ -136,11 +135,11 @@ def select_vertex_by_weight(obj, vert_group_index, min_weight, max_weight, desel
         vw = actual_grp.weight
         if vw <= max_weight and vw >= min_weight:
             v.select = True
-
     bpy.ops.object.mode_set(mode=old_3dview_mode)
 
 class AMH2B_OT_SelectVertexByWeight(bpy.types.Operator):
-    """With active object, deselect all vertices (optional), then select only vertices with weights between min_weight and max_weight, inclusive"""
+    """With active object, deselect all vertices (optional), then select only vertices with weights between """ \
+        """min_weight and max_weight, inclusive"""
     bl_idname = "amh2b.wp_select_vertex_by_weight"
     bl_label = "Select by Weight"
     bl_options = {'REGISTER', 'UNDO'}
@@ -154,7 +153,6 @@ class AMH2B_OT_SelectVertexByWeight(bpy.types.Operator):
         if vg_ai < 0:
             self.report({'ERROR'}, "Active object does not have a vertex group")
             return {'CANCELLED'}
-
-        scn = context.scene
-        select_vertex_by_weight(ob_act, vg_ai, scn.amh2b.wp_select_vertex_min_w, scn.amh2b.wp_select_vertex_max_w, scn.amh2b.wp_select_vertex_deselect)
+        a = context.scene.amh2b
+        select_vertex_by_weight(ob_act, vg_ai, a.wp_select_vertex_min_w, a.wp_select_vertex_max_w, a.wp_select_vertex_deselect)
         return {'FINISHED'}
