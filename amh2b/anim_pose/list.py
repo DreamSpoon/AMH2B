@@ -16,17 +16,13 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import bpy
+from bpy.types import UIList
 
-from .operator import (AMH2B_OT_RatchetHold, AMH2B_OT_RatchetPoint)
-
-def draw_panel_animation(self, context, func_grp_box):
-    layout = self.layout
-    scn = context.scene
-    layout.label(text="Object Location")
-    layout.operator(AMH2B_OT_RatchetPoint.bl_idname)
-    layout.separator()
-    layout.operator(AMH2B_OT_RatchetHold.bl_idname)
-    layout.prop_search(scn.amh2b, "anim_ratchet_point_object", bpy.data, "objects", text="Point")
-    layout.prop_search(scn.amh2b, "anim_ratchet_target_object", bpy.data, "objects", text="Target")
-    layout.prop(scn.amh2b, "anim_ratchet_frames")
+class AMH2B_UL_SelectAction(UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        row = layout.row()
+        row.label(text=item.name)
+        if hasattr(item, "select") and hasattr(item, "fcurves"):
+            row.prop(item, "select", text="")
+        else:
+            row.label(text="")

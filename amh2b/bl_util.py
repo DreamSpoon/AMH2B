@@ -1,0 +1,106 @@
+# ##### BEGIN GPL LICENSE BLOCK #####
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 3
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software Foundation,
+#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ##### END GPL LICENSE BLOCK #####
+
+import ast
+import traceback
+
+import bpy
+
+def strip_line_comment(src_line):
+    dest_line = ""
+    state_vars = { "backslash": False, "quote": False, "double_quote": False }
+    for c in src_line:
+        if c == "#":
+            # ignore '#' symbols in quotes
+            if state_vars["quote"]:
+                pass
+            # comment found
+            else:
+                dest_line += "\n"
+                break
+        elif c == "'":
+            if state_vars["backslash"]:
+                if state_vars["quote"]:
+                    state_vars["backslash"] = False
+                else:
+                    if not state_vars["double_quote"]:
+                        state_vars["quote"] = True
+            else:
+                if not state_vars["double_quote"]:
+                    state_vars["quote"] = not state_vars["quote"]
+        elif c == '"':
+            if state_vars["backslash"]:
+                if state_vars["double_quote"]:
+                    state_vars["backslash"] = False
+                else:
+                    if not state_vars["quote"]:
+                        state_vars["double_quote"] = True
+            else:
+                if not state_vars["quote"]:
+                    state_vars["double_quote"] = not state_vars["double_quote"]
+        elif c == "\\":
+            state_vars["backslash"] = not state_vars["backslash"]
+        elif c == "\n":
+            dest_line += c
+            break
+        else:
+            state_vars["backslash"] = False
+        dest_line += c
+    return dest_line
+
+# given 'f' is an iterable set of strings (e.g. open file, or list of strings),
+# returns dict() {
+#     "result": < result of ast.literal_eval() with file string >,
+#     "error": "< True / False >,
+# }
+def ast_literal_eval_lines(f):
+    full_str = ""
+    for line in f:
+        # remove comments without modifying file line structure
+        full_str += strip_line_comment(line)
+    if full_str == "":
+        return {}
+    try:
+        eval_result = ast.literal_eval(full_str)
+    except:
+        return { "error": traceback.format_exc() }
+    return { "result": eval_result }
+
+def ast_literal_eval_textblock(text):
+    split_lines = []
+    for l in text.lines:
+        split_lines.append(l.body)
+    if len(split_lines) == 0:
+        return
+    return ast_literal_eval_lines(split_lines)
+
+def get_file_eval_dict(script_file):
+    file_eval = ast_literal_eval_lines(script_file)
+    if file_eval.get("error") != None:
+        return file_eval.get("error")
+    script = file_eval.get("result")
+    if not isinstance(script, dict):
+        return "Error: Script did not evaluate to type 'dict' (dictionary)"
+    return script
+
+# force screen to redraw, known to work in Blender 3.3+
+def do_tag_redraw():
+    for a in bpy.context.screen.areas:
+        if a.type == 'VIEW_3D' or a.type == 'TEXT_EDITOR':
+            for r in a.regions:
+                r.tag_redraw()

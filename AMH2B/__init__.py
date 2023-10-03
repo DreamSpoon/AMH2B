@@ -18,12 +18,13 @@
 
 # Automate MakeHuman 2 Blender (AMH2B)
 # A set of tools to automate repetitive tasks after importing data from MakeHuman, and enhance imported data.
+# Includes support for MPFB2.
 
 bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (2, 3, 2),
+    "version": (2, 3, 3),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -31,15 +32,14 @@ bl_info = {
 }
 
 import bpy
-from bpy.types import (Panel, PropertyGroup, Scene)
-from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty,
-    StringProperty)
+from bpy.types import (Panel, PropertyGroup)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty)
 
 from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 
-from .animation.operator import (AMH2B_OT_RatchetPoint, AMH2B_OT_RatchetHold)
-from .animation.panel import draw_panel_animation
-from .armature.func import (ARM_FUNC_ITEMS, script_pose_preset_items)
+from .anim_object.operator import (AMH2B_OT_RatchetPoint, AMH2B_OT_RatchetHold)
+from .anim_object.panel import draw_panel_anim_object
+from .armature.func import ARM_FUNC_ITEMS
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
@@ -69,9 +69,15 @@ from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
 from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
     AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
 from .soft_body.panel import draw_panel_soft_body
-from .template import AMH2B_OT_MakeTailorObjectSearchable
+from .template import AMH2B_OT_MakeObjectSearchable
 from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
     AMH2B_OT_SearchFileForAutoVGroups)
+from .anim_pose.func import (POSE_FUNC_ITEMS, refresh_pose_action_frame_presets, pose_action_frame_preset_items)
+from .anim_pose.list import AMH2B_UL_SelectAction
+from .anim_pose.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadText,
+    AMH2B_OT_ActionFrameLoadPreset, AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshPosePresets,
+    AMH2B_OT_ApplyActionFrame, AMH2B_OT_LoadActionScriptMOHO)
+from .anim_pose.panel import draw_panel_anim_pose
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
 
 def draw_panel_vertex_group(self, context, func_grp_box):
@@ -110,9 +116,10 @@ def draw_panel_weight_paint(self, context, func_grp_box):
 def draw_panel_template(self, context, func_grp_box):
     layout = self.layout
     layout.label(text="Vertex Group and ShapeKey")
-    layout.operator(AMH2B_OT_MakeTailorObjectSearchable.bl_idname)
+    layout.operator(AMH2B_OT_MakeObjectSearchable.bl_idname)
 
-FUNC_GRP_ANIMATION = "FUNC_GRP_ANIMATION"
+FUNC_GRP_ANIM_OBJECT = "FUNC_GRP_ANIM_OBJECT"
+FUNC_GRP_ANIM_POSE = "FUNC_GRP_ANIM_POSE"
 FUNC_GRP_ARMATURE = "FUNC_GRP_ARMATURE"
 FUNC_GRP_ATTRIBUTES = "FUNC_GRP_ATTRIBUTES"
 FUNC_GRP_EYE_BLINK = "FUNC_GRP_EYE_BLINK"
@@ -124,7 +131,8 @@ FUNC_GRP_TEMPLATE = "FUNC_GRP_TEMPLATE"
 FUNC_GRP_VERTEX_GROUP = "FUNC_GRP_VERTEX_GROUP"
 FUNC_GRP_WEIGHT_PAINT = "FUNC_GRP_WEIGHT_PAINT"
 FUNC_GRP_ITEMS = [
-    (FUNC_GRP_ANIMATION, "Animation", ""),
+    (FUNC_GRP_ANIM_OBJECT, "Animation - Object", ""),
+    (FUNC_GRP_ANIM_POSE, "Animation - Pose", ""),
     (FUNC_GRP_ARMATURE, "Armature", ""),
     (FUNC_GRP_ATTRIBUTES, "Attributes", ""),
     (FUNC_GRP_EYE_BLINK, "Eye Blink", ""),
@@ -138,7 +146,7 @@ FUNC_GRP_ITEMS = [
     ]
 
 function_group_draw = {
-    FUNC_GRP_ANIMATION: draw_panel_animation,
+    FUNC_GRP_ANIM_OBJECT: draw_panel_anim_object,
     FUNC_GRP_ARMATURE: draw_panel_armature,
     FUNC_GRP_ATTRIBUTES: draw_panel_attributes,
     FUNC_GRP_EYE_BLINK: draw_panel_eye_blink,
@@ -148,8 +156,10 @@ function_group_draw = {
     FUNC_GRP_SOFT_BODY: draw_panel_soft_body,
     FUNC_GRP_TEMPLATE: draw_panel_template,
     FUNC_GRP_VERTEX_GROUP: draw_panel_vertex_group,
+    FUNC_GRP_ANIM_POSE: draw_panel_anim_pose,
     FUNC_GRP_WEIGHT_PAINT: draw_panel_weight_paint,
     }
+
 class AMH2B_PT_View3d(Panel):
     bl_label = "AMH2B"
     bl_space_type = "VIEW_3D"
@@ -245,6 +255,30 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Add a random amount of time, in seconds, to eyelid opening time", default=0, min=0)
     elid_rig_type: EnumProperty(name="Lid Look Rig Type", description="Rig type that will receive Lid Look",
         items=elid_rig_type_items)
+    pose_function: EnumProperty(name="Sub-Function Group", description="Pose Sub-Function Group",
+        items=POSE_FUNC_ITEMS)
+    pose_save_action_frame_text: StringProperty(name="Action Frame Save Text", description="Action F-Curve data " \
+        "is saved to this Text, available in Blender's Text editor", default="pose_action")
+    pose_load_action_frame_text: StringProperty(name="Action Frame Load Text", description="Action F-Curve data " \
+        "is loaded from this Text, available in Blender's Text editor")
+    pose_load_mark_asset: BoolProperty(name="Mark Asset", description="Each loaded Action is marked as a Pose " \
+        "Asset, for use with Asset Browser", default=False)
+    pose_select_action_index: IntProperty()
+    pose_action_name_prepend: StringProperty(name="Action Name Prepend", description="This string will be " \
+        "prepended to names of Actions from Preset/Script/Text. Leave blank to ignore")
+    pose_action_frame_label: StringProperty(name="Pose Label", description="Display name in Pose Preset list",
+        default="Pose")
+    pose_preset: EnumProperty(name="Pose Preset", description="", items=pose_action_frame_preset_items)
+    pose_apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
+        "Pose of active Armature")
+    pose_script_frame_offset: IntProperty(name="Frame Offset", description="Scripted Actions are offset in time by " \
+        "'Frame Offset' frames", default=0)
+    pose_script_frame_scale: FloatProperty(name="Frame Scale", description="Script frame times are scaled by this " \
+        "value", default=1.0)
+    pose_script_replace_unknown_action: StringProperty(name="Replace Unknown Action", description="Name of Action to " \
+        "use when unknown named Action occurs in script. Leave blank to ignore")
+    pose_ref_bones_action: StringProperty(name="Size Reference Bones Action", description="'Head' locations for " \
+        "Edit Bones in this Action will be saved with selected Actions, for auto-resize reference purposes")
     sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")
     sb_apply_sk_mix: BoolProperty(name="Apply SK Mix", description="Apply all ShapeKeys instead of deleting all " \
         "ShapeKeys - necessary before applying Geometry Nodes with 'Convert Test Weights' function", default=True)
@@ -350,7 +384,7 @@ classes = [
     AMH2B_PG_ScnAMH2B,
     AMH2B_OT_CopyVertexGroupsByPrefix,
     AMH2B_OT_DeleteVertexGroupsByPrefix,
-    AMH2B_OT_MakeTailorObjectSearchable,
+    AMH2B_OT_MakeObjectSearchable,
     AMH2B_OT_SearchFileForAutoVGroups,
     AMH2B_OT_GrowPaint,
     AMH2B_OT_SelectVertexByWeight,
@@ -394,6 +428,14 @@ classes = [
     AMH2B_OT_RemoveSoftBodySpring,
     AMH2B_OT_AttributeConvert,
     AMH2B_PT_NodeEditorGeoNodes,
+    AMH2B_OT_ActionFrameSaveText,
+    AMH2B_OT_ActionFrameLoadText,
+    AMH2B_OT_ActionFrameLoadPreset,
+    AMH2B_OT_ActionFrameSavePreset,
+    AMH2B_OT_RefreshPosePresets,
+    AMH2B_OT_ApplyActionFrame,
+    AMH2B_OT_LoadActionScriptMOHO,
+    AMH2B_UL_SelectAction,
     AMH2B_PT_View3d,
 ]
 
@@ -401,10 +443,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.amh2b = PointerProperty(type=AMH2B_PG_ScnAMH2B)
+    bpy.types.Action.select = BoolProperty(name="Select", description="Action selection state", default=False)
+    refresh_pose_action_frame_presets()
 
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+    del bpy.types.Action.select
     del bpy.types.Scene.amh2b
 
 if __name__ == "__main__":

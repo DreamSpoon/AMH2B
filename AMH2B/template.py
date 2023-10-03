@@ -30,7 +30,7 @@ def rename_mhx_object_to_searchable(selection_list):
             continue
         obj.name = get_searchable_object_name(obj.name)
 
-class AMH2B_OT_MakeTailorObjectSearchable(bpy.types.Operator):
+class AMH2B_OT_MakeObjectSearchable(bpy.types.Operator):
     """Rename selected objects, as needed, to make them searchable re:\nAutomatic search of file for vertex groups by object name and vertex group name prefix"""
     bl_idname = "amh2b.temp_make_tailor_object_searchable"
     bl_label = "Make Objects Searchable"

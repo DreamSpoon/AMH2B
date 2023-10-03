@@ -16,14 +16,13 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import ast
 import fnmatch
 import math
 import os
-import traceback
 
 import bpy
 
+from ..bl_util import (ast_literal_eval_textblock, get_file_eval_dict)
 from ..const import ADDON_BASE_FILE
 from ..object_func import (get_scene_user_collection, is_object_in_sub_collection)
 
@@ -64,24 +63,6 @@ def is_types(values, types):
     # all given values matched given types
     return True
 
-# returns dict() {
-#     "result": < result of ast.literal_eval() with file string >,
-#     "error": "< True / False >,
-# }
-def ast_literal_eval_textblock(text):
-    full_str = ""
-    for line in text.lines:
-        line_body = line.body
-        find_comment = line_body.find("#")
-        if find_comment != -1:
-            line_body = line_body[:find_comment] + "\n"
-        full_str += line_body
-    try:
-        eval_result = ast.literal_eval(full_str)
-    except:
-        return { "error": traceback.format_exc() }
-    return { "result": eval_result }
-
 def get_textblock_eval_dict(textblock_name):
     text = bpy.data.texts.get(textblock_name)
     if text is None:
@@ -90,32 +71,6 @@ def get_textblock_eval_dict(textblock_name):
     if text_eval.get("error") != None:
         return text_eval.get("error")
     script = text_eval.get("result")
-    if not isinstance(script, dict):
-        return "Error: Script did not evaluate to type 'dict' (dictionary)"
-    return script
-
-# returns dict() {
-#     "result": < result of ast.literal_eval() with file string >,
-#     "error": "< True / False >,
-# }
-def ast_literal_eval_file(f):
-    full_str = ""
-    for line in f:
-        find_comment = line.find("#")
-        if find_comment != -1:
-            line = line[:find_comment] + "\n"
-        full_str += line
-    try:
-        eval_result = ast.literal_eval(full_str)
-    except:
-        return { "error": traceback.format_exc() }
-    return { "result": eval_result }
-
-def get_file_eval_dict(script_file):
-    file_eval = ast_literal_eval_file(script_file)
-    if file_eval.get("error") != None:
-        return file_eval.get("error")
-    script = file_eval.get("result")
     if not isinstance(script, dict):
         return "Error: Script did not evaluate to type 'dict' (dictionary)"
     return script
@@ -139,14 +94,17 @@ def load_script_pose_presets():
     # get paths to presets files
     base_path = os.path.dirname(os.path.realpath(ADDON_BASE_FILE))
     p = os.path.join(base_path, "presets", "script_pose")
-    file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
+    try:
+        file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
+    except:
+        return
     # safely read each file and get pose script, trying ALL FILES in the presets path
     for fp in file_paths:
         try:
             with open(os.path.join(p, fp), 'r') as f:
                 pose_script = get_file_eval_dict(f)
         except:
-            pose_script = "Error: cannot open Script Pose preset file named: " + fp
+            continue
         if not isinstance(pose_script, dict):
             continue
         script_pose_presets[fp] = pose_script
@@ -357,7 +315,10 @@ def load_retarget_armature_presets():
     # get paths to presets files
     base_path = os.path.dirname(os.path.realpath(ADDON_BASE_FILE))
     p = os.path.join(base_path, "presets", "retarget_armature")
-    file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
+    try:
+        file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
+    except:
+        return
     # safely read each file and get retarget armature script
     for fp in file_paths:
         try:
