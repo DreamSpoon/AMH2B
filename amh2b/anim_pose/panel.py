@@ -44,7 +44,7 @@ def draw_panel_anim_pose(self, context, func_grp_box):
         layout.prop_search(a, "pose_ref_bones_action", bpy.data, "actions", text="Action")
         layout.label(text="Choose Actions")
         layout.template_list("AMH2B_UL_SelectAction", "", bpy.data, "actions", a, "pose_select_action_index", rows=5)
-        layout.label(text="Pose Label")
+        layout.label(text="Preset Label")
         layout.prop(a, "pose_action_frame_label", text="")
         layout.label(text="Text")
         layout.prop(a, "pose_save_action_frame_text", text="")

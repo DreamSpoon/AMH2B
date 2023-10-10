@@ -36,7 +36,6 @@ def draw_panel_eye_blink(self, context, func_grp_box):
     layout.separator()
     if a.eblink_sub_func == EBLINK_SUB_FUNC_ADD:
         layout.operator(AMH2B_OT_AddBlinkTrack.bl_idname)
-        layout.prop(a, "eblink_rig_type", text="Rig Type")
         layout.separator()
         layout.label(text="Add Options")
         layout.prop(a, "eblink_frame_rate")
@@ -56,10 +55,6 @@ def draw_panel_eye_blink(self, context, func_grp_box):
         sub.active = a.eblink_blink_period_enable
         sub.prop(a, "eblink_blink_period")
         layout.prop(a, "eblink_random_period_enable")
-        if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
-            layout.prop_search(a, "eblink_shapekey_name", act_ob.data.shape_keys, "key_blocks", text="ShapeKey")
-        else:
-            layout.prop(a, "eblink_shapekey_name", text="ShapeKey")
         layout.separator()
         layout.label(text="Basis")
         layout.prop(a, "eblink_closing_time")
@@ -72,7 +67,6 @@ def draw_panel_eye_blink(self, context, func_grp_box):
         layout.prop(a, "eblink_random_opening_time")
     elif a.eblink_sub_func == EBLINK_SUB_FUNC_REMOVE:
         layout.operator(AMH2B_OT_RemoveBlinkTrack.bl_idname)
-        layout.prop(a, "eblink_rig_type", text="Rig Type")
         layout.separator()
         layout.label(text="Remove Options")
         layout.prop(a, "eblink_remove_start_enable")
@@ -83,3 +77,17 @@ def draw_panel_eye_blink(self, context, func_grp_box):
         sub = layout.column()
         sub.active = a.eblink_remove_end_enable
         sub.prop(a, "eblink_remove_end_frame")
+    layout.separator()
+    layout.label(text="Blink Action")
+    layout.prop_search(a, "eblink_close_action", bpy.data, "actions", text="Close")
+    layout.prop_search(a, "eblink_open_action", bpy.data, "actions", text="Open")
+    layout.label(text="Blink Shapekey")
+    if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
+        layout.prop_search(a, "eblink_close_shapekey", act_ob.data.shape_keys, "key_blocks", text="Close")
+    else:
+        layout.prop(a, "eblink_close_shapekey", text="Close")
+    layout.label(text="  Shapekey Factor")
+    row = layout.row()
+    row.active = a.eblink_close_shapekey != ""
+    row.prop(a, "eblink_close_shapekey_on", text="Close")
+    row.prop(a, "eblink_close_shapekey_off", text="Open")

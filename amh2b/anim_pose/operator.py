@@ -41,10 +41,9 @@ class AMH2B_OT_ActionFrameLoadText(Operator):
     def execute(self, context):
         a = context.scene.amh2b
         act_ob = context.active_object
-        act_arm = None
-        if act_ob != None and act_ob.type == 'ARMATURE':
-            act_arm = act_ob.data
-        result = load_action_frames_from_text(act_arm, a.pose_load_action_frame_text, a.pose_action_name_prepend,
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            return {'CANCELLED'}
+        result = load_action_frames_from_text(act_ob, a.pose_load_action_frame_text, a.pose_action_name_prepend,
                                               a.pose_load_mark_asset)
         self.report({'INFO'}, "Created %i Actions from Text" % result)
         return {'FINISHED'}
@@ -87,16 +86,16 @@ class AMH2B_OT_ActionFrameLoadPreset(Operator):
     def execute(self, context):
         a = context.scene.amh2b
         act_ob = context.active_object
-        act_arm = None
-        if act_ob != None and act_ob.type == 'ARMATURE':
-            act_arm = act_ob.data
-        result = load_action_frames_from_preset(act_arm, a.pose_preset, a.pose_action_name_prepend,
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            return {'CANCELLED'}
+        result = load_action_frames_from_preset(act_ob, a.pose_preset, a.pose_action_name_prepend,
                                                 a.pose_load_mark_asset)
         self.report({'INFO'}, "Created %i Actions from Preset" % result)
         return {'FINISHED'}
 
 class AMH2B_OT_ActionFrameSavePreset(Operator, ImportHelper):
-    """Evaluate currently selected Action F-Curves at frame 0 and save result to file in Presets folder"""
+    """Evaluate currently selected Action F-Curves at frame 0 and save result to file in """ \
+        """\\amh2b\\presets\\anim_pose\\ directory"""
     bl_idname = "amh2b.action_frame_save_preset"
     bl_label = "Save Preset"
     bl_options = {'REGISTER', 'UNDO'}
@@ -128,9 +127,9 @@ class AMH2B_OT_ActionFrameSavePreset(Operator, ImportHelper):
         return {'RUNNING_MODAL'}
 
 class AMH2B_OT_RefreshPosePresets(Operator):
-    """Refresh listing of Pose Presets"""
+    """Refresh listing of Pose Presets. This will reload files in \\amh2b\\presets\\anim_pose\\ directory"""
     bl_idname = "amh2b.refresh_pose_presets"
-    bl_label = "Refresh"
+    bl_label = "Refresh Presets"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -138,7 +137,8 @@ class AMH2B_OT_RefreshPosePresets(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_ApplyActionFrame(Operator):
-    """Apply frame zero of selected Action"""
+    """Apply frame zero of selected Action to active object Armature. If 'Auto Keying' is enabled then keyframes """ \
+        """will be inserted in current Action"""
     bl_idname = "amh2b.apply_action_frame"
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}

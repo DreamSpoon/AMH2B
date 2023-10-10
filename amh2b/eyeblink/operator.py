@@ -18,12 +18,12 @@
 
 from bpy.types import Operator
 
-from .func import (remove_blink_track, generate_blink_track)
+from .func import (generate_blink_action, remove_blink_fcurves)
 
 class AMH2B_OT_RemoveBlinkTrack(Operator):
-    """Remove blink track from selected objects (including active object), based on EyeBlink and LidLook options"""
-    bl_idname = "amh2b.eblink_remove_blink_track"
-    bl_label = "Remove Blink Track"
+    """Remove blinks from selected objects (including active object), based on EyeBlink"""
+    bl_idname = "amh2b.eblink_remove_blinks"
+    bl_label = "Remove Blinks"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -47,21 +47,21 @@ class AMH2B_OT_RemoveBlinkTrack(Operator):
             self.report({'ERROR'}, "No ARMATURE or MESH selected to remove Blink Track")
             return {'CANCELLED'}
         a = context.scene.amh2b
-        shapekey_name = a.eblink_shapekey_name
         start_frame = None
         if a.eblink_remove_start_enable:
             start_frame = a.eblink_remove_start_frame
         end_frame = None
         if a.eblink_remove_end_enable:
             end_frame = a.eblink_remove_end_frame
-        remove_blink_track(arm_list, mesh_list, a.eblink_rig_type, shapekey_name, start_frame, end_frame)
+        remove_blink_fcurves(arm_list, mesh_list, a.eblink_open_action, a.eblink_close_action, a.eblink_close_shapekey,
+                             start_frame, end_frame)
         return {'FINISHED'}
 
 class AMH2B_OT_AddBlinkTrack(Operator):
-    """With all selected objects (including active object), add blink track(s).\nMESH objects may receive """ \
-        """Shapekey keyframes, ARMATURE objects may receive pose bone keyframes"""
-    bl_idname = "amh2b.eblink_add_blink_track"
-    bl_label = "Add Blink Track"
+    """With all selected objects (including active object), add blinks.\nMESH objects may receive Shapekey """ \
+        """keyframes, ARMATURE objects may receive pose bone keyframes"""
+    bl_idname = "amh2b.eblink_add_blinks"
+    bl_label = "Add Blinks"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -107,7 +107,11 @@ class AMH2B_OT_AddBlinkTrack(Operator):
             "blink_period": a.eblink_blink_period,
             "random_blink_period": a.eblink_random_period_enable,
             "allow_random_drift": a.eblink_allow_random_drift,
-            "shapekey_name": a.eblink_shapekey_name,
+            "open_action": a.eblink_open_action,
+            "close_action": a.eblink_close_action,
+            "close_shapekey": a.eblink_close_shapekey,
+            "close_shapekey_off": a.eblink_close_shapekey_off,
+            "close_shapekey_on": a.eblink_close_shapekey_on,
         }
-        generate_blink_track(arm_list, mesh_list, a.eblink_rig_type, blink_settings)
+        generate_blink_action(arm_list, mesh_list, blink_settings)
         return {'FINISHED'}

@@ -60,6 +60,7 @@ GLOBAL_POSE_PROP_DEFAULTS = {
     'rotation_euler': (0.0, 0.0, 0.0),
     'rotation_quaternion': (1.0, 0.0, 0.0, 0.0),
     'scale': (1.0, 1.0, 1.0),
+    'influence': 1.0,
     }
 GLOBAL_POSE_PROP_NAMES = [ x for x in GLOBAL_POSE_PROP_DEFAULTS.keys() ]
 
@@ -125,8 +126,6 @@ def get_ref_bone_loc_data(arm, ref_action_name):
         # store a tuple instead of a Vector
         result_data[bone_name] = (arm.edit_bones[bone_name].head[0], arm.edit_bones[bone_name].head[1],
                                   arm.edit_bones[bone_name].head[2])
-        print("storing this vector for bone_name =", bone_name)
-        print("    ", result_data[bone_name])
     return result_data
 
 def get_frame_save_data(context, arm, action_frame_label, ref_bones_action_name):
@@ -187,7 +186,23 @@ def add_point_to_bounds(bounds, point):
     else:
         bounds["max"] = [ point[x] if point[x] > bounds["max"][x] else bounds["max"][x] for x in range(3) ]
 
-def create_actions_from_frame_data(arm, frame_data, action_name_prepend, mark_asset):
+def get_thing_to_keyframe(ob, datapath, tokens, bone_name):
+    if bone_name not in ob.pose.bones:
+        return None
+# e.g.
+#     pose.bones['Bone'].location
+    if len(tokens) == 4:
+        return ob.pose.bones[bone_name]
+# e.g.
+#     pose.bones['Bone'].constraints['Copy Transforms'].influence
+    elif len(tokens) == 6 and datapath[ tokens[3][0] : tokens[3][1] ] == "constraints":
+        return ob.pose.bones[bone_name].constraints.get( datapath[ tokens[4][0]+2 : tokens[4][1]-2 ] )
+    return None
+
+def create_actions_from_frame_data(ob, frame_data, action_name_prepend, mark_asset):
+    if ob.animation_data is None:
+        ob.animation_data_create()
+    arm = ob.data
     action_frames_data = frame_data.get("action_frames")
     ref_bone_loc_data = frame_data.get("ref_bone_locations")
     if not isinstance(action_frames_data, dict):
@@ -219,12 +234,15 @@ def create_actions_from_frame_data(arm, frame_data, action_name_prepend, mark_as
                 if current_dims[i] > 0.000000001 and ref_dims[i] > 0.000000001:
                     ref_location_scale[i] = current_dims[i] / ref_dims[i]
     num_actions_created = 0
+    original_ob_action = ob.animation_data.action
     for action_name, fcurve_data in action_frames_data.items():
         if not isinstance(action_name, str) or action_name == "" or not isinstance(fcurve_data, dict):
             continue
         datapath_value_pairs = []
         for data_path, indexed_values in fcurve_data.items():
             if not isinstance(data_path, str) or data_path == "" or not isinstance(indexed_values, dict):
+                continue
+            if not data_path.startswith("pose.bones["):
                 continue
             index_value_pairs = []
             for i, v in indexed_values.items():
@@ -236,21 +254,52 @@ def create_actions_from_frame_data(arm, frame_data, action_name_prepend, mark_as
             datapath_value_pairs.append( (data_path, index_value_pairs) )
         if len(datapath_value_pairs) == 0:
             continue
-        action = bpy.data.actions.new(action_name_prepend+action_name)
+        current_action = bpy.data.actions.new(action_name_prepend+action_name)
+        ob.animation_data.action = current_action
         for data_path, indexed_values in datapath_value_pairs:
+            fc_tokens, _ = lex_py_attributes(data_path)
+            if len(fc_tokens) < 4:
+                continue
+            bone_name = data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
+            if bone_name not in ob.pose.bones:
+                continue
+            prop_name = data_path[data_path.rfind(".")+1:]
+            thing_to_keyframe = get_thing_to_keyframe(ob, data_path, fc_tokens, bone_name)
+            if thing_to_keyframe is None:
+                continue
+            thing_prop_to_keyframe = getattr(thing_to_keyframe, prop_name)
+            if thing_prop_to_keyframe is None:
+                continue
             for index, value in indexed_values:
-                fc = action.fcurves.new(data_path=data_path, index=index, action_group="Bone")
+                if hasattr(thing_prop_to_keyframe, "__len__"):
+                    if not thing_to_keyframe.keyframe_insert(data_path=prop_name, index=index, frame=LOAD_FRAME_NUM,
+                                                             group=bone_name):
+                        continue
+                else:
+                    if not thing_to_keyframe.keyframe_insert(data_path=prop_name, frame=LOAD_FRAME_NUM,
+                                                             group=bone_name):
+                        continue
+                fc = current_action.fcurves.find(data_path=data_path, index=index)
+                if fc is None:
+                    continue
+                if hasattr(thing_prop_to_keyframe, "__len__"):
+                    fc.color_mode = 'AUTO_RGB'
                 actual_value = value
                 # apply reference bone location scaling to location F-Curves only
-                if data_path.endswith('location') and index in range(3):
+                if len(fc_tokens) == 4 and prop_name == 'location' and index in range(3):
                     actual_value *= ref_location_scale[index]
-                fc.keyframe_points.insert(LOAD_FRAME_NUM, actual_value, keyframe_type='KEYFRAME')
+                kp = fc.keyframe_points[0]
+                kp.co = (LOAD_FRAME_NUM, actual_value)
+        # stash Action
+        track = ob.animation_data.nla_tracks.new()
+        track.strips.new(current_action.name, int(current_action.frame_range[0]), current_action)
         if mark_asset:
-            action.asset_mark()
+            current_action.asset_mark()
         num_actions_created += 1
+    ob.animation_data.action = original_ob_action
     return num_actions_created
 
-def load_action_frames_from_text(arm, text_name, action_name_prepend, mark_asset):
+def load_action_frames_from_text(ob, text_name, action_name_prepend, mark_asset):
     txt = bpy.data.texts.get(text_name)
     if txt is None:
         return 0
@@ -260,15 +309,15 @@ def load_action_frames_from_text(arm, text_name, action_name_prepend, mark_asset
     eval_result = ast_literal_eval_lines(lines)
     if not isinstance(eval_result.get("result"), dict) or not isinstance(eval_result["result"].get("data"), dict):
         return 0
-    return create_actions_from_frame_data(arm, eval_result["result"]["data"], action_name_prepend, mark_asset)
+    return create_actions_from_frame_data(ob, eval_result["result"]["data"], action_name_prepend, mark_asset)
 
-def load_action_frames_from_preset(arm, pose_preset, action_name_prepend, mark_asset):
+def load_action_frames_from_preset(ob, pose_preset, action_name_prepend, mark_asset):
     v_preset = pose_action_frame_presets.get(pose_preset)
     if not isinstance(v_preset.get("data"), dict):
         return 0
-    return create_actions_from_frame_data(arm, v_preset.get("data"), action_name_prepend, mark_asset)
+    return create_actions_from_frame_data(ob, v_preset.get("data"), action_name_prepend, mark_asset)
 
-def apply_action_frame(ob, action_name, frame=None, result_action=None, result_fcurves=None, fcurves_to_reset=None):
+def apply_action_frame(ob, action_name, frame=None, result_action=None, use_defaults=None):
     arm = ob.data
     if arm is None:
         return {}
@@ -282,53 +331,78 @@ def apply_action_frame(ob, action_name, frame=None, result_action=None, result_f
     for fc in apply_action.fcurves:
         if not fc.data_path.startswith("pose.bones["):
             continue
-        bone_name = fc.data_path[12:fc.data_path.rfind(".")-2]
+        fc_tokens, _ = lex_py_attributes(fc.data_path)
+        if len(fc_tokens) < 4:
+            continue
+        bone_name = fc.data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
         if bone_name not in pose_bones:
             continue
         prop_name = fc.data_path[fc.data_path.rfind(".")+1:]
         if prop_name not in GLOBAL_POSE_PROP_NAMES:
             continue
-        if bone_name not in frame_data:
-            frame_data[bone_name] = { p_name: {} for p_name in GLOBAL_POSE_PROP_NAMES }
-        frame_data[bone_name][prop_name][fc.array_index] = fc.evaluate(EVAL_FRAME_NUM)
-    # keyframe to defaults for all 'F-Curves to reset'
-    if isinstance(fcurves_to_reset, dict):
-        for reset_bone_name, reset_prop_values in fcurves_to_reset.items():
-            for reset_prop_name, reset_indexed_values in reset_prop_values.items():
-                for reset_array_index, _ in reset_indexed_values.items():
-                    reset_val = GLOBAL_POSE_PROP_DEFAULTS[reset_prop_name]
-                    reset_fc_full_path = "pose.bones[\"%s\"].%s[%i]" % (reset_bone_name, reset_prop_name,
-                                                                        reset_array_index)
-                    reset_fc = result_fcurves.get(reset_fc_full_path)
-                    if hasattr(reset_val, "__len__"):
-                        rv = reset_val[reset_array_index]
-                    else:
-                        rv = reset_val
-                    reset_fc.keyframe_points.insert(frame, rv, keyframe_type='KEYFRAME')
+        if fc.data_path not in frame_data:
+            frame_data[fc.data_path] = {}
+        # check for 'use default value', and store the result value
+        value = fc.evaluate(EVAL_FRAME_NUM)
+        if use_defaults and prop_name in GLOBAL_POSE_PROP_DEFAULTS:
+            default_val = GLOBAL_POSE_PROP_DEFAULTS[prop_name]
+            if hasattr(default_val, "__len__") and len(default_val) > 0:
+                if fc.array_index < len(default_val):
+                    value = default_val[fc.array_index]
+                else:
+                    value = default_val[0]
+            else:
+                value = default_val
+        frame_data[fc.data_path][fc.array_index] = value
     # set Armature Pose properties, and keyframe if needed - these keyframes will automatically replace any keyframes
     # created by 'F Curves to reset' code
-    for bone_name, prop_values in frame_data.items():
-        for prop_name, indexed_values in prop_values.items():
-            for array_index, value in indexed_values.items():
-                # keyframe property values
-                if isinstance(frame, (float, int)) and result_action != None and result_fcurves != None:
-                    fc_full_path = "pose.bones[\"%s\"].%s[%i]" % (bone_name, prop_name, array_index)
-                    datapath = "pose.bones[\"%s\"].%s" % (bone_name, prop_name)
-                    fc = result_fcurves.get(fc_full_path)
-                    if fc is None:
-                        if prop_name == 'rotation_mode':
-                            fc = result_action.fcurves.new(data_path=datapath, action_group="Bone")
-                        else:
-                            fc = result_action.fcurves.new(data_path=datapath, index=array_index, action_group="Bone")
-                        result_fcurves[fc_full_path] = fc
-                    fc.keyframe_points.insert(frame, value, keyframe_type='KEYFRAME')
-                # only set property values
-                else:
-                    if prop_name == 'rotation_mode' and value in ROTATION_MODE_STRINGS:
-                        pose_bones[bone_name].rotation_mode = ROTATION_MODE_STRINGS[value]
+    for data_path, indexed_values in frame_data.items():
+        fc_tokens, _ = lex_py_attributes(data_path)
+        bone_name = data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
+        thing_to_keyframe = get_thing_to_keyframe(ob, data_path, fc_tokens, bone_name)
+        if thing_to_keyframe is None:
+            continue
+        prop_name = data_path[data_path.rfind(".")+1:]
+        for array_index, value in indexed_values.items():
+            # keyframe property values
+            if isinstance(frame, (float, int)) and result_action != None:
+                fc = result_action.fcurves.find(data_path=data_path, index=array_index)
+                if fc is None:
+                    color_mode = 'AUTO_RAINBOW'
+                    if prop_name == 'rotation_mode' or prop_name == 'influence':
+                        if not thing_to_keyframe.keyframe_insert(data_path=prop_name, frame=frame, group=bone_name):
+                            continue
+                        fc = result_action.fcurves.find(data_path=data_path)
                     else:
-                        prop = getattr(pose_bones[bone_name], prop_name)
+                        if not thing_to_keyframe.keyframe_insert(data_path=prop_name, index=array_index, frame=frame,
+                                                                 group=bone_name):
+                            continue
+                        fc = result_action.fcurves.find(data_path=data_path, index=array_index)
+                        color_mode = 'AUTO_RGB'
+                    if fc is None:
+                        continue
+                    fc.color_mode = color_mode
+                    kp = fc.keyframe_points[0]
+                    kp.co = (frame, value)
+                else:
+                    fc.keyframe_points.insert(frame, value, keyframe_type='KEYFRAME')
+            # only set property values
+            else:
+                if len(fc_tokens) == 4:
+                    if prop_name == 'rotation_mode' and value in ROTATION_MODE_STRINGS:
+                        setattr(thing_to_keyframe, prop_name, ROTATION_MODE_STRINGS[value])
+                    else:
+                        prop = getattr(thing_to_keyframe, prop_name)
+                        if hasattr(prop, "__len__"):
+                            prop[array_index] = value
+                        else:
+                            setattr(thing_to_keyframe, prop_name, value)
+                elif len(fc_tokens) == 6 and data_path[ fc_tokens[3][0]+2 : fc_tokens[3][1]-2 ] == 'constraints':
+                    prop = getattr(thing_to_keyframe, prop_name)
+                    if hasattr(prop, "__len__"):
                         prop[array_index] = value
+                    else:
+                        setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
 def keyframe_apply_action_frame(ob, action_name, frame):
@@ -337,14 +411,7 @@ def keyframe_apply_action_frame(ob, action_name, frame):
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    result_action = ob.animation_data.action
-    result_fcurves = {}
-    for fcurve in ob.animation_data.action.fcurves:
-        if not fcurve.data_path.startswith("pose.bones["):
-            continue
-        fc_full_path = "%s[%i]" % (fcurve.data_path, fcurve.array_index)
-        result_fcurves[fc_full_path] = fcurve
-    apply_action_frame(ob, action_name, frame, result_action, result_fcurves)
+    apply_action_frame(ob, action_name, frame, ob.animation_data.action)
     do_tag_redraw()
 
 def convert_moho_file(filepath):
@@ -390,17 +457,14 @@ def load_action_script_moho(filepath, ob, frame_scale, frame_offset, replace_unk
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
     result_action = ob.animation_data.action
-    result_fcurves = {}
-    for fcurve in ob.animation_data.action.fcurves:
-        if not fcurve.data_path.startswith("pose.bones["):
-            continue
-        fc_full_path = "%s[%i]" % (fcurve.data_path, fcurve.array_index)
-        result_fcurves[fc_full_path] = fcurve
     # apply frames of script
-    prev_result_fc = None
+    prev_action_name = None
     for frame, action_name in mod_script_data.items():
         full_action_name = action_name_prepend + action_name
         if full_action_name not in bpy.data.actions and replace_unknown_action_name in bpy.data.actions:
             full_action_name = replace_unknown_action_name
-        prev_result_fc = apply_action_frame(ob, full_action_name, frame, result_action, result_fcurves, prev_result_fc)
+        if prev_action_name != None and prev_action_name != full_action_name:
+            apply_action_frame(ob, prev_action_name, frame, result_action, True)
+        apply_action_frame(ob, full_action_name, frame, result_action, False)
+        prev_action_name = full_action_name
     return {'FINISHED'}

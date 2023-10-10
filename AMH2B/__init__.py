@@ -48,7 +48,6 @@ from .armature.panel import draw_panel_armature
 from .attributes.panel import draw_panel_attributes
 from .attributes.operator import AMH2B_OT_AttributeConvert
 from .attributes.func import ATTR_CONV_FUNC_ITEMS
-from .eyeblink.func import eblink_rig_type_items
 from .eyeblink.panel import (EBLINK_SUB_FUNC_ITEMS, draw_panel_eye_blink)
 from .eyeblink.operator import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack)
 from .eyelid.func import elid_rig_type_items
@@ -198,8 +197,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
     eblink_sub_func: EnumProperty(name="Sub-Function Group", description="Eyeblink Sub-Function Group",
         items=EBLINK_SUB_FUNC_ITEMS)
-    eblink_rig_type: EnumProperty(name="Eye Blink Rig Type", description="Rig type that will receive eye " \
-        "blink track", items=eblink_rig_type_items)
     eblink_remove_start_enable: BoolProperty(name="Remove Start",
         description="Enable removal of eyeblink keyframes starting at given frame number" +
         "\nKeyframes before the given frame number will not be affected by this operation", default=False)
@@ -239,8 +236,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     eblink_random_period_enable: FloatProperty(name="Period Random",
         description="Add random amount of time, in seconds, between start of one blink and start of next blink",
         default=0, min=0)
-    eblink_shapekey_name: StringProperty(name="Closed Shapekey",
-        description="Name of shapekey for closed eyes (leave blank to ignore)", default="")
     eblink_closing_time: FloatProperty(name="Closing Time",
         description="Time, in seconds, for eyelid to change from opened to closed", default=0.1, min=0.0001)
     eblink_closed_time: FloatProperty(name="Closed Time",
@@ -253,6 +248,11 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Add a random amount of time, in seconds, to eyelid closed time", default=0, min=0)
     eblink_random_opening_time: FloatProperty(name="Opening Time",
         description="Add a random amount of time, in seconds, to eyelid opening time", default=0, min=0)
+    eblink_open_action: StringProperty(name="Open Action", description="")
+    eblink_close_action: StringProperty(name="Close Action", description="")
+    eblink_close_shapekey: StringProperty(name="Close Shapekey", description="")
+    eblink_close_shapekey_off: FloatProperty(name="Close Shapekey Off", description="", default=0.0)
+    eblink_close_shapekey_on: FloatProperty(name="Close Shapekey On", description="", default=1.0)
     elid_rig_type: EnumProperty(name="Lid Look Rig Type", description="Rig type that will receive Lid Look",
         items=elid_rig_type_items)
     pose_function: EnumProperty(name="Sub-Function Group", description="Pose Sub-Function Group",
