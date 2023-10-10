@@ -104,3 +104,12 @@ def do_tag_redraw():
         if a.type == 'VIEW_3D' or a.type == 'TEXT_EDITOR':
             for r in a.regions:
                 r.tag_redraw()
+
+def get_next_name(name_list, desired_name):
+    if desired_name not in name_list:
+        return desired_name
+    for i in range(1, 9999):
+        test_name = desired_name + "." + str(i).zfill(3)
+        if test_name not in name_list:
+            return test_name
+    return desired_name

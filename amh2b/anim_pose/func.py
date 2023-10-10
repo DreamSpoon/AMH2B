@@ -21,7 +21,7 @@ import traceback
 
 import bpy
 
-from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw)
+from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name)
 from ..const import ADDON_BASE_FILE
 from ..lex_py_attributes import lex_py_attributes
 
@@ -292,6 +292,9 @@ def create_actions_from_frame_data(ob, frame_data, action_name_prepend, mark_ass
                 kp.co = (LOAD_FRAME_NUM, actual_value)
         # stash Action
         track = ob.animation_data.nla_tracks.new()
+        track.name = get_next_name(ob.animation_data.nla_tracks, "[Action Stash]")
+        track.mute = True
+        track.lock = True
         track.strips.new(current_action.name, int(current_action.frame_range[0]), current_action)
         if mark_asset:
             current_action.asset_mark()
