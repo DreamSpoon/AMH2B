@@ -21,7 +21,8 @@ import traceback
 
 import bpy
 
-from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name)
+from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name,
+    keyframe_shapekey_value)
 from ..const import ADDON_BASE_FILE
 from ..lex_py_attributes import lex_py_attributes
 
@@ -320,7 +321,7 @@ def load_action_frames_from_preset(ob, pose_preset, action_name_prepend, mark_as
         return 0
     return create_actions_from_frame_data(ob, v_preset.get("data"), action_name_prepend, mark_asset)
 
-def apply_action_frame(ob, action_name, frame=None, result_action=None, use_defaults=None):
+def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defaults=None):
     arm = ob.data
     if arm is None:
         return {}
@@ -408,13 +409,13 @@ def apply_action_frame(ob, action_name, frame=None, result_action=None, use_defa
                         setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
-def keyframe_apply_action_frame(ob, action_name, frame):
+def keyframe_copy_action_frame(ob, action_name, frame):
     # create animation / Action data if needed, before applying script
     if ob.animation_data is None:
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    apply_action_frame(ob, action_name, frame, ob.animation_data.action)
+    copy_action_frame(ob, action_name, frame, ob.animation_data.action)
     do_tag_redraw()
 
 def convert_moho_file(filepath):
@@ -439,8 +440,8 @@ def convert_moho_file(filepath):
     except:
         return None
 
-def load_action_script_moho(filepath, ob, frame_scale, frame_offset, replace_unknown_action_name,
-                            action_name_prepend):
+def load_action_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_offset, replace_unknown_action_name,
+                            replace_unknown_shapekey_name, action_name_prepend, shapekey_name_prepend):
     # read script from file
     script_data = convert_moho_file(filepath)
     if script_data is None:
@@ -454,20 +455,48 @@ def load_action_script_moho(filepath, ob, frame_scale, frame_offset, replace_unk
         mod_script_data[mod_key_int] = val_str
     if len(mod_script_data) == 0:
         return {'FINISHED'}
+
     # create animation / Action data if needed, before applying script
-    if ob.animation_data is None:
-        ob.animation_data_create()
-    if ob.animation_data.action is None:
-        ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    result_action = ob.animation_data.action
-    # apply frames of script
+    total_list = arm_list.copy()
+    total_list.extend(mesh_list)
+    for ob in total_list:
+        if ob.animation_data is None:
+            ob.animation_data_create()
+        if ob.animation_data.action is None:
+            ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
+        # result_action = ob.animation_data.action
+    # apply frames of script to Armature and Mesh objects
     prev_action_name = None
-    for frame, action_name in mod_script_data.items():
-        full_action_name = action_name_prepend + action_name
-        if full_action_name not in bpy.data.actions and replace_unknown_action_name in bpy.data.actions:
-            full_action_name = replace_unknown_action_name
-        if prev_action_name != None and prev_action_name != full_action_name:
-            apply_action_frame(ob, prev_action_name, frame, result_action, True)
-        apply_action_frame(ob, full_action_name, frame, result_action, False)
-        prev_action_name = full_action_name
+    prev_sk_names = { m.name: None for m in mesh_list }
+    used_sk_names = { m.name: [] for m in mesh_list }
+    prev_frame = None
+    for frame, command_name in mod_script_data.items():
+        # copy Action frames with Armature objects
+        action_name = action_name_prepend + command_name
+        if action_name not in bpy.data.actions and replace_unknown_action_name in bpy.data.actions:
+            action_name = replace_unknown_action_name
+        for arm_ob in arm_list:
+            if prev_action_name != None and prev_action_name != action_name:
+                copy_action_frame(arm_ob, prev_action_name, frame, arm_ob.animation_data.action, True)
+            copy_action_frame(arm_ob, action_name, frame, arm_ob.animation_data.action, False)
+        prev_action_name = action_name
+        # keyframe Shape Keys with Mesh objects
+        shapekey_name = shapekey_name_prepend + command_name
+        for mesh_ob in mesh_list:
+            if mesh_ob.data is None or mesh_ob.data.shape_keys is None:
+                continue
+            sk_name = shapekey_name
+            if sk_name not in mesh_ob.data.shape_keys.key_blocks:
+                if replace_unknown_shapekey_name not in mesh_ob.data.shape_keys.key_blocks:
+                    continue
+                sk_name = replace_unknown_shapekey_name
+            if prev_sk_names[mesh_ob.name] != None:
+                keyframe_shapekey_value(mesh_ob, prev_sk_names[mesh_ob.name], frame, 0.0)
+            keyframe_shapekey_value(mesh_ob, sk_name, frame, 1.0)
+            prev_sk_names[mesh_ob.name] = sk_name
+            # check for keyframe 0.0 value before current frame, so that all Shape Keys 'start' with 0.0 instead of 1.0
+            if prev_frame != None:
+                if sk_name not in used_sk_names[mesh_ob.name]:
+                    keyframe_shapekey_value(mesh_ob, sk_name, prev_frame, 0.0)
+        prev_frame = frame
     return {'FINISHED'}

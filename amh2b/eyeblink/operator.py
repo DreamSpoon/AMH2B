@@ -34,10 +34,7 @@ class AMH2B_OT_RemoveBlinkTrack(Operator):
         # check selected objects for ARMATURE or MESH
         arm_list = []
         mesh_list = []
-        o_bunch = context.selected_objects.copy()
-        if context.active_object not in o_bunch:
-            o_bunch.append(context.active_object)
-        for obj in o_bunch:
+        for obj in context.selected_objects:
             if obj.type == 'ARMATURE':
                 arm_list.append(obj)
             elif obj.type == 'MESH':
@@ -69,14 +66,10 @@ class AMH2B_OT_AddBlinkTrack(Operator):
         return context.active_object != None or len(context.selected_objects) > 0
 
     def execute(self, context):
-        # create list of all selected objects and active object, without duplicates
-        o_bunch = context.selected_objects.copy()
-        if context.active_object not in o_bunch:
-            o_bunch.append(context.active_object)
         # check selected objects, and active object, for ARMATURE or MESH
         arm_list = []
         mesh_list = []
-        for obj in o_bunch:
+        for obj in context.selected_objects:
             if obj.type == 'ARMATURE':
                 arm_list.append(obj)
             elif obj.type == 'MESH':

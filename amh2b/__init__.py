@@ -265,7 +265,9 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         "Asset, for use with Asset Browser", default=False)
     pose_select_action_index: IntProperty()
     pose_action_name_prepend: StringProperty(name="Action Name Prepend", description="This string will be " \
-        "prepended to names of Actions from Preset/Script/Text. Leave blank to ignore")
+        "prepended to names of Actions. Leave blank to ignore")
+    pose_shapekey_name_prepend: StringProperty(name="Shape Key Name Prepend", description="This string will be " \
+        "prepended to names of Shape Keys. Leave blank to ignore")
     pose_action_frame_label: StringProperty(name="Pose Label", description="Display name in Pose Preset list",
         default="Pose")
     pose_preset: EnumProperty(name="Pose Preset", description="", items=pose_action_frame_preset_items)
@@ -277,6 +279,8 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         "value", default=1.0)
     pose_script_replace_unknown_action: StringProperty(name="Replace Unknown Action", description="Name of Action to " \
         "use when unknown named Action occurs in script. Leave blank to ignore")
+    pose_script_replace_unknown_shapekey: StringProperty(name="Replace Unknown Shape Key", description="Name of " \
+        "Shape Key to use when unknown named Shape Key occurs in script. Leave blank to ignore")
     pose_ref_bones_action: StringProperty(name="Size Reference Bones Action", description="'Head' locations for " \
         "Edit Bones in this Action will be saved with selected Actions, for auto-resize reference purposes")
     sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")

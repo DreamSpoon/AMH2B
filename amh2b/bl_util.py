@@ -113,3 +113,28 @@ def get_next_name(name_list, desired_name):
         if test_name not in name_list:
             return test_name
     return desired_name
+
+def keyframe_shapekey_value(ob, shapekey_name, frame, value):
+    if ob.data is None or not hasattr(ob.data, 'shape_keys') or ob.data.shape_keys is None:
+        return
+    sk = ob.data.shape_keys.key_blocks.get(shapekey_name)
+    if sk is None:
+        return
+    if ob.data.shape_keys.animation_data is None:
+        ob.data.shape_keys.animation_data_create()
+    if ob.data.shape_keys.animation_data.action is None:
+        ob.data.shape_keys.animation_data.action = bpy.data.actions.new(ob.name+"Action")
+    datapath = sk.path_from_id('value')
+    action = ob.data.shape_keys.animation_data.action
+    fc = action.fcurves.find(data_path=datapath)
+    # if f-curve does not exist then insert a keyframe to initialize it
+    if fc is None:
+        if not sk.keyframe_insert(data_path='value', frame=frame):
+            return
+        fc = action.fcurves.find(data_path=datapath)
+        if fc is None:
+            return
+        kp = fc.keyframe_points[0]
+        kp.co = (frame, value)
+    else:
+        kp = fc.keyframe_points.insert(frame=frame, value=value)

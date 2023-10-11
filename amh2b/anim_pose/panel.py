@@ -55,10 +55,17 @@ def draw_panel_anim_pose(self, context, func_grp_box):
         layout.prop_search(a, "pose_apply_action", bpy.data, "actions", text="")
     elif a.pose_function == POSE_FUNC_APPLY_ACTION_SCRIPT:
         layout.operator(AMH2B_OT_LoadActionScriptMOHO.bl_idname)
-        layout.label(text="Action Names")
-        layout.prop(a, "pose_action_name_prepend", text="Prepend")
+        layout.label(text="Prepend to Names")
+        layout.prop(a, "pose_action_name_prepend", text="Action")
+        layout.prop(a, "pose_shapekey_name_prepend", text="Shape Key")
         layout.label(text="Timeline")
         layout.prop(a, "pose_script_frame_scale")
         layout.prop(a, "pose_script_frame_offset")
         layout.label(text="Replace Unknown")
         layout.prop_search(a, "pose_script_replace_unknown_action", bpy.data, "actions", text="Action")
+        act_ob = context.active_object
+        if act_ob != None and act_ob.type == 'MESH' and act_ob.data != None and act_ob.data.shape_keys != None:
+            layout.prop_search(a, "pose_script_replace_unknown_shapekey", act_ob.data.shape_keys, "key_blocks",
+                               text="Shape Key")
+        else:
+            layout.prop(a, "pose_script_replace_unknown_shapekey", text="Close")

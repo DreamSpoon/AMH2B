@@ -20,7 +20,8 @@ import random
 
 import bpy
 
-from ..anim_pose.func import apply_action_frame
+from ..anim_pose.func import copy_action_frame
+from ..bl_util import keyframe_shapekey_value
 
 F_MIN_CLOSING_TIME = 0.0001
 F_MIN_OPENING_TIME = 0.0001
@@ -30,31 +31,6 @@ BLINK_FRAME_CLOSE = "blink_frame_close"
 
 def random_plus_minus_half(input_val):
     return random.uniform(input_val / -2, input_val / 2)
-
-def keyframe_shapekey_value(ob, shapekey_name, frame, value):
-    if ob.data.shape_keys is None:
-        return
-    sk = ob.data.shape_keys.key_blocks.get(shapekey_name)
-    if sk is None:
-        return
-    if ob.data.shape_keys.animation_data is None:
-        ob.data.shape_keys.animation_data_create()
-    if ob.data.shape_keys.animation_data.action is None:
-        ob.data.shape_keys.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    datapath = sk.path_from_id('value')
-    action = ob.data.shape_keys.animation_data.action
-    fc = action.fcurves.find(data_path=datapath)
-    # if f-curve does not exist then insert a keyframe to initialize it
-    if fc is None:
-        if not sk.keyframe_insert(data_path='value', frame=frame):
-            return
-        fc = action.fcurves.find(data_path=datapath)
-        if fc is None:
-            return
-        kp = fc.keyframe_points[0]
-        kp.co = (frame, value)
-    else:
-        kp = fc.keyframe_points.insert(frame=frame, value=value)
 
 def generate_blink_frames(frame_rate, start_frame, closing_time, closed_time, opening_time):
     frames = { start_frame: BLINK_FRAME_OPEN }
@@ -122,8 +98,8 @@ def generate_blink_action(arm_list, mesh_list, blink_settings):
                         else:
                             a_name = blink_settings["open_action"]
                     if prev_a_name != None and prev_a_name != a_name:
-                        apply_action_frame(arm_ob, prev_a_name, frame_num, result_action, True)
-                    apply_action_frame(arm_ob, a_name, frame_num, result_action, use_d)
+                        copy_action_frame(arm_ob, prev_a_name, frame_num, result_action, True)
+                    copy_action_frame(arm_ob, a_name, frame_num, result_action, use_d)
                     prev_a_name = a_name
         # insert Mesh Shapekey value keyframes, if needed
         if blink_settings["close_shapekey"] != "":

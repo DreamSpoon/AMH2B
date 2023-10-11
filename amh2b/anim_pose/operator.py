@@ -25,7 +25,7 @@ from bpy.types import Operator
 
 from ..const import ADDON_BASE_FILE
 from .func import (load_action_frames_from_text, save_action_frames_to_text, load_action_frames_from_preset,
-    save_action_frames_to_preset, refresh_pose_action_frame_presets, apply_action_frame, keyframe_apply_action_frame,
+    save_action_frames_to_preset, refresh_pose_action_frame_presets, copy_action_frame, keyframe_copy_action_frame,
     load_action_script_moho)
 
 class AMH2B_OT_ActionFrameLoadText(Operator):
@@ -139,7 +139,7 @@ class AMH2B_OT_RefreshPosePresets(Operator):
 class AMH2B_OT_ApplyActionFrame(Operator):
     """Apply frame zero of selected Action to active object Armature. If 'Auto Keying' is enabled then keyframes """ \
         """will be inserted in current Action"""
-    bl_idname = "amh2b.apply_action_frame"
+    bl_idname = "amh2b.copy_action_frame"
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -154,9 +154,9 @@ class AMH2B_OT_ApplyActionFrame(Operator):
             return {'CANCELLED'}
         scn = context.scene
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_apply_action_frame(act_ob, scn.amh2b.pose_apply_action, scn.frame_current)
+            keyframe_copy_action_frame(act_ob, scn.amh2b.pose_apply_action, scn.frame_current)
         else:
-            apply_action_frame(act_ob, scn.amh2b.pose_apply_action)
+            copy_action_frame(act_ob, scn.amh2b.pose_apply_action)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
@@ -171,18 +171,29 @@ class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object != None and context.active_object.type == 'ARMATURE'
+        return True
 
     def execute(self, context):
         # if no file selected then return finished
         if not os.path.isfile(self.filepath):
             return {'FINISHED'}
-        if context.active_object is None or context.active_object.type != 'ARMATURE':
+        # check selected objects for ARMATURE or MESH
+        arm_list = []
+        mesh_list = []
+        for obj in context.selected_objects:
+            if obj.type == 'ARMATURE':
+                arm_list.append(obj)
+            elif obj.type == 'MESH':
+                mesh_list.append(obj)
+        # exit if zero objects to work with
+        if len(arm_list) == 0 and len(mesh_list) == 0:
+            self.report({'ERROR'}, "No ARMATURE or MESH selected to load Action script")
             return {'CANCELLED'}
         a = context.scene.amh2b
-        result = load_action_script_moho(self.filepath, context.active_object, a.pose_script_frame_scale,
+        result = load_action_script_moho(self.filepath, arm_list, mesh_list, a.pose_script_frame_scale,
                                          a.pose_script_frame_offset, a.pose_script_replace_unknown_action,
-                                         a.pose_action_name_prepend)
+                                         a.pose_script_replace_unknown_shapekey, a.pose_action_name_prepend,
+                                         a.pose_shapekey_name_prepend)
         if result == {'FINISHED'}:
             if context.active_object.animation_data.action is None:
                 self.report({'INFO'}, "Zero Actions found in MOHO script")

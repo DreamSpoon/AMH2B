@@ -82,7 +82,7 @@ def draw_panel_eye_blink(self, context, func_grp_box):
     layout.prop_search(a, "eblink_close_action", bpy.data, "actions", text="Close")
     layout.prop_search(a, "eblink_open_action", bpy.data, "actions", text="Open")
     layout.label(text="Blink Shapekey")
-    if act_ob != None and act_ob.type == 'MESH' and act_ob.data.shape_keys != None:
+    if act_ob != None and act_ob.type == 'MESH' and act_ob.data != None and act_ob.data.shape_keys != None:
         layout.prop_search(a, "eblink_close_shapekey", act_ob.data.shape_keys, "key_blocks", text="Close")
     else:
         layout.prop(a, "eblink_close_shapekey", text="Close")
