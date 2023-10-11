@@ -110,6 +110,8 @@ def load_script_pose_presets():
         script_pose_presets[fp] = pose_script
 
 def global_rotate_bone(arm_ob, bone_name, axis_name, offset_deg):
+    if bone_name is None:
+        return
     the_bone = arm_ob.pose.bones.get(bone_name)
     if the_bone is None:
         return
