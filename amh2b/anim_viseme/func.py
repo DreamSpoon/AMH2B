@@ -383,7 +383,6 @@ def copy_action_frame(ob, action_name, loc_scale, rot_scale, frame=None, result_
         quat_value = None
         if prop_name == "rotation_quaternion":
             quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale)
-            print("scaling a quat", quat_value)
         for array_index, value in indexed_values.items():
             if prop_name == "location":
                 value = value * loc_scale[array_index]
