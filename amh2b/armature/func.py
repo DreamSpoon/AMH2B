@@ -93,15 +93,15 @@ def load_script_pose_presets():
         return
     # get paths to presets files
     base_path = os.path.dirname(os.path.realpath(ADDON_BASE_FILE))
-    p = os.path.join(base_path, "presets", "script_pose")
+    preset_path = os.path.join(base_path, "presets", "script_pose")
     try:
-        file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
+        file_paths = [ f for f in os.listdir(preset_path) if os.path.isfile(os.path.join(preset_path, f)) ]
     except:
         return
     # safely read each file and get pose script, trying ALL FILES in the presets path
     for fp in file_paths:
         try:
-            with open(os.path.join(p, fp), 'r') as f:
+            with open(os.path.join(preset_path, fp), 'r') as f:
                 pose_script = get_file_eval_dict(f)
         except:
             continue

@@ -26,22 +26,25 @@ from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw
 from ..const import ADDON_BASE_FILE
 from ..lex_py_attributes import lex_py_attributes
 
-POSE_FUNC_APPLY_ACTION_FRAME = "APPLY_ACTION_FRAME"
-POSE_FUNC_APPLY_ACTION_SCRIPT = "APPLY_ACTION_SCRIPT"
-POSE_FUNC_LOAD_ACTION = "LOAD_ACTION"
-POSE_FUNC_SAVE_ACTION = "SAVE_ACTION"
-POSE_FUNC_ITEMS = [
-    (POSE_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frames of Action to Pose of active Armature"),
-    (POSE_FUNC_APPLY_ACTION_SCRIPT, "Apply Action Script", "Apply a script (e.g. Papagayo MOHO .dat file) with " \
-     "named Actions to create Pose animations on Armatures"),
-    (POSE_FUNC_LOAD_ACTION, "Load Actions", "Load F-Curves of Actions from Text/File/Preset"),
-    (POSE_FUNC_SAVE_ACTION, "Save Actions", "Save F-Curves of Actions to Text/File/Preset"),
+VISEME_FUNC_APPLY_ACTION_FRAME = "APPLY_ACTION_FRAME"
+VISEME_FUNC_VISEME_SCRIPT = "VISEME_SCRIPT"
+VISEME_FUNC_VISEME_TEXT = "VISEME_TEXT"
+VISEME_FUNC_LOAD_ACTION = "LOAD_ACTION"
+VISEME_FUNC_SAVE_ACTION = "SAVE_ACTION"
+VISEME_FUNC_ITEMS = [
+    (VISEME_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frames of Action to Pose of active Armature"),
+    (VISEME_FUNC_VISEME_SCRIPT, "Viseme  Script", "Apply a script (e.g. Papagayo MOHO .dat file) with " \
+     "named Viseme Actions to create mouth/face animations on selected Armatures/Meshes"),
+    (VISEME_FUNC_VISEME_TEXT, "Word to Viseme", "Convert words of text to Viseme Actions and apply to selected " \
+     "Armature/Mesh objects"),
+    (VISEME_FUNC_LOAD_ACTION, "Load Actions", "Load Pose bone Actions from Text/File/Preset"),
+    (VISEME_FUNC_SAVE_ACTION, "Save Actions", "Save Pose bone Actions to Text/File/Preset"),
     ]
 
 EVAL_FRAME_NUM = 0
 LOAD_FRAME_NUM = 0
 
-pose_action_frame_presets = {}
+viseme_actions_presets = {}
 
 ROTATION_MODE_STRINGS = {
     -1: 'AXIS_ANGLE',
@@ -65,9 +68,9 @@ GLOBAL_POSE_PROP_DEFAULTS = {
     }
 GLOBAL_POSE_PROP_NAMES = [ x for x in GLOBAL_POSE_PROP_DEFAULTS.keys() ]
 
-def pose_action_frame_preset_items(self, context):
+def viseme_actions_preset_items(self, context):
     items = []
-    for filename, pose_preset_data in pose_action_frame_presets.items():
+    for filename, pose_preset_data in viseme_actions_presets.items():
         label = pose_preset_data.get("label")
         if label is None:
             label = filename
@@ -77,11 +80,11 @@ def pose_action_frame_preset_items(self, context):
         items.append ( (filename, str(label), str(desc)) )
     return sorted(items, key = lambda x: x[0]) if len(items) > 0 else [ (" ", "", "") ]
 
-def refresh_pose_action_frame_presets():
-    pose_action_frame_presets.clear()
+def refresh_viseme_actions_presets():
+    viseme_actions_presets.clear()
     # get paths to presets files
     base_path = os.path.dirname(os.path.realpath(ADDON_BASE_FILE))
-    p = os.path.join(base_path, "presets", "anim_pose")
+    p = os.path.join(base_path, "presets", "anim_viseme")
     try:
         file_paths = [ f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) ]
     except:
@@ -90,12 +93,12 @@ def refresh_pose_action_frame_presets():
     for fp in file_paths:
         try:
             with open(os.path.join(p, fp), 'r') as f:
-                pose_preset_data = get_file_eval_dict(f)
+                preset_data = get_file_eval_dict(f)
         except:
             continue
-        if not isinstance(pose_preset_data, dict) or not isinstance(pose_preset_data.get("data"), dict):
+        if not isinstance(preset_data, dict) or not isinstance(preset_data.get("data"), dict):
             continue
-        pose_action_frame_presets[fp] = pose_preset_data
+        viseme_actions_presets[fp] = preset_data
 
 def is_bone_action(action):
     if not isinstance(action, bpy.types.Action):
@@ -166,12 +169,12 @@ def save_action_frames_to_text(context, arm, text_name, action_frame_label, ref_
     txt.write( str(save_data) )
     return txt
 
-def save_action_frames_to_preset(context, arm, full_filepath, action_frame_label, ref_bones_action_name):
+def save_action_frames_to_preset(context, arm, filepath, action_frame_label, ref_bones_action_name):
     save_data = get_frame_save_data(context, arm, action_frame_label, ref_bones_action_name)
     if save_data is None:
         return None
     try:
-        with open(full_filepath, "w") as save_file:
+        with open(filepath, "w") as save_file:
             save_file.write( str(save_data) )
         return None
     except:
@@ -316,7 +319,7 @@ def load_action_frames_from_text(ob, text_name, action_name_prepend, mark_asset)
     return create_actions_from_frame_data(ob, eval_result["result"]["data"], action_name_prepend, mark_asset)
 
 def load_action_frames_from_preset(ob, pose_preset, action_name_prepend, mark_asset):
-    v_preset = pose_action_frame_presets.get(pose_preset)
+    v_preset = viseme_actions_presets.get(pose_preset)
     if not isinstance(v_preset.get("data"), dict):
         return 0
     return create_actions_from_frame_data(ob, v_preset.get("data"), action_name_prepend, mark_asset)
@@ -421,41 +424,28 @@ def keyframe_copy_action_frame(ob, action_name, frame):
 def convert_moho_file(filepath):
     try:
         with open(filepath) as f:
-            script_data = {}
-            for line in f.readlines():
-                if line == "" or line.startswith("Moho"):
-                    continue
-                # tokenize line by whitespace, to try and get two things: key value
-                line_tokens = line.split()
-                if len(line_tokens) < 2:
-                    continue
-                try:
-                    key = int(line_tokens[0])
-                except:
-                    continue
-                if key in script_data:
-                    continue
-                script_data[key] = line_tokens[1]
-            return script_data
+            lines_read = f.readlines()
     except:
         return None
-
-def load_action_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_offset, replace_unknown_action_name,
-                            replace_unknown_shapekey_name, action_name_prepend, shapekey_name_prepend):
-    # read script from file
-    script_data = convert_moho_file(filepath)
-    if script_data is None:
-        return "Unable to load MOHO file " % filepath
-    # apply frame scale and offset to script
-    mod_script_data = {}
-    for key_int, val_str in script_data.items():
-        mod_key_int = int(key_int * frame_scale) + frame_offset
-        if mod_key_int in mod_script_data:
+    script_data = {}
+    for line in lines_read:
+        if line == "" or line.startswith("Moho"):
             continue
-        mod_script_data[mod_key_int] = val_str
-    if len(mod_script_data) == 0:
-        return {'FINISHED'}
+        # tokenize line by whitespace, to try and get two things: key value
+        line_tokens = line.split()
+        if len(line_tokens) < 2:
+            continue
+        try:
+            key = int(line_tokens[0])
+        except:
+            continue
+        if key in script_data:
+            continue
+        script_data[key] = line_tokens[1]
+    return script_data
 
+def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
+                              shapekey_name_prepend, replace_unknown_shapekey_name):
     # create animation / Action data if needed, before applying script
     total_list = arm_list.copy()
     total_list.extend(mesh_list)
@@ -499,4 +489,22 @@ def load_action_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
                 if sk_name not in used_sk_names[mesh_ob.name]:
                     keyframe_shapekey_value(mesh_ob, sk_name, prev_frame, 0.0)
         prev_frame = frame
+
+def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_offset, replace_unknown_action_name,
+                            replace_unknown_shapekey_name, action_name_prepend, shapekey_name_prepend):
+    # read script from file
+    script_data = convert_moho_file(filepath)
+    if script_data is None:
+        return "Unable to load MOHO file " % filepath
+    # apply frame scale and offset to script
+    mod_script_data = {}
+    for key_int, val_str in script_data.items():
+        mod_key_int = int(key_int * frame_scale) + frame_offset
+        if mod_key_int in mod_script_data:
+            continue
+        mod_script_data[mod_key_int] = val_str
+    if len(mod_script_data) == 0:
+        return {'FINISHED'}
+    exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
+                              shapekey_name_prepend, replace_unknown_shapekey_name)
     return {'FINISHED'}

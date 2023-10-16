@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (2, 3, 3),
+    "version": (2, 3, 4),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -71,12 +71,20 @@ from .soft_body.panel import draw_panel_soft_body
 from .template import AMH2B_OT_MakeObjectSearchable
 from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
     AMH2B_OT_SearchFileForAutoVGroups)
-from .anim_pose.func import (POSE_FUNC_ITEMS, refresh_pose_action_frame_presets, pose_action_frame_preset_items)
-from .anim_pose.list import AMH2B_UL_SelectAction
-from .anim_pose.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadText,
-    AMH2B_OT_ActionFrameLoadPreset, AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshPosePresets,
-    AMH2B_OT_ApplyActionFrame, AMH2B_OT_LoadActionScriptMOHO)
-from .anim_pose.panel import draw_panel_anim_pose
+from .anim_viseme.func import (VISEME_FUNC_ITEMS, refresh_viseme_actions_presets, viseme_actions_preset_items)
+from .anim_viseme.func_word_viseme import (refresh_phoneme_viseme_presets, phoneme_viseme_preset_items,
+    preview_lines_items)
+from .anim_viseme.list import AMH2B_UL_SelectAction
+from .anim_viseme.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadText,
+    AMH2B_OT_ActionFrameLoadPreset, AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshVisemeActionsPresets,
+    AMH2B_OT_ApplyActionFrame, AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary,
+    AMH2B_OT_ClearWordPhonemesDictionary, AMH2B_OT_RefreshPhonemeVisemePresets,
+    AMH2B_OT_VisemeKeyframeWordsActionsString, AMH2B_OT_VisemeKeyframePreviewText,
+    AMH2B_OT_VisemeTextPreviewToWordString, AMH2B_OT_VisemeKeyframeMarkerWords)
+from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AMH2B_PT_View3dVisemeTranslation,
+    AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
+    AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
+    AMH2B_PT_DopesheetVisemeOutput)
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
 
 def draw_panel_vertex_group(self, context, func_grp_box):
@@ -118,7 +126,6 @@ def draw_panel_template(self, context, func_grp_box):
     layout.operator(AMH2B_OT_MakeObjectSearchable.bl_idname)
 
 FUNC_GRP_ANIM_OBJECT = "FUNC_GRP_ANIM_OBJECT"
-FUNC_GRP_ANIM_POSE = "FUNC_GRP_ANIM_POSE"
 FUNC_GRP_ARMATURE = "FUNC_GRP_ARMATURE"
 FUNC_GRP_ATTRIBUTES = "FUNC_GRP_ATTRIBUTES"
 FUNC_GRP_EYE_BLINK = "FUNC_GRP_EYE_BLINK"
@@ -131,7 +138,7 @@ FUNC_GRP_VERTEX_GROUP = "FUNC_GRP_VERTEX_GROUP"
 FUNC_GRP_WEIGHT_PAINT = "FUNC_GRP_WEIGHT_PAINT"
 FUNC_GRP_ITEMS = [
     (FUNC_GRP_ANIM_OBJECT, "Animation - Object", ""),
-    (FUNC_GRP_ANIM_POSE, "Animation - Pose", ""),
+    (FUNC_GRP_ANIM_VISEME, "Animation - Viseme", ""),
     (FUNC_GRP_ARMATURE, "Armature", ""),
     (FUNC_GRP_ATTRIBUTES, "Attributes", ""),
     (FUNC_GRP_EYE_BLINK, "Eye Blink", ""),
@@ -155,11 +162,12 @@ function_group_draw = {
     FUNC_GRP_SOFT_BODY: draw_panel_soft_body,
     FUNC_GRP_TEMPLATE: draw_panel_template,
     FUNC_GRP_VERTEX_GROUP: draw_panel_vertex_group,
-    FUNC_GRP_ANIM_POSE: draw_panel_anim_pose,
+    FUNC_GRP_ANIM_VISEME: draw_panel_anim_viseme,
     FUNC_GRP_WEIGHT_PAINT: draw_panel_weight_paint,
     }
 
 class AMH2B_PT_View3d(Panel):
+    bl_idname = "AMH2B_PT_View3d"
     bl_label = "AMH2B"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -175,6 +183,77 @@ class AMH2B_PT_View3d(Panel):
         func_grp_draw = function_group_draw.get(a.function_group)
         if func_grp_draw != None:
             func_grp_draw(self, context, box)
+
+class AMH2B_PT_Dopesheet(Panel):
+    bl_idname = "AMH2B_PT_Dopesheet"
+    bl_space_type = "DOPESHEET_EDITOR"
+    bl_region_type = "UI"
+    bl_label = "AMH2B"
+    bl_category = "AMH2B"
+
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.mode == 'ACTION'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Marker Words to Visemes")
+
+class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
+    sub_function: EnumProperty(name="Sub-Function Group", description="Viseme Sub-Function Group",
+        items=VISEME_FUNC_ITEMS)
+    save_action_frame_text: StringProperty(name="Action Frame Save Text", description="Action F-Curve data " \
+        "is saved to this Text, available in Blender's Text editor", default="pose_action")
+    load_action_frame_text: StringProperty(name="Action Frame Load Text", description="Action F-Curve data " \
+        "is loaded from this Text, available in Blender's Text editor")
+    load_mark_asset: BoolProperty(name="Mark Asset", description="Each loaded Action is marked as a Pose " \
+        "Asset, for use with Asset Browser", default=False)
+    select_action_index: IntProperty()
+    action_name_prepend: StringProperty(name="Action Name Prepend", description="This string will be " \
+        "prepended to names of Actions. Leave blank to ignore")
+    shapekey_name_prepend: StringProperty(name="Shape Key Name Prepend", description="This string will be " \
+        "prepended to names of Shape Keys. Leave blank to ignore")
+    action_frame_label: StringProperty(name="Pose Label", description="Display name in Pose Preset list",
+        default="Pose")
+    actions_preset: EnumProperty(name="Viseme Actions Preset", description="Viseme Actions preset to load",
+        items=viseme_actions_preset_items)
+    apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
+        "Pose of active Armature")
+    script_frame_offset: IntProperty(name="Frame Offset", description="Scripted Actions are offset in time " \
+        "by 'Frame Offset' frames", default=0)
+    script_frame_scale: FloatProperty(name="Frame Scale", description="Script frame times are scaled by this " \
+        "value", default=1.0)
+    script_replace_unknown_action: StringProperty(name="Replace Unknown Action", description="Name of Action " \
+        "to use when unknown named Action occurs in script. Leave blank to ignore")
+    script_replace_unknown_shapekey: StringProperty(name="Replace Unknown Shape Key", description="Name of " \
+        "Shape Key to use when unknown named Shape Key occurs in script. Leave blank to ignore")
+    ref_bones_action: StringProperty(name="Size Reference Bones Action", description="'Head' locations for " \
+        "Edit Bones in this Action will be saved with selected Actions, for auto-resize reference purposes. Leave " \
+        "blank to ignore.")
+    phoneme_viseme_preset: EnumProperty(name="Phoneme Viseme Translation", description="",
+        items=phoneme_viseme_preset_items)
+    words_actions_string: StringProperty(name="Translate Words String", description="Translate this " \
+        "input String of words to Actions using words dictionary and phoneme-viseme translation")
+    preview_text: StringProperty(name="Preview Text", description="Preview lines of a Text (from Blender's Text " \
+        "Editor) to use as input for words-to-phonemes-to-visemes")
+    preview_line_offset: IntProperty(name="Preview Line Offset", description="Offset lines to preview by this value",
+        default=0, min=0)
+    preview_line_count: IntProperty(name="Preview Line Count", description="Number of lines to preview", default=10,
+        min=1)
+    preview_lines: EnumProperty(name="Preview Lines", description="Text Preview Line", items=preview_lines_items)
+    translate_output_text: StringProperty(name="Translate Output Text", description="Name of Text (in Blender's " \
+        "Text Editor) where words-phonemes-visemes translation output will be saved. Leave blank to ignore")
+    moho_output_text: StringProperty(name="MOHO Output Text", description="Name of Text (in Blender's Text " \
+        "Editor) where MOHO format output will be saved. Leave blank to ignore")
+    rest_action: StringProperty(name="Rest Action", description="Action to keyframe for 'rest' frames between words")
+    frames_rest_attack: IntProperty(name="Rest Attack Frames", description="Number of frames to interpolate " \
+        "from 'rest' viseme to first phoneme viseme", default=2, min=1)
+    frames_rest_decay: IntProperty(name="Rest Decay Frames", description="Number of frames to interpolate " \
+        "from last phoneme viseme to 'rest' viseme", default=2, min=1)
+    frames_per_viseme: IntProperty(name="Frames Per Viseme", description="Number of frames between visemes",
+        default=5, min=1)
+    frames_inter_word: IntProperty(name="Frames Between Words", description="Number of frames to insert between " \
+        "words", default=20, min=0)
 
 class AMH2B_PG_ScnAMH2B(PropertyGroup):
     function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to " \
@@ -255,34 +334,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     eblink_close_shapekey_on: FloatProperty(name="Close Shapekey On", description="", default=1.0)
     elid_rig_type: EnumProperty(name="Lid Look Rig Type", description="Rig type that will receive Lid Look",
         items=elid_rig_type_items)
-    pose_function: EnumProperty(name="Sub-Function Group", description="Pose Sub-Function Group",
-        items=POSE_FUNC_ITEMS)
-    pose_save_action_frame_text: StringProperty(name="Action Frame Save Text", description="Action F-Curve data " \
-        "is saved to this Text, available in Blender's Text editor", default="pose_action")
-    pose_load_action_frame_text: StringProperty(name="Action Frame Load Text", description="Action F-Curve data " \
-        "is loaded from this Text, available in Blender's Text editor")
-    pose_load_mark_asset: BoolProperty(name="Mark Asset", description="Each loaded Action is marked as a Pose " \
-        "Asset, for use with Asset Browser", default=False)
-    pose_select_action_index: IntProperty()
-    pose_action_name_prepend: StringProperty(name="Action Name Prepend", description="This string will be " \
-        "prepended to names of Actions. Leave blank to ignore")
-    pose_shapekey_name_prepend: StringProperty(name="Shape Key Name Prepend", description="This string will be " \
-        "prepended to names of Shape Keys. Leave blank to ignore")
-    pose_action_frame_label: StringProperty(name="Pose Label", description="Display name in Pose Preset list",
-        default="Pose")
-    pose_preset: EnumProperty(name="Pose Preset", description="", items=pose_action_frame_preset_items)
-    pose_apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
-        "Pose of active Armature")
-    pose_script_frame_offset: IntProperty(name="Frame Offset", description="Scripted Actions are offset in time by " \
-        "'Frame Offset' frames", default=0)
-    pose_script_frame_scale: FloatProperty(name="Frame Scale", description="Script frame times are scaled by this " \
-        "value", default=1.0)
-    pose_script_replace_unknown_action: StringProperty(name="Replace Unknown Action", description="Name of Action to " \
-        "use when unknown named Action occurs in script. Leave blank to ignore")
-    pose_script_replace_unknown_shapekey: StringProperty(name="Replace Unknown Shape Key", description="Name of " \
-        "Shape Key to use when unknown named Shape Key occurs in script. Leave blank to ignore")
-    pose_ref_bones_action: StringProperty(name="Size Reference Bones Action", description="'Head' locations for " \
-        "Edit Bones in this Action will be saved with selected Actions, for auto-resize reference purposes")
     sb_function: EnumProperty(items=SB_FUNCTION_ITEMS, description="Soft Body Function group")
     sb_apply_sk_mix: BoolProperty(name="Apply SK Mix", description="Apply all ShapeKeys instead of deleting all " \
         "ShapeKeys - necessary before applying Geometry Nodes with 'Convert Test Weights' function", default=True)
@@ -360,6 +411,7 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         default=True)
     vg_create_name_only: BoolProperty(name="Create Groups Only in Name",
         description="Create vertex groups 'in name only' when copying", default=False)
+    viseme: PointerProperty(type=AMH2B_PG_ScnAMH2BViseme)
     wp_select_vertex_min_w: FloatProperty(name="Min Weight",
         description="Minimum weight of vertex to select", default=0.0, min=0.0, max=1.0)
     wp_select_vertex_max_w: FloatProperty(name="Max Weight",
@@ -385,6 +437,7 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Only linked vertexes will be included in the tail fill process", default=True)
 
 classes = [
+    AMH2B_PG_ScnAMH2BViseme,
     AMH2B_PG_ScnAMH2B,
     AMH2B_OT_CopyVertexGroupsByPrefix,
     AMH2B_OT_DeleteVertexGroupsByPrefix,
@@ -436,11 +489,27 @@ classes = [
     AMH2B_OT_ActionFrameLoadText,
     AMH2B_OT_ActionFrameLoadPreset,
     AMH2B_OT_ActionFrameSavePreset,
-    AMH2B_OT_RefreshPosePresets,
+    AMH2B_OT_RefreshVisemeActionsPresets,
     AMH2B_OT_ApplyActionFrame,
     AMH2B_OT_LoadActionScriptMOHO,
+    AMH2B_OT_LoadWordPhonemesDictionary,
+    AMH2B_OT_ClearWordPhonemesDictionary,
+    AMH2B_OT_RefreshPhonemeVisemePresets,
+    AMH2B_OT_VisemeKeyframeWordsActionsString,
+    AMH2B_OT_VisemeKeyframePreviewText,
+    AMH2B_OT_VisemeTextPreviewToWordString,
+    AMH2B_OT_VisemeKeyframeMarkerWords,
     AMH2B_UL_SelectAction,
     AMH2B_PT_View3d,
+    AMH2B_PT_View3dVisemeTranslation,
+    AMH2B_PT_View3dVisemeTiming,
+    AMH2B_PT_View3dVisemeAnimation,
+    AMH2B_PT_View3dVisemeOutput,
+    AMH2B_PT_Dopesheet,
+    AMH2B_PT_DopesheetVisemeTranslation,
+    AMH2B_PT_DopesheetVisemeTiming,
+    AMH2B_PT_DopesheetVisemeAnimation,
+    AMH2B_PT_DopesheetVisemeOutput,
 ]
 
 def register():
@@ -448,7 +517,8 @@ def register():
         bpy.utils.register_class(cls)
     bpy.types.Scene.amh2b = PointerProperty(type=AMH2B_PG_ScnAMH2B)
     bpy.types.Action.select = BoolProperty(name="Select", description="Action selection state", default=False)
-    refresh_pose_action_frame_presets()
+    refresh_viseme_actions_presets()
+    refresh_phoneme_viseme_presets()
 
 def unregister():
     for cls in reversed(classes):

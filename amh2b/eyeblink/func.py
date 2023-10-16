@@ -20,7 +20,7 @@ import random
 
 import bpy
 
-from ..anim_pose.func import copy_action_frame
+from ..anim_viseme.func import copy_action_frame
 from ..bl_util import keyframe_shapekey_value
 
 F_MIN_CLOSING_TIME = 0.0001
