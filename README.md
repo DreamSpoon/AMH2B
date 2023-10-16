@@ -20,13 +20,24 @@ AMH2B tabs are available in Blender in the Tools menu of '3D Viewport' and 'Node
 - Shrinkwrap Geometry Nodes are also found in 'Node Editor'
 
 ## Sections
+Note: These instructions are very out of date, and need to be updated to account for e.g. Viseme animation.
+
 [Animation](docs/ANIMATION.md)
+
 [Armature](docs/ARMATURE.md)
+
 [Armature - Retarget Workflow](docs/ARMATURE_RETARGET.md)
+
 [Eyeblink](docs/EYEBLINK.md)
+
 [Eyelid](docs/EYELID.md)
+
 [Material](docs/MATERIAL.md)
+
 [Shape Key](docs/SHAPEKEY.md)
+
 [Template](docs/TEMPLATE.md)
+
 [Vertex Group](docs/VERTEX_GROUP.md)
+
 [Weight Paint](docs/WEIGHT_PAINT.md)

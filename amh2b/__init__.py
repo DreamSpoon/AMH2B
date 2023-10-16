@@ -33,7 +33,8 @@ bl_info = {
 
 import bpy
 from bpy.types import (Panel, PropertyGroup)
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty,
+    StringProperty)
 
 from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 
@@ -271,6 +272,8 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         items=ARM_FUNC_ITEMS)
     arm_generic_prefix: StringProperty(name="G Prefix",
         description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
+    arm_apply_object_scale: BoolProperty(name="Apply Object Scale", description="Apply Scale transform to objects",
+        default=True)
     attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
     attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")

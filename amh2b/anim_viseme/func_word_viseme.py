@@ -155,8 +155,10 @@ def non_alphanumpostrophe_to_space(in_str):
 def append_str_to_text(out_text, out_str):
     if out_text is None:
         return
-    line_count = len(out_text.lines)
-    out_text.cursor_set(line_count-1, character=len(out_text.lines[line_count-1].body)-1 )
+    last_line = len(out_text.lines) - 1
+    c = len(out_text.lines[last_line].body) - 1
+    c = 0 if c < 0 else c
+    out_text.cursor_set(last_line, character=c)
     out_text.write(out_str)
 
 def words_to_visemes(words_string, phoneme_viseme_preset, translate_out_text):

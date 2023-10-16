@@ -20,6 +20,7 @@ import os
 import traceback
 
 import bpy
+from mathutils import Quaternion
 
 from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name,
     keyframe_shapekey_value)
@@ -199,7 +200,7 @@ def get_thing_to_keyframe(ob, datapath, tokens, bone_name):
         return ob.pose.bones[bone_name]
 # e.g.
 #     pose.bones['Bone'].constraints['Copy Transforms'].influence
-    elif len(tokens) == 6 and datapath[ tokens[3][0] : tokens[3][1] ] == "constraints":
+    elif len(tokens) == 6 and datapath[ tokens[3][0] : tokens[3][1] ] == 'constraints':
         return ob.pose.bones[bone_name].constraints.get( datapath[ tokens[4][0]+2 : tokens[4][1]-2 ] )
     return None
 
@@ -324,7 +325,15 @@ def load_action_frames_from_preset(ob, pose_preset, action_name_prepend, mark_as
         return 0
     return create_actions_from_frame_data(ob, v_preset.get("data"), action_name_prepend, mark_asset)
 
-def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defaults=None):
+def get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale):
+    build_quat = { 0: 1.0, 1: 0.0, 2: 0.0, 3: 0.0 }
+    for i, v in indexed_values.items():
+        build_quat[i] = v
+    build_quat = Quaternion( (build_quat[0], build_quat[1], build_quat[2], build_quat[3]) )
+    scaled_quat_exp_map = build_quat.to_exponential_map() * rot_scale
+    return Quaternion(scaled_quat_exp_map)
+
+def copy_action_frame(ob, action_name, loc_scale, rot_scale, frame=None, result_action=None, use_defaults=None):
     arm = ob.data
     if arm is None:
         return {}
@@ -345,8 +354,9 @@ def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defau
         if bone_name not in pose_bones:
             continue
         prop_name = fc.data_path[fc.data_path.rfind(".")+1:]
-        if prop_name not in GLOBAL_POSE_PROP_NAMES:
-            continue
+# TODO delete commented code, it seems unnecessary
+#        if prop_name not in GLOBAL_POSE_PROP_NAMES:
+#            continue
         if fc.data_path not in frame_data:
             frame_data[fc.data_path] = {}
         # check for 'use default value', and store the result value
@@ -370,7 +380,19 @@ def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defau
         if thing_to_keyframe is None:
             continue
         prop_name = data_path[data_path.rfind(".")+1:]
+        quat_value = None
+        if prop_name == "rotation_quaternion":
+            quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale)
+            print("scaling a quat", quat_value)
         for array_index, value in indexed_values.items():
+            if prop_name == "location":
+                value = value * loc_scale[array_index]
+            elif prop_name == "rotation_euler":
+                value = value * rot_scale
+            elif prop_name == "rotation_axis_angle" and array_index == 0:
+                value = value * rot_scale
+            elif prop_name == "rotation_quaternion" and quat_value != None:
+                value = quat_value[array_index]
             # keyframe property values
             if isinstance(frame, (float, int)) and result_action != None:
                 fc = result_action.fcurves.find(data_path=data_path, index=array_index)
@@ -404,7 +426,7 @@ def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defau
                             prop[array_index] = value
                         else:
                             setattr(thing_to_keyframe, prop_name, value)
-                elif len(fc_tokens) == 6 and data_path[ fc_tokens[3][0]+2 : fc_tokens[3][1]-2 ] == 'constraints':
+                elif len(fc_tokens) == 6 and data_path[ fc_tokens[3][0] : fc_tokens[3][1] ] == 'constraints':
                     prop = getattr(thing_to_keyframe, prop_name)
                     if hasattr(prop, "__len__"):
                         prop[array_index] = value
@@ -412,13 +434,13 @@ def copy_action_frame(ob, action_name, frame=None, result_action=None, use_defau
                         setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
-def keyframe_copy_action_frame(ob, action_name, frame):
+def keyframe_copy_action_frame(ob, action_name, loc_scale, rot_scale, frame):
     # create animation / Action data if needed, before applying script
     if ob.animation_data is None:
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    copy_action_frame(ob, action_name, frame, ob.animation_data.action)
+    copy_action_frame(ob, action_name, loc_scale, rot_scale, frame, ob.animation_data.action)
     do_tag_redraw()
 
 def convert_moho_file(filepath):
@@ -467,8 +489,9 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
             action_name = replace_unknown_action_name
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
-                copy_action_frame(arm_ob, prev_action_name, frame, arm_ob.animation_data.action, True)
-            copy_action_frame(arm_ob, action_name, frame, arm_ob.animation_data.action, False)
+                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, frame, arm_ob.animation_data.action,
+                                  True)
+            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, frame, arm_ob.animation_data.action, False)
         prev_action_name = action_name
         # keyframe Shape Keys with Mesh objects
         shapekey_name = shapekey_name_prepend + command_name

@@ -20,7 +20,7 @@ import os
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty
+from bpy.props import (FloatProperty, FloatVectorProperty, StringProperty)
 from bpy.types import Operator
 
 from ..const import ADDON_BASE_FILE
@@ -157,6 +157,11 @@ class AMH2B_OT_ApplyActionFrame(Operator):
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}
 
+    apply_action_loc_scale: FloatVectorProperty(name="Location Scale", description="Pose bone Action location " \
+        "values are multiplied by this value when applied", subtype='XYZ', default=(1.0, 1.0, 1.0))
+    apply_action_rot_scale: FloatProperty(name="Rotation Scale", description="Pose bone Action rotation " \
+        "values are multiplied by this value when applied", default=1.0)
+
     @classmethod
     def poll(cls, context):
         return context.active_object != None and context.active_object.type == 'ARMATURE' \
@@ -167,10 +172,13 @@ class AMH2B_OT_ApplyActionFrame(Operator):
         if act_ob is None or act_ob.type != 'ARMATURE':
             return {'CANCELLED'}
         scn = context.scene
+        v_pg = scn.amh2b.viseme
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, scn.frame_current)
+            keyframe_copy_action_frame(act_ob, v_pg.apply_action, self.apply_action_loc_scale,
+                                       self.apply_action_rot_scale, scn.frame_current)
         else:
-            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action)
+            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, self.apply_action_loc_scale,
+                              self.apply_action_rot_scale)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):

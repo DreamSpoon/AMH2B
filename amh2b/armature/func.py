@@ -181,7 +181,7 @@ def script_pose(context, arm_ob, preset_name, use_textblock, textblock_name, in_
 # and adjust it"s bone location animation f-curve values to match the scaling.
 # If this operation is not done, then the bones that have changing location values
 # will appear to move incorrectly.
-def armature_apply_scale(context, ob, apply_location=False, apply_rotation=False):
+def armature_apply_scale(context, ob, apply_location=False, apply_rotation=False, apply_scale=False):
     # save state
     old_act_ob = context.active_object
     old_3dview_mode = context.object.mode
@@ -197,7 +197,7 @@ def armature_apply_scale(context, ob, apply_location=False, apply_rotation=False
             bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=False)
         return
     # apply scale to active object
-    bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=True)
+    bpy.ops.object.transform_apply(location=apply_location, rotation=apply_rotation, scale=apply_scale)
     # if no f-curves then no exit, because only needed 'apply scale'
     action = ob.animation_data.action
     if action is None:

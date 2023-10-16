@@ -61,6 +61,7 @@ def draw_panel_armature(self, context, func_grp_box):
         layout.operator(AMH2B_OT_DisableModPreserveVolume.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_ApplyScale.bl_idname)
+        layout.prop(a, "arm_apply_object_scale")
         layout.separator()
         layout.label(text="Bone Names")
         layout.operator(AMH2B_OT_RenameGeneric.bl_idname)

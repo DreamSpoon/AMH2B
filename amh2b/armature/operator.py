@@ -83,7 +83,7 @@ class AMH2B_OT_ApplyScale(Operator):
         if act_ob is None or act_ob.type != 'ARMATURE':
             self.report({'ERROR'}, "Active object is not ARMATURE type")
             return {'CANCELLED'}
-        armature_apply_scale(context, act_ob)
+        armature_apply_scale(context, act_ob, apply_scale=context.scene.amh2b.arm_apply_object_scale)
         return {'FINISHED'}
 
 class AMH2B_OT_CleanupGizmos(Operator):
