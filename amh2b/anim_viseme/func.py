@@ -490,9 +490,10 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
             action_name = replace_unknown_action_name
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
-                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, frame, arm_ob.animation_data.action,
-                                  True)
-            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, frame, arm_ob.animation_data.action, False)
+                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame,
+                                  arm_ob.animation_data.action, True)
+            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame,
+                              arm_ob.animation_data.action, False)
         prev_action_name = action_name
         # keyframe Shape Keys with Mesh objects
         shapekey_name = shapekey_name_prepend + command_name
