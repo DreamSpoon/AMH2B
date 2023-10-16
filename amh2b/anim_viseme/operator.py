@@ -157,10 +157,15 @@ class AMH2B_OT_ApplyActionFrame(Operator):
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}
 
-    apply_action_loc_scale: FloatVectorProperty(name="Location Scale", description="Pose bone Action location " \
+    apply_action_uniform_mult: FloatProperty(name="Uniform Multiply", description="Pose bone Action rotation/" \
+        "location/scale values will be multiplied/raised to this value when applied", default=1.0)
+    apply_action_loc_mult: FloatVectorProperty(name="Location Multiply", description="Pose bone Action location " \
         "values are multiplied by this value when applied", subtype='XYZ', default=(1.0, 1.0, 1.0))
-    apply_action_rot_scale: FloatProperty(name="Rotation Scale", description="Pose bone Action rotation " \
+    apply_action_rot_mult: FloatProperty(name="Rotation Multiply", description="Pose bone Action rotation " \
         "values are multiplied by this value when applied", default=1.0)
+    apply_action_scl_pow: FloatVectorProperty(name="Scale Power", description="Pose bone Action scale " \
+        "values are raised to this value when applied, i.e. value = pow(value, scale_power)", subtype='XYZ',
+        default=(1.0, 1.0, 1.0))
 
     @classmethod
     def poll(cls, context):
@@ -173,12 +178,13 @@ class AMH2B_OT_ApplyActionFrame(Operator):
             return {'CANCELLED'}
         scn = context.scene
         v_pg = scn.amh2b.viseme
+        loc_mult = [ lv * self.apply_action_uniform_mult for lv in self.apply_action_loc_mult ]
+        rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
+        scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, v_pg.apply_action, self.apply_action_loc_scale,
-                                       self.apply_action_rot_scale, scn.frame_current)
+            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, scn.frame_current)
         else:
-            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, self.apply_action_loc_scale,
-                              self.apply_action_rot_scale)
+            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
