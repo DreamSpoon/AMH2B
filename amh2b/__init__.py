@@ -230,7 +230,7 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         "Shape Key to use when unknown named Shape Key occurs in script. Leave blank to ignore")
     ref_bones_action: StringProperty(name="Size Reference Bones Action", description="'Head' locations for " \
         "Edit Bones in this Action will be saved with selected Actions, for auto-resize reference purposes. Leave " \
-        "blank to ignore.")
+        "blank to ignore")
     phoneme_viseme_preset: EnumProperty(name="Phoneme Viseme Translation", description="",
         items=phoneme_viseme_preset_items)
     words_actions_string: StringProperty(name="Translate Words String", description="Translate this " \

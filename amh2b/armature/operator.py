@@ -285,8 +285,9 @@ class AMH2B_OT_SnapTransferTarget(Operator):
         "instead. Enable to improve accuracy when armatures are different sizes / heights, e.g. Game Rig",
         default=False, options={'HIDDEN'})
     include_game_engine: BoolProperty(name="Include MPFB2 'Game engine' Bones", description="MPFB2 'Game engine' " \
-        "armature bones will have 'Copy Transforms' constraints too",
-        default=True, options={'HIDDEN'})
+        "armature bones will have 'Copy Transforms' constraints too", default=True, options={'HIDDEN'})
+    only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will have transfer " \
+        "constraints added", default=True, options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):
@@ -300,7 +301,7 @@ class AMH2B_OT_SnapTransferTarget(Operator):
             return {'CANCELLED'}
         other_ob = [ ob for ob in sel_obs if ob != act_ob ][0]
         bone_count = snap_transfer_target_constraints(context, other_ob, act_ob, self.limit_ct_hips_ik,
-                                                      self.include_game_engine)
+                                                      self.include_game_engine, self.only_selected)
         self.report({'INFO'}, "Snapped %d Transfer bones to Target bones" % bone_count)
         return {'FINISHED'}
 
@@ -309,6 +310,7 @@ class AMH2B_OT_SnapTransferTarget(Operator):
 
     def draw(self, context):
         layout = self.layout
+        layout.prop(self, "only_selected")
         layout.label(text="Limit 'Copy Transforms'")
         layout.prop(self, "limit_ct_hips_ik", text="Limit to Hips / IK")
         row = layout.row()

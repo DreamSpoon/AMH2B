@@ -45,11 +45,12 @@ def load_word_phonemes_dictionary(filepath):
                 read_line = read_line.decode('utf-8','ignore')
                 lines_read.append(read_line)
     except:
-        print("Load Word Phonemes Dictionary failed with exception:")
-        print(traceback.format_exc())
-        return
+#        print("Load Word Phonemes Dictionary failed with exception:")
+#        print(traceback.format_exc())
+        return "Unable to load word-phoneme dictionary from file:\n" + filepath
     check_for_comments = True
     stress_values = {}
+    load_word_count = 0
     for line in lines_read:
         # skip empty lines and commented lines
         s_line = line.strip()
@@ -74,9 +75,12 @@ def load_word_phonemes_dictionary(filepath):
         # keep lowest stress value, ideally zero stress
         if word_name in stress_values and sv > stress_values[word_name]:
             continue
+        if word_name not in word_phonemes_dict:
+            load_word_count += 1
         # if word_name is already in the dict then it will be overwritten
         word_phonemes_dict[word_name] = line_tokens[1:]
     do_tag_redraw()
+    return load_word_count
 
 def clear_word_phonemes_dictionary():
     word_phonemes_dict.clear()
@@ -273,11 +277,28 @@ def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phon
     if rest_action_name != "" and rest_action_name not in bpy.data.actions:
         # blank string indicates 'use defaults' rest frame (e.g. scale=(1,1,1) )
         rest_action_name = ""
+    if bpy.data.texts.get(translate_output_text_name):
+        translate_out_line_count = len(bpy.data.texts[translate_output_text_name].lines)
+    else:
+        translate_out_line_count = 0
+    if bpy.data.texts.get(moho_output_text_name):
+        moho_out_line_count = len(bpy.data.texts[moho_output_text_name].lines)
+    else:
+        moho_out_line_count = 0
     keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  frame_start, None, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
                                  replace_unknown_shapekey_name)
+    # append newlines if needed
+    translate_out_text = bpy.data.texts.get(translate_output_text_name)
+    if translate_out_text:
+        if len(translate_out_text.lines) > translate_out_line_count:
+            translate_out_text.write("\n")
+    moho_out_text = bpy.data.texts.get(moho_output_text_name)
+    if moho_out_text:
+        if len(moho_out_text.lines) > moho_out_line_count:
+            moho_out_text.write("\n")
 
 def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_offset_str, phoneme_viseme_preset,
                                  rest_action_name, frames_rest_attack, frames_rest_decay, frames_per_viseme,
@@ -296,11 +317,28 @@ def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_of
     if rest_action_name != "" and rest_action_name not in bpy.data.actions:
         # blank string indicates 'use defaults' rest frame (e.g. scale=(1,1,1) )
         rest_action_name = ""
+    if bpy.data.texts.get(translate_output_text_name):
+        translate_out_line_count = len(bpy.data.texts[translate_output_text_name].lines)
+    else:
+        translate_out_line_count = 0
+    if bpy.data.texts.get(moho_output_text_name):
+        moho_out_line_count = len(bpy.data.texts[moho_output_text_name].lines)
+    else:
+        moho_out_line_count = 0
     keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  frame_start, None, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
                                  replace_unknown_shapekey_name)
+    # append newlines if needed
+    translate_out_text = bpy.data.texts.get(translate_output_text_name)
+    if translate_out_text:
+        if len(translate_out_text.lines) > translate_out_line_count:
+            translate_out_text.write("\n")
+    moho_out_text = bpy.data.texts.get(moho_output_text_name)
+    if moho_out_text:
+        if len(moho_out_text.lines) > moho_out_line_count:
+            moho_out_text.write("\n")
 
 def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_preset, rest_action_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
@@ -323,9 +361,26 @@ def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_pr
             prev_frame = m_frame
     if prev_name != None and prev_frame != None:
         words_frames.append( { "words": prev_name, "frame_start": prev_frame } )
+    if bpy.data.texts.get(translate_output_text_name):
+        translate_out_line_count = len(bpy.data.texts[translate_output_text_name].lines)
+    else:
+        translate_out_line_count = 0
+    if bpy.data.texts.get(moho_output_text_name):
+        moho_out_line_count = len(bpy.data.texts[moho_output_text_name].lines)
+    else:
+        moho_out_line_count = 0
     for wf in words_frames:
         keyframe_word_viseme_actions(arm_list, mesh_list, wf.get("words"), phoneme_viseme_preset, rest_action_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  wf.get("frame_start"), wf.get("frame_end"), translate_output_text_name,
                                  moho_output_text_name, action_name_prepend, replace_unknown_action_name,
                                  shapekey_name_prepend, replace_unknown_shapekey_name)
+    # append newlines if needed
+    translate_out_text = bpy.data.texts.get(translate_output_text_name)
+    if translate_out_text:
+        if len(translate_out_text.lines) > translate_out_line_count:
+            translate_out_text.write("\n")
+    moho_out_text = bpy.data.texts.get(moho_output_text_name)
+    if moho_out_text:
+        if len(moho_out_text.lines) > moho_out_line_count:
+            moho_out_text.write("\n")

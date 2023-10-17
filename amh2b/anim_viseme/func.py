@@ -529,7 +529,7 @@ def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
             continue
         mod_script_data[mod_key_int] = val_str
     if len(mod_script_data) == 0:
-        return {'FINISHED'}
+        return 0
     exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
                               shapekey_name_prepend, replace_unknown_shapekey_name)
-    return {'FINISHED'}
+    return None

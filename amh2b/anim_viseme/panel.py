@@ -80,12 +80,6 @@ def draw_panel_anim_viseme(self, context, func_grp_box):
         else:
             layout.prop(v_pg, "script_replace_unknown_shapekey", text="Shape Key")
 
-# class AMH2B_PT_View3dVisemeTranslation(Panel):
-#     bl_space_type = "VIEW_3D"
-#     bl_region_type = "UI"
-#     bl_category = "AMH2B"
-#     bl_parent_id = "AMH2B_PT_View3d"
-#     bl_label = "Translation"
 class AMH2B_PT_VisemeTranslation(Panel):
     bl_region_type = "UI"
     bl_category = "AMH2B"

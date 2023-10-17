@@ -29,7 +29,7 @@ from .func import (load_action_frames_from_text, save_action_frames_to_text, loa
     load_viseme_script_moho)
 from .func_word_viseme import (load_word_phonemes_dictionary, clear_word_phonemes_dictionary,
     refresh_phoneme_viseme_presets, viseme_keyframe_words_actions_string, viseme_keyframe_preview_text,
-    viseme_keyframe_marker_words)
+    viseme_keyframe_marker_words, get_word_phonemes_dictionary_len)
 
 class AMH2B_OT_ActionFrameLoadText(Operator):
     """Load Action F-Curves from Text, available in the Text Editor. Creates keyframes at frame zero of each Action"""
@@ -222,16 +222,19 @@ class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
                                          v_pg.script_frame_offset, v_pg.script_replace_unknown_action,
                                          v_pg.script_replace_unknown_shapekey, v_pg.action_name_prepend,
                                          v_pg.shapekey_name_prepend)
-        if result == {'FINISHED'}:
-            if context.active_object.animation_data.action is None:
-                self.report({'INFO'}, "Zero Actions found in MOHO script")
-            else:
-                self.report({'INFO'}, "Loaded MOHO script and added keyframes to Action named %s" %
-                            context.active_object.animation_data.action.name)
-            return {'FINISHED'}
         if isinstance(result, str):
             self.report({'ERROR'}, result)
-        return {'CANCELLED'}
+            return {'CANCELLED'}
+        elif isinstance(result, int) and result == 0:
+            self.report({'INFO'}, "Zero Actions found in MOHO script")
+            return {'CANCELLED'}
+        else:
+            if context.active_object.animation_data.action:
+                action_name = context.active_object.animation_data.action.name
+            else:
+                action_name = ""
+            self.report({'INFO'}, "Loaded MOHO script and added keyframes to Action named %s" % action_name)
+            return {'FINISHED'}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -249,7 +252,12 @@ class AMH2B_OT_LoadWordPhonemesDictionary(Operator):
         # if no file selected then return finished
         if not os.path.isfile(self.filepath):
             return {'FINISHED'}
-        load_word_phonemes_dictionary(self.filepath)
+        result = load_word_phonemes_dictionary(self.filepath)
+        if isinstance(result, str):
+            self.report({'ERROR'}, result)
+            return {'CANCELLED'}
+        if isinstance(result, int):
+            self.report({'INFO'}, "Loaded %i words from word-phoneme dictionary file" % result)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -266,6 +274,7 @@ class AMH2B_OT_ClearWordPhonemesDictionary(Operator):
 
     def execute(self, context):
         clear_word_phonemes_dictionary()
+        self.report({'INFO'}, "Word-phonemes dictionary has been cleared")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -287,9 +296,14 @@ class AMH2B_OT_VisemeKeyframeWordsActionsString(Operator):
 
     @classmethod
     def poll(cls, context):
-        return len( [ o for o in context.selected_objects if o.type in ['ARMATURE', 'MESH'] ] ) > 0
+        return context.scene.amh2b.viseme.words_actions_string != "" and \
+            len( [ o for o in context.selected_objects if o.type in ['ARMATURE', 'MESH'] ] ) > 0
 
     def execute(self, context):
+        if get_word_phonemes_dictionary_len() == 0:
+            self.report({'ERROR'}, "Cannot get visemes to keyframe because word-phoneme dictionary is empty. See " \
+                        "Translation panel and Load Dictionary")
+            return {'CANCELLED'}
         # check selected objects for ARMATURE or MESH
         arm_list = []
         mesh_list = []
@@ -320,9 +334,18 @@ class AMH2B_OT_VisemeKeyframePreviewText(Operator):
 
     @classmethod
     def poll(cls, context):
+        v_pg = context.scene.amh2b.viseme
+        if v_pg.preview_lines == " " or v_pg.preview_lines == "":
+            return False
+        if v_pg.preview_text not in bpy.data.texts:
+            return False
         return len( [ o for o in context.selected_objects if o.type in ['ARMATURE', 'MESH'] ] ) > 0
 
     def execute(self, context):
+        if get_word_phonemes_dictionary_len() == 0:
+            self.report({'ERROR'}, "Cannot get visemes to keyframe because word-phoneme dictionary is empty. See " \
+                        "Translation panel and Load Dictionary")
+            return {'CANCELLED'}
         # check selected objects for ARMATURE or MESH
         arm_list = []
         mesh_list = []
@@ -354,7 +377,7 @@ class AMH2B_OT_VisemeTextPreviewToWordString(Operator):
         v_pg = context.scene.amh2b.viseme
         if v_pg.preview_text not in bpy.data.texts:
             return False
-        if v_pg.preview_lines == " ":
+        if v_pg.preview_lines == " " or v_pg.preview_lines == "":
             return False
         try:
             _ = int(v_pg.preview_lines)
@@ -388,6 +411,10 @@ class AMH2B_OT_VisemeKeyframeMarkerWords(Operator):
         return len( [ o for o in context.selected_objects if o.type in ['ARMATURE', 'MESH'] ] ) > 0
 
     def execute(self, context):
+        if get_word_phonemes_dictionary_len() == 0:
+            self.report({'ERROR'}, "Cannot get visemes to keyframe because word-phoneme dictionary is empty. See " \
+                        "Translation panel and Load Dictionary")
+            return {'CANCELLED'}
         # check selected objects for ARMATURE or MESH
         arm_list = []
         mesh_list = []

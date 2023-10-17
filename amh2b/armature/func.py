@@ -605,13 +605,16 @@ def is_hips_ik_bone_name(bone_name, all_bone_names, include_game_engine):
     # everything else
     return bn.endswith( ("_ik", ".ik") ) or bn in ("hips", "pelvis", "root") or bn.endswith("hips") or ".ik." in bn
 
-def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik, include_game_engine):
+def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_hips_ik, include_game_engine,
+                                     only_selected):
     old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='POSE')
     target_bone_names = [ b.name for b in target_ob.data.bones ]
     transfer_bone_names = [ b.name for b in transfer_ob.data.bones ]
     bone_count = 0
     for xfer_bone in transfer_ob.pose.bones:
+        if only_selected and not transfer_ob.data.bones[xfer_bone.name].select:
+            continue
         if xfer_bone.name not in target_bone_names:
             continue
         if limit_ct_hips_ik and not is_hips_ik_bone_name(xfer_bone.name, transfer_bone_names, include_game_engine):
