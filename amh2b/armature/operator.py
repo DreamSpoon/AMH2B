@@ -23,7 +23,7 @@ from bpy.types import Operator
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
     is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_retarget_constraints,
-    snap_transfer_target_constraints, select_retarget_bones)
+    snap_transfer_target_constraints, select_retarget_bones, select_fcurve_bones)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -287,7 +287,7 @@ class AMH2B_OT_SnapTransferTarget(Operator):
     include_game_engine: BoolProperty(name="Include MPFB2 'Game engine' Bones", description="MPFB2 'Game engine' " \
         "armature bones will have 'Copy Transforms' constraints too", default=True, options={'HIDDEN'})
     only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will have transfer " \
-        "constraints added", default=True, options={'HIDDEN'})
+        "constraints added", default=False, options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):
@@ -330,8 +330,27 @@ class AMH2B_OT_SelectRetargetBones(Operator):
 
     def execute(self, context):
         act_ob = context.active_object
-        if act_ob is None:
+        if act_ob is None or act_ob.type != 'ARMATURE':
             return {'CANCELLED'}
         bone_count = select_retarget_bones(context, act_ob)
         self.report({'INFO'}, "Selected %d retarget bones" % bone_count)
+        return {'FINISHED'}
+
+class AMH2B_OT_SelectBonesWithFCurves(Operator):
+    """Select all bones in active object Armature that have F-Curves in the current Action (see Dope Sheet -> """ \
+        """Action Editor -> Action)"""
+    bl_idname = "amh2b.select_bones_w_fcurves"
+    bl_label = "Select Bones w F-Curves"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object.type == 'ARMATURE'
+
+    def execute(self, context):
+        act_ob = context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            return {'CANCELLED'}
+        bone_count = select_fcurve_bones(act_ob)
+        self.report({'INFO'}, "Selected %d bones with F-Curves" % bone_count)
         return {'FINISHED'}

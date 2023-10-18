@@ -24,6 +24,7 @@ import bpy
 
 from ..bl_util import (ast_literal_eval_textblock, get_file_eval_dict)
 from ..const import ADDON_BASE_FILE
+from ..lex_py_attributes import lex_py_attributes
 from ..object_func import (get_scene_user_collection, is_object_in_sub_collection)
 
 ARM_FUNC_RETARGET = "ARM_FUNC_RETARGET"
@@ -636,9 +637,6 @@ def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_h
     return bone_count
 
 def select_retarget_bones(context, ob):
-    old_3dview_mode = context.object.mode
-    if context.object.mode != 'POSE':
-        bpy.ops.object.mode_set(mode='POSE')
     bone_count = 0
     for pose_bone in ob.pose.bones:
         did_sel = False
@@ -648,6 +646,18 @@ def select_retarget_bones(context, ob):
                 ob.data.bones[pose_bone.name].select = True
         if did_sel:
             bone_count += 1
-    if context.object.mode != old_3dview_mode:
-        bpy.ops.object.mode_set(mode=old_3dview_mode)
     return bone_count
+
+def select_fcurve_bones(ob):
+    if ob.animation_data is None or ob.animation_data.action is None:
+        return 0
+    select_count = 0
+    for fc in ob.animation_data.action.fcurves:
+        fc_tokens, _ = lex_py_attributes(fc.data_path)
+        if len(fc_tokens) < 4:
+            continue
+        bone_name = fc.data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
+        if bone_name in ob.data.bones:
+            ob.data.bones[bone_name].select = True
+            select_count += 1
+    return select_count

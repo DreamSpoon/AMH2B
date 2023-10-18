@@ -40,38 +40,6 @@ from .const import (SC_DSKEY, SC_VGRP_AUTO_PREFIX)
 
 from .anim_object.operator import (AMH2B_OT_RatchetPoint, AMH2B_OT_RatchetHold)
 from .anim_object.panel import draw_panel_anim_object
-from .armature.func import ARM_FUNC_ITEMS
-from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
-    AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
-    AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
-    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones)
-from .armature.panel import draw_panel_armature
-from .attributes.panel import draw_panel_attributes
-from .attributes.operator import AMH2B_OT_AttributeConvert
-from .attributes.func import ATTR_CONV_FUNC_ITEMS
-from .eyeblink.panel import (EBLINK_SUB_FUNC_ITEMS, draw_panel_eye_blink)
-from .eyeblink.operator import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack)
-from .eyelid.func import elid_rig_type_items
-from .eyelid.operator import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
-from .eyelid.panel import draw_panel_eye_lid
-from .shape_key.func import SK_FUNC_ITEMS
-from .shape_key.operator import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
-    AMH2B_OT_SKFuncDelete, AMH2B_OT_CopyOtherSK, AMH2B_OT_ApplyModifierSK)
-from .shape_key.panel import draw_panel_shape_key
-from .geo_nodes.panel import (AMH2B_PT_NodeEditorGeoNodes, draw_panel_geometry_nodes)
-from .geo_nodes.operator import (AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap,
-    AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap, AMH2B_OT_CreateGeoNodesShrinkwrap,
-    AMH2B_OT_CreateGeoNodesThickShrinkwrap, AMH2B_OT_CreateObjModDirectionalShrinkwrap,
-    AMH2B_OT_CreateObjModDirectionalThickShrinkwrap, AMH2B_OT_CreateObjModShrinkwrap,
-    AMH2B_OT_CreateObjModThickShrinkwrap)
-from .soft_body.func import SB_FUNCTION_ITEMS
-from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
-from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
-from .soft_body.panel import draw_panel_soft_body
-from .template import AMH2B_OT_MakeObjectSearchable
-from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
-    AMH2B_OT_SearchFileForAutoVGroups)
 from .anim_viseme.func import (VISEME_FUNC_ITEMS, refresh_viseme_actions_presets, viseme_actions_preset_items)
 from .anim_viseme.func_word_viseme import (refresh_phoneme_viseme_presets, phoneme_viseme_preset_items,
     preview_lines_items)
@@ -86,6 +54,38 @@ from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AM
     AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
     AMH2B_PT_DopesheetVisemeOutput)
+from .armature.func import ARM_FUNC_ITEMS
+from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
+    AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
+    AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
+    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones, AMH2B_OT_SelectBonesWithFCurves)
+from .armature.panel import draw_panel_armature
+from .attributes.func import ATTR_CONV_FUNC_ITEMS
+from .attributes.operator import AMH2B_OT_AttributeConvert
+from .attributes.panel import draw_panel_attributes
+from .eyeblink.operator import (AMH2B_OT_RemoveBlinkTrack, AMH2B_OT_AddBlinkTrack)
+from .eyeblink.panel import (EBLINK_SUB_FUNC_ITEMS, draw_panel_eye_blink)
+from .eyelid.func import elid_rig_type_items
+from .eyelid.operator import (AMH2B_OT_AddLidLook, AMH2B_OT_RemoveLidLook)
+from .eyelid.panel import draw_panel_eye_lid
+from .shape_key.func import SK_FUNC_ITEMS
+from .shape_key.operator import (AMH2B_OT_BakeDeformShapeKeys, AMH2B_OT_SearchFileForAutoShapeKeys,
+    AMH2B_OT_SKFuncDelete, AMH2B_OT_CopyOtherSK, AMH2B_OT_ApplyModifierSK)
+from .shape_key.panel import draw_panel_shape_key
+from .geo_nodes.operator import (AMH2B_OT_CreateGeoNodesDirectionalShrinkwrap,
+    AMH2B_OT_CreateGeoNodesDirectionalThickShrinkwrap, AMH2B_OT_CreateGeoNodesShrinkwrap,
+    AMH2B_OT_CreateGeoNodesThickShrinkwrap, AMH2B_OT_CreateObjModDirectionalShrinkwrap,
+    AMH2B_OT_CreateObjModDirectionalThickShrinkwrap, AMH2B_OT_CreateObjModShrinkwrap,
+    AMH2B_OT_CreateObjModThickShrinkwrap)
+from .geo_nodes.panel import (AMH2B_PT_NodeEditorGeoNodes, draw_panel_geometry_nodes)
+from .soft_body.func import SB_FUNCTION_ITEMS
+from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
+from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
+from .soft_body.panel import draw_panel_soft_body
+from .template import AMH2B_OT_MakeObjectSearchable
+from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
+    AMH2B_OT_SearchFileForAutoVGroups)
 from .weight_paint import (AMH2B_OT_GrowPaint, AMH2B_OT_SelectVertexByWeight)
 
 def draw_panel_vertex_group(self, context, func_grp_box):
@@ -474,6 +474,7 @@ classes = [
     AMH2B_OT_RemoveRetargetConstraints,
     AMH2B_OT_SnapTransferTarget,
     AMH2B_OT_SelectRetargetBones,
+    AMH2B_OT_SelectBonesWithFCurves,
     AMH2B_OT_RatchetPoint,
     AMH2B_OT_RatchetHold,
     AMH2B_OT_RemoveBlinkTrack,
