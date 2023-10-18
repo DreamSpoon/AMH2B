@@ -17,7 +17,6 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import os
-import traceback
 
 import bpy
 
@@ -45,8 +44,6 @@ def load_word_phonemes_dictionary(filepath):
                 read_line = read_line.decode('utf-8','ignore')
                 lines_read.append(read_line)
     except:
-#        print("Load Word Phonemes Dictionary failed with exception:")
-#        print(traceback.format_exc())
         return "Unable to load word-phoneme dictionary from file:\n" + filepath
     check_for_comments = True
     stress_values = {}

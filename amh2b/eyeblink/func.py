@@ -84,24 +84,24 @@ def generate_blink_action(arm_list, mesh_list, blink_settings):
                 prev_a_name = None
                 for frame_num, b_type in b_frames.items():
                     a_name = ""
-                    use_d = False
+                    use_default = False
                     if b_type == BLINK_FRAME_CLOSE:
                         if blink_settings["close_action"] == "":
                             a_name = blink_settings["open_action"]
-                            use_d = True
+                            use_default = True
                         else:
                             a_name = blink_settings["close_action"]
                     if b_type == BLINK_FRAME_OPEN:
                         if blink_settings["open_action"] == "":
                             a_name = blink_settings["close_action"]
-                            use_d = True
+                            use_default = True
                         else:
                             a_name = blink_settings["open_action"]
                     if prev_a_name != None and prev_a_name != a_name:
-                        copy_action_frame(arm_ob, prev_a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame_num,
-                                          result_action, True)
-                    copy_action_frame(arm_ob, a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame_num, result_action,
-                                      use_d)
+                        copy_action_frame(arm_ob, prev_a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False,
+                                          frame_num, result_action, True)
+                    copy_action_frame(arm_ob, a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame_num,
+                                      result_action, use_default)
                     prev_a_name = a_name
         # insert Mesh Shapekey value keyframes, if needed
         if blink_settings["close_shapekey"] != "":

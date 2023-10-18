@@ -333,8 +333,8 @@ def get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale):
     scaled_quat_exp_map = build_quat.to_exponential_map() * rot_scale
     return Quaternion(scaled_quat_exp_map)
 
-def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame=None, result_action=None,
-                      use_defaults=None):
+def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame=None, result_action=None,
+                      use_defaults=None, blend_factor=1.0):
     arm = ob.data
     if arm is None:
         return {}
@@ -354,12 +354,14 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame=None, 
         bone_name = fc.data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
         if bone_name not in pose_bones:
             continue
+        if only_selected and not ob.data.bones[bone_name].select:
+            continue
         prop_name = fc.data_path[fc.data_path.rfind(".")+1:]
         if fc.data_path not in frame_data:
             frame_data[fc.data_path] = {}
         # check for 'use default value', and store the result value
         value = fc.evaluate(EVAL_FRAME_NUM)
-        if use_defaults and prop_name in GLOBAL_POSE_PROP_DEFAULTS:
+        if use_defaults == True and prop_name in GLOBAL_POSE_PROP_DEFAULTS:
             default_val = GLOBAL_POSE_PROP_DEFAULTS[prop_name]
             if hasattr(default_val, "__len__") and len(default_val) > 0:
                 if fc.array_index < len(default_val):
@@ -378,22 +380,39 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame=None, 
         if thing_to_keyframe is None:
             continue
         prop_name = data_path[data_path.rfind(".")+1:]
-        quat_value = None
+        new_quat_value = None
         if prop_name == "rotation_quaternion":
-            quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult)
+            new_quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult)
+            old_quat_value = pose_bones[bone_name].rotation_quaternion
         for array_index, value in indexed_values.items():
             if prop_name == "location":
                 value = value * loc_mult[array_index]
+                if blend_factor != 1.0:
+                    value *= blend_factor
+                    value += pose_bones[bone_name].location[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_euler":
                 value = value * rot_mult
-            elif prop_name == "rotation_axis_angle" and array_index == 0:
-                value = value * rot_mult
-            elif prop_name == "rotation_quaternion" and quat_value != None:
-                value = quat_value[array_index]
+                if blend_factor != 1.0:
+                    value *= blend_factor
+                    value += pose_bones[bone_name].rotation_euler[array_index] * (1.0 - blend_factor)
+            elif prop_name == "rotation_axis_angle":
+                if array_index == 0:
+                    value = value * rot_mult
+                if blend_factor != 1.0:
+                    value *= blend_factor
+                    value += pose_bones[bone_name].rotation_axis_angle[array_index] * (1.0 - blend_factor)
+            elif prop_name == "rotation_quaternion" and new_quat_value != None:
+                blend_quat_value = new_quat_value
+                if blend_factor != 1.0:
+                    blend_quat_value = old_quat_value.slerp(new_quat_value, blend_factor)
+                value = blend_quat_value[array_index]
             elif prop_name == "scale":
                 # prevent divide by zero exception
                 if value != 0.0 or scl_pow[array_index] >= 0.0:
                     value = pow(value, scl_pow[array_index])
+                if blend_factor != 1.0:
+                    value *= blend_factor
+                    value += pose_bones[bone_name].scale[array_index] * (1.0 - blend_factor)
             # keyframe property values
             if isinstance(frame, (float, int)) and result_action != None:
                 fc = result_action.fcurves.find(data_path=data_path, index=array_index)
@@ -435,13 +454,14 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame=None, 
                         setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
-def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame):
+def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame, blend_factor):
     # create animation / Action data if needed, before applying script
     if ob.animation_data is None:
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, frame, ob.animation_data.action)
+    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame, ob.animation_data.action,
+                      blend_factor=blend_factor)
     do_tag_redraw()
 
 def convert_moho_file(filepath):
@@ -477,7 +497,6 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
             ob.animation_data_create()
         if ob.animation_data.action is None:
             ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-        # result_action = ob.animation_data.action
     # apply frames of script to Armature and Mesh objects
     prev_action_name = None
     prev_sk_names = { m.name: None for m in mesh_list }
@@ -490,9 +509,9 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
             action_name = replace_unknown_action_name
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
-                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame,
+                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame,
                                   arm_ob.animation_data.action, True)
-            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), frame,
+            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame,
                               arm_ob.animation_data.action, False)
         prev_action_name = action_name
         # keyframe Shape Keys with Mesh objects

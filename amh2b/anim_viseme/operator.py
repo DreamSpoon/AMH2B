@@ -20,7 +20,7 @@ import os
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import (FloatProperty, FloatVectorProperty, StringProperty)
+from bpy.props import (BoolProperty, FloatProperty, FloatVectorProperty, StringProperty)
 from bpy.types import Operator
 
 from ..const import ADDON_BASE_FILE
@@ -157,6 +157,10 @@ class AMH2B_OT_ApplyActionFrame(Operator):
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}
 
+    blend_factor: FloatProperty(name="Blend Factor", description="Blend between original location/rotation/scale " \
+        "values (0.0) and Action frame location/rotation/scale values (1.0)", default=1.0)
+    only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will be be modified",
+        default=False)
     apply_action_uniform_mult: FloatProperty(name="Uniform Multiply", description="Pose bone Action rotation/" \
         "location/scale values will be multiplied/raised to this value when applied", default=1.0)
     apply_action_loc_mult: FloatVectorProperty(name="Location Multiply", description="Pose bone Action location " \
@@ -182,9 +186,11 @@ class AMH2B_OT_ApplyActionFrame(Operator):
         rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
         scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, scn.frame_current)
+            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, self.only_selected,
+                                       scn.frame_current, blend_factor=self.blend_factor)
         else:
-            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow)
+            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow, self.only_selected,
+                              blend_factor=self.blend_factor)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
