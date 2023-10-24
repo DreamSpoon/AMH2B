@@ -262,7 +262,7 @@ def keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_vise
     append_str_to_text(translate_out_text, str(viseme_frames)+"\n")
     append_moho_to_text(moho_out_text, viseme_frames)
     exec_viseme_action_script(arm_list, mesh_list, viseme_frames, action_name_prepend, replace_unknown_action_name,
-                              shapekey_name_prepend, replace_unknown_shapekey_name)
+                              shapekey_name_prepend, replace_unknown_shapekey_name, rest_action_name)
 
 def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name, frames_rest_attack,
                                          frames_rest_decay, frames_per_viseme, frames_inter_word, frame_start,

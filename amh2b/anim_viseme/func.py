@@ -488,7 +488,7 @@ def convert_moho_file(filepath):
     return script_data
 
 def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
-                              shapekey_name_prepend, replace_unknown_shapekey_name):
+                              shapekey_name_prepend, replace_unknown_shapekey_name, no_prepend_action_name):
     # create animation / Action data if needed, before applying script
     total_list = arm_list.copy()
     total_list.extend(mesh_list)
@@ -503,10 +503,13 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
     used_sk_names = { m.name: [] for m in mesh_list }
     prev_frame = None
     for frame, command_name in mod_script_data.items():
-        # copy Action frames with Armature objects
-        action_name = action_name_prepend + command_name
+        if command_name == no_prepend_action_name:
+            action_name = command_name
+        else:
+            action_name = action_name_prepend + command_name
         if action_name not in bpy.data.actions and replace_unknown_action_name in bpy.data.actions:
             action_name = replace_unknown_action_name
+        # copy Action frames with Armature objects
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
                 copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame,
@@ -550,5 +553,5 @@ def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
     if len(mod_script_data) == 0:
         return 0
     exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
-                              shapekey_name_prepend, replace_unknown_shapekey_name)
+                              shapekey_name_prepend, replace_unknown_shapekey_name, None)
     return None
