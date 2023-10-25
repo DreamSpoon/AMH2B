@@ -24,7 +24,7 @@ bl_info = {
     "name": "Automate MakeHuman 2 Blender (AMH2B)",
     "description": "Automate process of importing and animating MakeHuman models.",
     "author": "Dave",
-    "version": (2, 4, 0),
+    "version": (2, 4, 1),
     "blender": (3, 30, 0),
     "location": "View 3D -> Tools -> AMH2B",
     "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
@@ -246,11 +246,15 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         "Text Editor) where words-phonemes-visemes translation output will be saved. Leave blank to ignore")
     moho_output_text: StringProperty(name="MOHO Output Text", description="Name of Text (in Blender's Text " \
         "Editor) where MOHO format output will be saved. Leave blank to ignore")
-    rest_action: StringProperty(name="Rest Action", description="Action to keyframe for 'rest' frames between words")
+    rest_viseme: StringProperty(name="Rest Viseme", description="Viseme to keyframe for 'rest' frames between words" \
+        ". If Action Frames are used then Action Name Prepend will be prepended to this string. If ShapeKeys are " \
+        "used then ShapeKey Name Prepend will be prepended to this string", default="rest")
     frames_rest_attack: IntProperty(name="Rest Attack Frames", description="Number of frames to interpolate " \
-        "from 'rest' viseme to first phoneme viseme", default=2, min=1)
+        "before 'rest' viseme to first phoneme/viseme of a word. Set this value to zero to not insert 'rest' frame " \
+        "before phoneme/viseme", default=2, min=0)
     frames_rest_decay: IntProperty(name="Rest Decay Frames", description="Number of frames to interpolate " \
-        "from last phoneme viseme to 'rest' viseme", default=2, min=1)
+        "after last phoneme/viseme of a word to 'rest' viseme. Set this value to zero to not insert 'rest' frame " \
+        "after phoneme/viseme", default=2, min=0)
     frames_per_viseme: IntProperty(name="Frames Per Viseme", description="Number of frames between visemes",
         default=5, min=1)
     frames_inter_word: IntProperty(name="Frames Between Words", description="Number of frames to insert between " \

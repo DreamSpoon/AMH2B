@@ -262,8 +262,9 @@ class AMH2B_OT_LoadWordPhonemesDictionary(Operator):
         if isinstance(result, str):
             self.report({'ERROR'}, result)
             return {'CANCELLED'}
-        if isinstance(result, int):
-            self.report({'INFO'}, "Loaded %i words from word-phoneme dictionary file" % result)
+        if isinstance(result, (list, tuple)):
+            self.report({'INFO'}, "Loaded %i words, with %i replacement/duplicate words, in word-phoneme dictionary" %
+                        (result[0], result[1]))
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -295,7 +296,7 @@ class AMH2B_OT_ClearWordPhonemesDictionary(Operator):
 class AMH2B_OT_VisemeKeyframeWordsActionsString(Operator):
     """Create talking animation keyframes on current Armatures/Meshes, using Words String as input. """ \
         """Words-to-phonemes dictionary and phonemes-to-viseme translation will be used to create viseme """ \
-        """sequence, each viseme is a named Action"""
+        """sequence, each viseme is a named Action/ShapeKey"""
     bl_idname = "amh2b.viseme_keyframe_words_actions_string"
     bl_label = "Keyframe"
     bl_options = {'REGISTER', 'UNDO'}
@@ -324,7 +325,7 @@ class AMH2B_OT_VisemeKeyframeWordsActionsString(Operator):
             return {'CANCELLED'}
         v_pg = context.scene.amh2b.viseme
         viseme_keyframe_words_actions_string(arm_list, mesh_list, v_pg.words_actions_string,
-            v_pg.phoneme_viseme_preset, v_pg.rest_action, v_pg.frames_rest_attack, v_pg.frames_rest_decay,
+            v_pg.phoneme_viseme_preset, v_pg.rest_viseme, v_pg.frames_rest_attack, v_pg.frames_rest_decay,
             v_pg.frames_per_viseme, v_pg.frames_inter_word, context.scene.frame_current, v_pg.translate_output_text,
             v_pg.moho_output_text, v_pg.action_name_prepend, v_pg.script_replace_unknown_action,
             v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey)
@@ -333,7 +334,7 @@ class AMH2B_OT_VisemeKeyframeWordsActionsString(Operator):
 class AMH2B_OT_VisemeKeyframePreviewText(Operator):
     """Create talking animation keyframes on current Armatures/Meshes, using Text Preview Line as input. """ \
         """Words-to-phonemes dictionary and phonemes-to-viseme translation will be used to create viseme """ \
-        """sequence, each viseme is a named Action"""
+        """sequence, each viseme is a named Action/ShapeKey"""
     bl_idname = "amh2b.viseme_keyframe_preview_text"
     bl_label = "Keyframe"
     bl_options = {'REGISTER', 'UNDO'}
@@ -366,7 +367,7 @@ class AMH2B_OT_VisemeKeyframePreviewText(Operator):
             return {'CANCELLED'}
         v_pg = context.scene.amh2b.viseme
         viseme_keyframe_preview_text(arm_list, mesh_list, v_pg.preview_text, v_pg.preview_lines,
-            v_pg.phoneme_viseme_preset, v_pg.rest_action, v_pg.frames_rest_attack, v_pg.frames_rest_decay,
+            v_pg.phoneme_viseme_preset, v_pg.rest_viseme, v_pg.frames_rest_attack, v_pg.frames_rest_decay,
             v_pg.frames_per_viseme, v_pg.frames_inter_word, context.scene.frame_current, v_pg.translate_output_text,
             v_pg.moho_output_text, v_pg.action_name_prepend, v_pg.script_replace_unknown_action,
             v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey)
@@ -438,7 +439,7 @@ class AMH2B_OT_VisemeKeyframeMarkerWords(Operator):
         else:
             markers = context.scene.timeline_markers
         v_pg = context.scene.amh2b.viseme
-        viseme_keyframe_marker_words(markers, arm_list, mesh_list, v_pg.phoneme_viseme_preset, v_pg.rest_action,
+        viseme_keyframe_marker_words(markers, arm_list, mesh_list, v_pg.phoneme_viseme_preset, v_pg.rest_viseme,
             v_pg.frames_rest_attack, v_pg.frames_rest_decay, v_pg.frames_per_viseme, v_pg.frames_inter_word,
             v_pg.translate_output_text, v_pg.moho_output_text, v_pg.action_name_prepend,
             v_pg.script_replace_unknown_action, v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey)

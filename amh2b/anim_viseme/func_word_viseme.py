@@ -48,6 +48,7 @@ def load_word_phonemes_dictionary(filepath):
     check_for_comments = True
     stress_values = {}
     load_word_count = 0
+    replace_word_count = 0
     for line in lines_read:
         # skip empty lines and commented lines
         s_line = line.strip()
@@ -72,12 +73,13 @@ def load_word_phonemes_dictionary(filepath):
         # keep lowest stress value, ideally zero stress
         if word_name in stress_values and sv > stress_values[word_name]:
             continue
-        if word_name not in word_phonemes_dict:
-            load_word_count += 1
+        if word_name in word_phonemes_dict:
+            replace_word_count += 1
+        load_word_count += 1
         # if word_name is already in the dict then it will be overwritten
         word_phonemes_dict[word_name] = line_tokens[1:]
     do_tag_redraw()
-    return load_word_count
+    return load_word_count, replace_word_count
 
 def clear_word_phonemes_dictionary():
     word_phonemes_dict.clear()
@@ -196,7 +198,7 @@ def words_to_visemes(words_string, phoneme_viseme_preset, translate_out_text):
     append_str_to_text(translate_out_text, str(word_visemes)+"\n")
     return word_visemes
 
-def visemes_lists_to_frames(visemes_lists, rest_action_name, frames_rest_attack, frames_rest_decay, frames_per_viseme,
+def visemes_lists_to_frames(visemes_lists, rest_viseme_name, frames_rest_attack, frames_rest_decay, frames_per_viseme,
                            frames_inter_word, frame_start, frame_end):
     current_frame = 0
     viseme_frames = []
@@ -204,7 +206,7 @@ def visemes_lists_to_frames(visemes_lists, rest_action_name, frames_rest_attack,
         if frames_rest_attack > 0:
             viseme_frames.append( {
                 "frame": current_frame,
-                "viseme": rest_action_name,
+                "viseme": rest_viseme_name,
                 } )
             current_frame += frames_rest_attack
         for vis in visemes:
@@ -220,7 +222,7 @@ def visemes_lists_to_frames(visemes_lists, rest_action_name, frames_rest_attack,
             current_frame += frames_rest_decay
             viseme_frames.append( {
                 "frame": current_frame,
-                "viseme": rest_action_name,
+                "viseme": rest_viseme_name,
                 } )
         current_frame += frames_inter_word
     if len(viseme_frames) == 0:
@@ -236,7 +238,7 @@ def visemes_lists_to_frames(visemes_lists, rest_action_name, frames_rest_attack,
         # scale the frame number and add frame_start
         f = int(vf["frame"] * frame_mult + frame_start)
         # prioritize 'rest' frames
-        if f in result and result[f] == rest_action_name:
+        if f in result and result[f] == rest_viseme_name:
             continue
         result[f] = vf["viseme"]
     return result
@@ -247,7 +249,7 @@ def append_moho_to_text(out_text, viseme_frames):
         out_str += "%s %s\n" % (str(frame), vis_name)
     append_str_to_text(out_text, out_str)
 
-def keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name,
+def keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  frame_start, frame_end, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
@@ -257,23 +259,20 @@ def keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_vise
     visemes_lists = words_to_visemes(words_string, phoneme_viseme_preset, translate_out_text)
     if visemes_lists is None:
         return
-    viseme_frames = visemes_lists_to_frames(visemes_lists, rest_action_name, frames_rest_attack, frames_rest_decay,
+    viseme_frames = visemes_lists_to_frames(visemes_lists, rest_viseme_name, frames_rest_attack, frames_rest_decay,
                                             frames_per_viseme, frames_inter_word, frame_start, frame_end)
     append_str_to_text(translate_out_text, str(viseme_frames)+"\n")
     append_moho_to_text(moho_out_text, viseme_frames)
     exec_viseme_action_script(arm_list, mesh_list, viseme_frames, action_name_prepend, replace_unknown_action_name,
-                              shapekey_name_prepend, replace_unknown_shapekey_name, rest_action_name)
+                              shapekey_name_prepend, replace_unknown_shapekey_name)
 
-def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name, frames_rest_attack,
-                                         frames_rest_decay, frames_per_viseme, frames_inter_word, frame_start,
-                                         translate_output_text_name, moho_output_text_name, action_name_prepend,
-                                         replace_unknown_action_name, shapekey_name_prepend,
+def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_viseme_name,
+                                         frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
+                                         frame_start, translate_output_text_name, moho_output_text_name,
+                                         action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
                                          replace_unknown_shapekey_name):
     if words_string == "":
         return
-    if rest_action_name != "" and rest_action_name not in bpy.data.actions:
-        # blank string indicates 'use defaults' rest frame (e.g. scale=(1,1,1) )
-        rest_action_name = ""
     if bpy.data.texts.get(translate_output_text_name):
         translate_out_line_count = len(bpy.data.texts[translate_output_text_name].lines)
     else:
@@ -282,7 +281,7 @@ def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phon
         moho_out_line_count = len(bpy.data.texts[moho_output_text_name].lines)
     else:
         moho_out_line_count = 0
-    keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name,
+    keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  frame_start, None, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
@@ -298,7 +297,7 @@ def viseme_keyframe_words_actions_string(arm_list, mesh_list, words_string, phon
             moho_out_text.write("\n")
 
 def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_offset_str, phoneme_viseme_preset,
-                                 rest_action_name, frames_rest_attack, frames_rest_decay, frames_per_viseme,
+                                 rest_viseme_name, frames_rest_attack, frames_rest_decay, frames_per_viseme,
                                  frames_inter_word, frame_start, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
                                  replace_unknown_shapekey_name):
@@ -311,9 +310,6 @@ def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_of
     words_string = bpy.data.texts[text_name].lines[preview_line_offset].body
     if words_string == "":
         return
-    if rest_action_name != "" and rest_action_name not in bpy.data.actions:
-        # blank string indicates 'use defaults' rest frame (e.g. scale=(1,1,1) )
-        rest_action_name = ""
     if bpy.data.texts.get(translate_output_text_name):
         translate_out_line_count = len(bpy.data.texts[translate_output_text_name].lines)
     else:
@@ -322,7 +318,7 @@ def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_of
         moho_out_line_count = len(bpy.data.texts[moho_output_text_name].lines)
     else:
         moho_out_line_count = 0
-    keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_action_name,
+    keyframe_word_viseme_actions(arm_list, mesh_list, words_string, phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  frame_start, None, translate_output_text_name, moho_output_text_name,
                                  action_name_prepend, replace_unknown_action_name, shapekey_name_prepend,
@@ -337,7 +333,7 @@ def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_of
         if len(moho_out_text.lines) > moho_out_line_count:
             moho_out_text.write("\n")
 
-def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_preset, rest_action_name,
+def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  translate_output_text_name, moho_output_text_name, action_name_prepend,
                                  replace_unknown_action_name, shapekey_name_prepend, replace_unknown_shapekey_name):
@@ -367,7 +363,7 @@ def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_pr
     else:
         moho_out_line_count = 0
     for wf in words_frames:
-        keyframe_word_viseme_actions(arm_list, mesh_list, wf.get("words"), phoneme_viseme_preset, rest_action_name,
+        keyframe_word_viseme_actions(arm_list, mesh_list, wf.get("words"), phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  wf.get("frame_start"), wf.get("frame_end"), translate_output_text_name,
                                  moho_output_text_name, action_name_prepend, replace_unknown_action_name,
