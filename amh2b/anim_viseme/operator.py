@@ -442,5 +442,6 @@ class AMH2B_OT_VisemeKeyframeMarkerWords(Operator):
         viseme_keyframe_marker_words(markers, arm_list, mesh_list, v_pg.phoneme_viseme_preset, v_pg.rest_viseme,
             v_pg.frames_rest_attack, v_pg.frames_rest_decay, v_pg.frames_per_viseme, v_pg.frames_inter_word,
             v_pg.translate_output_text, v_pg.moho_output_text, v_pg.action_name_prepend,
-            v_pg.script_replace_unknown_action, v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey)
+            v_pg.script_replace_unknown_action, v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey,
+            v_pg.marker_cutoff_use, v_pg.marker_cutoff_start, v_pg.marker_cutoff_end)
         return {'FINISHED'}

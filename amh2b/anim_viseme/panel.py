@@ -88,7 +88,8 @@ class AMH2B_PT_VisemeTranslation(Panel):
     @classmethod
     def poll(cls, context):
         a = context.scene.amh2b
-        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT
+        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT \
+            or (context.space_data.type == 'DOPESHEET_EDITOR' and context.space_data.mode == 'ACTION')
 
     def draw(self, context):
         v_pg = context.scene.amh2b.viseme
@@ -119,7 +120,8 @@ class AMH2B_PT_VisemeTiming(Panel):
     @classmethod
     def poll(cls, context):
         a = context.scene.amh2b
-        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT
+        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT \
+            or (context.space_data.type == 'DOPESHEET_EDITOR' and context.space_data.mode == 'ACTION')
 
     def draw(self, context):
         v_pg = context.scene.amh2b.viseme
@@ -147,13 +149,20 @@ class AMH2B_PT_VisemeAnimation(Panel):
     @classmethod
     def poll(cls, context):
         a = context.scene.amh2b
-        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT
+        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT \
+            or (context.space_data.type == 'DOPESHEET_EDITOR' and context.space_data.mode == 'ACTION')
 
     def draw(self, context):
         v_pg = context.scene.amh2b.viseme
         layout = self.layout
         if context.space_data.type == 'DOPESHEET_EDITOR' and context.space_data.mode == 'ACTION':
             layout.operator(AMH2B_OT_VisemeKeyframeMarkerWords.bl_idname)
+            layout.label(text="Marker Frame Cutoff")
+            layout.prop(v_pg, "marker_cutoff_use", text="Enable Cutoff")
+            row = layout.row()
+            row.active = v_pg.marker_cutoff_use
+            row.prop(v_pg, "marker_cutoff_start", text="Start Frame")
+            row.prop(v_pg, "marker_cutoff_end", text="End Frame")
         else:
             layout.operator(AMH2B_OT_VisemeKeyframeWordsActionsString.bl_idname)
             row = layout.row()
@@ -196,7 +205,8 @@ class AMH2B_PT_VisemeOutput(Panel):
     @classmethod
     def poll(cls, context):
         a = context.scene.amh2b
-        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT
+        return a.function_group == FUNC_GRP_ANIM_VISEME and a.viseme.sub_function == VISEME_FUNC_VISEME_TEXT \
+            or (context.space_data.type == 'DOPESHEET_EDITOR' and context.space_data.mode == 'ACTION')
 
     def draw(self, context):
         v_pg = context.scene.amh2b.viseme

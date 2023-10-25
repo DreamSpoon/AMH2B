@@ -259,6 +259,12 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         default=5, min=1)
     frames_inter_word: IntProperty(name="Frames Between Words", description="Number of frames to insert between " \
         "words", default=20, min=0)
+    marker_cutoff_use: BoolProperty(name="Use Marker Frame Cutoff", description="Enable frame start/end for " \
+        "Marker Cutoff. Markers on frames before Start Frame or after End Frame will be ignored")
+    marker_cutoff_start: IntProperty(name="Marker Frame Cutoff Start", description="Markers before this frame " \
+        "will be ignored (cutoff)", default=0)
+    marker_cutoff_end: IntProperty(name="Marker Frame Cutoff End", description="Markers after this frame " \
+        "will be ignored (cutoff)", default=250)
 
 class AMH2B_PG_ScnAMH2B(PropertyGroup):
     function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to " \

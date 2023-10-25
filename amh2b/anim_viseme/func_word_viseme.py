@@ -336,7 +336,8 @@ def viseme_keyframe_preview_text(arm_list, mesh_list, text_name, preview_line_of
 def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_preset, rest_viseme_name,
                                  frames_rest_attack, frames_rest_decay, frames_per_viseme, frames_inter_word,
                                  translate_output_text_name, moho_output_text_name, action_name_prepend,
-                                 replace_unknown_action_name, shapekey_name_prepend, replace_unknown_shapekey_name):
+                                 replace_unknown_action_name, shapekey_name_prepend, replace_unknown_shapekey_name,
+                                 marker_cutoff_use, marker_cutoff_start, marker_cutoff_end):
     filtered_markers = {}
     # ensure only integer frames are present, and no overlapping markers
     for mrk in markers:
@@ -345,6 +346,8 @@ def viseme_keyframe_marker_words(markers, arm_list, mesh_list, phoneme_viseme_pr
     prev_name = None
     prev_frame = None
     for m_frame, m_name in sorted(filtered_markers.items()):
+        if marker_cutoff_use and (m_frame < marker_cutoff_start or m_frame > marker_cutoff_end):
+            continue
         if prev_name != None and prev_frame != None:
             words_frames.append( { "words": prev_name, "frame_start": prev_frame, "frame_end": m_frame } )
             prev_name = None
