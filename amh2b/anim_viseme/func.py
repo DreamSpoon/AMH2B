@@ -402,9 +402,17 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
                     value *= blend_factor
                     value += pose_bones[bone_name].rotation_axis_angle[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_quaternion" and new_quat_value != None:
-                blend_quat_value = new_quat_value
-                if blend_factor != 1.0:
+                if blend_factor == 1.0:
+                    blend_quat_value = new_quat_value
+                elif blend_factor == 0.0:
+                    blend_quat_value = old_quat_value
+                elif blend_factor > 0.0 and blend_factor < 1.0:
                     blend_quat_value = old_quat_value.slerp(new_quat_value, blend_factor)
+                else:
+                    q1 = old_quat_value.to_exponential_map()
+                    q2 = new_quat_value.to_exponential_map()
+                    q3 = q1 * (1.0 - blend_factor) + q2 * blend_factor
+                    blend_quat_value = Quaternion(q3)
                 value = blend_quat_value[array_index]
             elif prop_name == "scale":
                 # prevent divide by zero exception
