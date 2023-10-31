@@ -69,6 +69,8 @@ GLOBAL_POSE_PROP_DEFAULTS = {
     }
 GLOBAL_POSE_PROP_NAMES = [ x for x in GLOBAL_POSE_PROP_DEFAULTS.keys() ]
 
+playback_dict = { "end_frame": None, "back_frames": None }
+
 def viseme_actions_preset_items(self, context):
     items = []
     for filename, pose_preset_data in viseme_actions_presets.items():
@@ -402,11 +404,7 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
                     value *= blend_factor
                     value += pose_bones[bone_name].rotation_axis_angle[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_quaternion" and new_quat_value != None:
-                if blend_factor == 1.0:
-                    blend_quat_value = new_quat_value
-                elif blend_factor == 0.0:
-                    blend_quat_value = old_quat_value
-                elif blend_factor > 0.0 and blend_factor < 1.0:
+                if blend_factor >= 0.0 and blend_factor <= 1.0:
                     blend_quat_value = old_quat_value.slerp(new_quat_value, blend_factor)
                 else:
                     q1 = old_quat_value.to_exponential_map()
@@ -560,3 +558,21 @@ def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
     exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
                               shapekey_name_prepend, replace_unknown_shapekey_name)
     return None
+
+def playback_handler(scene):
+    if scene.frame_current >= playback_dict["end_frame"]:
+        bpy.ops.screen.animation_cancel()
+        # remove self
+        for _ in range( len(bpy.app.handlers.frame_change_pre) ):
+            bpy.app.handlers.frame_change_pre.pop()
+        # back frames
+        scene.frame_current = scene.frame_current - playback_dict["back_frames"]
+
+def playback_frames(forward_frames, back_frames):
+    # ensure no previous instances of this handler are present before appending the handler
+    for _ in range( len(bpy.app.handlers.frame_change_pre) ):
+        bpy.app.handlers.frame_change_pre.pop()
+    playback_dict["end_frame"] = bpy.context.scene.frame_current + forward_frames
+    playback_dict["back_frames"] = back_frames - forward_frames
+    bpy.app.handlers.frame_change_pre.append(playback_handler)
+    bpy.ops.screen.animation_play()

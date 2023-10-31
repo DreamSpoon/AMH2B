@@ -49,7 +49,7 @@ from .anim_viseme.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_Action
     AMH2B_OT_ApplyActionFrame, AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary,
     AMH2B_OT_ClearWordPhonemesDictionary, AMH2B_OT_RefreshPhonemeVisemePresets,
     AMH2B_OT_VisemeKeyframeWordsActionsString, AMH2B_OT_VisemeKeyframePreviewText,
-    AMH2B_OT_VisemeTextPreviewToWordString, AMH2B_OT_VisemeKeyframeMarkerWords)
+    AMH2B_OT_VisemeTextPreviewToWordString, AMH2B_OT_VisemeKeyframeMarkerWords, AMH2B_OT_PlayBackFrames)
 from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AMH2B_PT_View3dVisemeTranslation,
     AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
@@ -265,6 +265,10 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         "will be ignored (cutoff)", default=0)
     marker_cutoff_end: IntProperty(name="Marker Frame Cutoff End", description="Markers after this frame " \
         "will be ignored (cutoff)", default=250)
+    play_forward_frames: IntProperty(name="Forward Frames", description="This many frames are played before stopping",
+        default=5, min=1)
+    play_back_frames: IntProperty(name="Back Frames", description="This many frames will be subtracted from current " \
+        "frame after stopping", default=5, min=0)
 
 class AMH2B_PG_ScnAMH2B(PropertyGroup):
     function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to " \
@@ -505,6 +509,7 @@ classes = [
     AMH2B_OT_ActionFrameSavePreset,
     AMH2B_OT_RefreshVisemeActionsPresets,
     AMH2B_OT_ApplyActionFrame,
+    AMH2B_OT_PlayBackFrames,
     AMH2B_OT_LoadActionScriptMOHO,
     AMH2B_OT_LoadWordPhonemesDictionary,
     AMH2B_OT_ClearWordPhonemesDictionary,

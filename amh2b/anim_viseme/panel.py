@@ -28,7 +28,7 @@ from .operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadTex
     AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary, AMH2B_OT_ClearWordPhonemesDictionary,
     AMH2B_OT_RefreshPhonemeVisemePresets, AMH2B_OT_VisemeKeyframeWordsActionsString,
     AMH2B_OT_VisemeKeyframePreviewText, AMH2B_OT_VisemeTextPreviewToWordString,
-    AMH2B_OT_VisemeKeyframeMarkerWords)
+    AMH2B_OT_VisemeKeyframeMarkerWords, AMH2B_OT_PlayBackFrames)
 
 FUNC_GRP_ANIM_VISEME = "FUNC_GRP_ANIM_VISEME"
 
@@ -63,6 +63,11 @@ def draw_panel_anim_viseme(self, context, func_grp_box):
     elif v_pg.sub_function == VISEME_FUNC_APPLY_ACTION_FRAME:
         layout.operator(AMH2B_OT_ApplyActionFrame.bl_idname)
         layout.prop_search(v_pg, "apply_action", bpy.data, "actions", text="")
+        layout.separator()
+        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
+        col = layout.column()
+        col.prop(v_pg, "play_forward_frames")
+        col.prop(v_pg, "play_back_frames")
     elif v_pg.sub_function == VISEME_FUNC_VISEME_SCRIPT:
         layout.operator(AMH2B_OT_LoadActionScriptMOHO.bl_idname)
         layout.label(text="Prepend to Names")

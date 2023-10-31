@@ -26,7 +26,7 @@ from bpy.types import Operator
 from ..const import ADDON_BASE_FILE
 from .func import (load_action_frames_from_text, save_action_frames_to_text, load_action_frames_from_preset,
     save_action_frames_to_preset, refresh_viseme_actions_presets, copy_action_frame, keyframe_copy_action_frame,
-    load_viseme_script_moho)
+    load_viseme_script_moho, playback_frames)
 from .func_word_viseme import (load_word_phonemes_dictionary, clear_word_phonemes_dictionary,
     refresh_phoneme_viseme_presets, viseme_keyframe_words_actions_string, viseme_keyframe_preview_text,
     viseme_keyframe_marker_words, get_word_phonemes_dictionary_len)
@@ -444,4 +444,16 @@ class AMH2B_OT_VisemeKeyframeMarkerWords(Operator):
             v_pg.translate_output_text, v_pg.moho_output_text, v_pg.action_name_prepend,
             v_pg.script_replace_unknown_action, v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey,
             v_pg.marker_cutoff_use, v_pg.marker_cutoff_start, v_pg.marker_cutoff_end)
+        return {'FINISHED'}
+
+class AMH2B_OT_PlayBackFrames(Operator):
+    """Use Blender's 'play' function to play forward a given amount of frames, and then back (subtract) another """ \
+        """given amount of frames"""
+    bl_idname = "amh2b.viseme_playback_frames"
+    bl_label = "Play Back"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        v_pg = context.scene.amh2b.viseme
+        playback_frames(v_pg.play_forward_frames, v_pg.play_back_frames)
         return {'FINISHED'}
