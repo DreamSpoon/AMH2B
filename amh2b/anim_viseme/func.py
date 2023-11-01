@@ -559,20 +559,25 @@ def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
                               shapekey_name_prepend, replace_unknown_shapekey_name)
     return None
 
-def playback_handler(scene):
+def playback_frame_handler(scene):
     if scene.frame_current >= playback_dict["end_frame"]:
         bpy.ops.screen.animation_cancel()
-        # remove self
-        for _ in range( len(bpy.app.handlers.frame_change_pre) ):
-            bpy.app.handlers.frame_change_pre.pop()
-        # back frames
         scene.frame_current = scene.frame_current - playback_dict["back_frames"]
+
+def playback_remove_handler(scene):
+    if playback_frame_handler in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
+    if playback_remove_handler in bpy.app.handlers.animation_playback_post:
+        bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
 
 def playback_frames(forward_frames, back_frames):
     # ensure no previous instances of this handler are present before appending the handler
-    for _ in range( len(bpy.app.handlers.frame_change_pre) ):
-        bpy.app.handlers.frame_change_pre.pop()
+    if playback_frame_handler in bpy.app.handlers.frame_change_pre:
+        bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
+    if playback_remove_handler in bpy.app.handlers.animation_playback_post:
+        bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
     playback_dict["end_frame"] = bpy.context.scene.frame_current + forward_frames
     playback_dict["back_frames"] = back_frames - forward_frames
-    bpy.app.handlers.frame_change_pre.append(playback_handler)
+    bpy.app.handlers.frame_change_pre.append(playback_frame_handler)
+    bpy.app.handlers.animation_playback_post.append(playback_remove_handler)
     bpy.ops.screen.animation_play()

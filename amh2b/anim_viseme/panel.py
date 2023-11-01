@@ -85,6 +85,27 @@ def draw_panel_anim_viseme(self, context, func_grp_box):
         else:
             layout.prop(v_pg, "script_replace_unknown_shapekey", text="Shape Key")
 
+class AMH2B_PT_DopesheetVisemeBase(Panel):
+    bl_idname = "AMH2B_PT_DopesheetVisemeBase"
+    bl_space_type = "DOPESHEET_EDITOR"
+    bl_region_type = "UI"
+    bl_label = "AMH2B"
+    bl_category = "AMH2B"
+
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.mode == 'ACTION'
+
+    def draw(self, context):
+        v_pg = context.scene.amh2b.viseme
+        layout = self.layout
+        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
+        col = layout.column()
+        col.prop(v_pg, "play_forward_frames")
+        col.prop(v_pg, "play_back_frames")
+        layout.separator()
+        layout.label(text="Marker Words to Visemes")
+
 class AMH2B_PT_VisemeTranslation(Panel):
     bl_region_type = "UI"
     bl_category = "AMH2B"
@@ -115,7 +136,7 @@ class AMH2B_PT_View3dVisemeTranslation(AMH2B_PT_VisemeTranslation):
 
 class AMH2B_PT_DopesheetVisemeTranslation(AMH2B_PT_VisemeTranslation):
     bl_space_type = "DOPESHEET_EDITOR"
-    bl_parent_id = "AMH2B_PT_Dopesheet"
+    bl_parent_id = "AMH2B_PT_DopesheetVisemeBase"
 
 class AMH2B_PT_VisemeTiming(Panel):
     bl_region_type = "UI"
@@ -144,7 +165,7 @@ class AMH2B_PT_View3dVisemeTiming(AMH2B_PT_VisemeTiming):
 
 class AMH2B_PT_DopesheetVisemeTiming(AMH2B_PT_VisemeTiming):
     bl_space_type = "DOPESHEET_EDITOR"
-    bl_parent_id = "AMH2B_PT_Dopesheet"
+    bl_parent_id = "AMH2B_PT_DopesheetVisemeBase"
 
 class AMH2B_PT_VisemeAnimation(Panel):
     bl_region_type = "UI"
@@ -200,7 +221,7 @@ class AMH2B_PT_View3dVisemeAnimation(AMH2B_PT_VisemeAnimation):
 
 class AMH2B_PT_DopesheetVisemeAnimation(AMH2B_PT_VisemeAnimation):
     bl_space_type = "DOPESHEET_EDITOR"
-    bl_parent_id = "AMH2B_PT_Dopesheet"
+    bl_parent_id = "AMH2B_PT_DopesheetVisemeBase"
 
 class AMH2B_PT_VisemeOutput(Panel):
     bl_region_type = "UI"
@@ -226,4 +247,19 @@ class AMH2B_PT_View3dVisemeOutput(AMH2B_PT_VisemeOutput):
 
 class AMH2B_PT_DopesheetVisemeOutput(AMH2B_PT_VisemeOutput):
     bl_space_type = "DOPESHEET_EDITOR"
-    bl_parent_id = "AMH2B_PT_Dopesheet"
+    bl_parent_id = "AMH2B_PT_DopesheetVisemeBase"
+
+class AMH2B_PT_SequenceEditorVisemeBase(Panel):
+    bl_idname = "AMH2B_PT_SequenceEditorVisemeBase"
+    bl_space_type = "SEQUENCE_EDITOR"
+    bl_region_type = "UI"
+    bl_label = "AMH2B"
+    bl_category = "AMH2B"
+
+    def draw(self, context):
+        v_pg = context.scene.amh2b.viseme
+        layout = self.layout
+        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
+        col = layout.column()
+        col.prop(v_pg, "play_forward_frames")
+        col.prop(v_pg, "play_back_frames")

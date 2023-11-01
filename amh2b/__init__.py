@@ -53,7 +53,7 @@ from .anim_viseme.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_Action
 from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AMH2B_PT_View3dVisemeTranslation,
     AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
-    AMH2B_PT_DopesheetVisemeOutput)
+    AMH2B_PT_DopesheetVisemeOutput, AMH2B_PT_DopesheetVisemeBase, AMH2B_PT_SequenceEditorVisemeBase)
 from .armature.func import ARM_FUNC_ITEMS
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
@@ -184,21 +184,6 @@ class AMH2B_PT_View3d(Panel):
         func_grp_draw = function_group_draw.get(a.function_group)
         if func_grp_draw != None:
             func_grp_draw(self, context, box)
-
-class AMH2B_PT_Dopesheet(Panel):
-    bl_idname = "AMH2B_PT_Dopesheet"
-    bl_space_type = "DOPESHEET_EDITOR"
-    bl_region_type = "UI"
-    bl_label = "AMH2B"
-    bl_category = "AMH2B"
-
-    @classmethod
-    def poll(cls, context):
-        return context.space_data.mode == 'ACTION'
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="Marker Words to Visemes")
 
 class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
     sub_function: EnumProperty(name="Sub-Function Group", description="Viseme Sub-Function Group",
@@ -524,11 +509,12 @@ classes = [
     AMH2B_PT_View3dVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation,
     AMH2B_PT_View3dVisemeOutput,
-    AMH2B_PT_Dopesheet,
+    AMH2B_PT_DopesheetVisemeBase,
     AMH2B_PT_DopesheetVisemeTranslation,
     AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_DopesheetVisemeAnimation,
     AMH2B_PT_DopesheetVisemeOutput,
+    AMH2B_PT_SequenceEditorVisemeBase,
 ]
 
 def register():
