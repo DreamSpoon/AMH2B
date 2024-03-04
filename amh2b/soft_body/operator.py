@@ -140,7 +140,7 @@ class AMH2B_OT_AddSoftBodySpring(Operator):
 
 class AMH2B_OT_RemoveSoftBodySpring(Operator):
     """With active object and all selected objects Meshes, remove soft body springs by using Mesh Cleanup -> """ \
-        """Delete Loose (verts/edges) to """
+        """Delete Loose (verts/edges) to remove soft body springs"""
     bl_idname = "amh2b.remove_soft_body_spring"
     bl_label = "Remove Springs"
     bl_options = {'REGISTER', 'UNDO'}

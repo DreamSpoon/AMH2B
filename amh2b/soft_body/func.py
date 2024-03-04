@@ -49,7 +49,7 @@ def set_geo_nodes_mod_inputs(gn_mod, input_list):
     for mod_key in gn_mod.keys():
         if index >= len(input_list):
             return
-        elif not mod_key.lower().startswith('input'):
+        elif not (mod_key.lower().startswith('input') or mod_key.lower().startswith('socket')):
             if val_key is None and use_attr_key is None and attr_name_key is None:
                 continue
         elif mod_key.lower().endswith('_attribute_name'):
@@ -76,7 +76,7 @@ def set_geo_nodes_mod_inputs(gn_mod, input_list):
         val_key = None
         use_attr_key = None
         attr_name_key = None
-        if not mod_key.lower().startswith('input'):
+        if not (mod_key.lower().startswith('input') or mod_key.lower().startswith('socket')):
             continue
         elif mod_key.lower().endswith('_attribute_name'):
             attr_name_key = mod_key
@@ -96,15 +96,17 @@ def set_geo_nodes_mod_inputs(gn_mod, input_list):
         gn_mod[attr_name_key] = inp_dict["attribute_name"]
 
 def set_geo_nodes_mod_outputs(gn_mod, output_list):
-    index = 0
-    for outp_key in gn_mod.keys():
-        if not outp_key.lower().startswith('output'):
+    index = len(output_list)-1
+    for outp_key in reversed(gn_mod.keys()):
+        if not (outp_key.lower().startswith('output') or outp_key.lower().startswith('socket')):
             continue
         try:
             gn_mod[outp_key] = output_list[index]
         except:
             pass
-        index += 1
+        index -= 1
+        if index < 0:
+            return
 
 def create_prereq_sb_node_group(node_group_name, node_tree_type):
     if node_tree_type == 'GeometryNodeTree':

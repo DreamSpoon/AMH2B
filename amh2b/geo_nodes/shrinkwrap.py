@@ -19,7 +19,7 @@
 import bpy
 from bpy.types import Operator
 
-from ..node_other import ensure_node_group
+from ..node_other import (ensure_node_group, set_node_io_values, create_nodetree_link)
 
 SHRINKWRAP_GEO_NG_NAME = "Shrinkwrap_AMH2B_GeoNG"
 THICK_SHRINKWRAP_GEO_NG_NAME = "ThickShrinkwrap_AMH2B_GeoNG"
@@ -44,21 +44,40 @@ def create_prereq_shrinkwrap_node_group(node_group_name, node_tree_type):
 def create_geo_ng_shrinkwrap():
     new_node_group = bpy.data.node_groups.new(name=SHRINKWRAP_GEO_NG_NAME, type='GeometryNodeTree')
     # remove old group inputs and outputs
-    new_node_group.inputs.clear()
-    new_node_group.outputs.clear()
+    if bpy.app.version >= (4, 0, 0):
+        for item in new_node_group.interface.items_tree:
+            if item.item_type == 'SOCKET':
+                new_node_group.interface.remove(item)
+    else:
+        new_node_group.inputs.clear()
+        new_node_group.outputs.clear()
     # create new group inputs and outputs
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
-    new_input.default_value = 1.000000
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
-    new_input.default_value = 3.4028234663852886e+38
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Factor")
-    new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
+    new_in_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_in_socket[0] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Factor", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Target Solid", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Min Distance", in_out='INPUT')
+        new_in_socket[4] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Max Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Relative Factor", in_out='INPUT')
+    else:
+        new_in_socket[0] = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+        new_in_socket[4] = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Factor")
+    new_in_socket[0].default_value = 1.000000
+    new_in_socket[4].default_value = 340282346638528859811704183484516925440.000000
+    new_out_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
+    else:
+        new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
     tree_nodes = new_node_group.nodes
-    # delete all nodes
+    # delete all existing nodes before creating new nodes
     tree_nodes.clear()
     # create nodes
     new_nodes = {}
@@ -66,17 +85,23 @@ def create_geo_ng_shrinkwrap():
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (588, 490)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
     new_nodes["Vector Math"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Output"
     node.location = (588, 627)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.002"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.001"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (353, -176)
@@ -86,17 +111,23 @@ def create_geo_ng_shrinkwrap():
     node.label = "Solid Away Delta"
     node.location = (353, -39)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.001"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (353, 78)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
     new_nodes["Vector Math.003"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
@@ -109,40 +140,52 @@ def create_geo_ng_shrinkwrap():
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (118, -294)
     node.operation = "DOT_PRODUCT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.007"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-98, -431)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = 1.100000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.003"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 1.100000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.001"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-98, -588)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.008"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.005"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-98, -706)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
     new_nodes["Vector Math.006"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-98, -843)
-    new_nodes["Position.004"] = node
+    new_nodes["Position.001"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (823, 196)
-    new_nodes["Position.001"] = node
+    new_nodes["Position.002"] = node
     # Set Position
     node = tree_nodes.new(type="GeometryNodeSetPosition")
     node.location = (823, 627)
@@ -155,17 +198,23 @@ def create_geo_ng_shrinkwrap():
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (823, 333)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.004"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.007"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Apply Factor"
     node.location = (823, 470)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.005"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.008"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (588, 118)
@@ -174,30 +223,44 @@ def create_geo_ng_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = -1.000000
-    node.inputs[3].default_value = 1.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.001"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: -1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (588, 255)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
     new_nodes["Vector Math.009"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (118, -137)
     node.operation = "LESS_THAN"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.004"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.002"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (118, 39)
@@ -206,12 +269,18 @@ def create_geo_ng_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.001"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (-98, -118)
@@ -223,27 +292,35 @@ def create_geo_ng_shrinkwrap():
     node.location = (-98, 39)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = -1.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.005"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: -1.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.003"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (353, 470)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.001"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (353, 627)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.002"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.005"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-392, -216)
-    new_nodes["Position.002"] = node
+    new_nodes["Position.003"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Solid Nearest"
@@ -256,47 +333,47 @@ def create_geo_ng_shrinkwrap():
     new_nodes["Group Input"] = node
     # create links
     tree_links = new_node_group.links
-    tree_links.new(new_nodes["Set Position"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Geometry Proximity"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math"].inputs[2])
-    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Vector Math.003"].inputs[0])
-    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Vector Math.001"].inputs[0])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.002"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[0], new_nodes["Vector Math.004"].inputs[0])
-    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Vector Math.004"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.005"].outputs[0], new_nodes["Set Position"].inputs[3])
-    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Math.001"].inputs[1])
-    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Math.002"].inputs[1])
-    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Vector Math"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.004"].outputs[0], new_nodes["Vector Math.005"].inputs[0])
-    tree_links.new(new_nodes["Position.002"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Math.002"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.001"].inputs[0])
-    tree_links.new(new_nodes["Math.003"].outputs[0], new_nodes["Raycast"].inputs[8])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.003"].inputs[0])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Vector Math.006"].inputs[1])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Raycast"].inputs[6])
-    tree_links.new(new_nodes["Vector Math.007"].outputs[1], new_nodes["Math.004"].inputs[0])
-    tree_links.new(new_nodes["Math.004"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Math.004"].outputs[0], new_nodes["Mix.001"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.006"].outputs[0], new_nodes["Vector Math.008"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Vector Math.007"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Raycast"].inputs[7])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Raycast"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Vector Math.005"].inputs[3])
-    tree_links.new(new_nodes["Mix.001"].outputs[0], new_nodes["Vector Math.009"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Vector Math.009"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.009"].outputs[0], new_nodes["Vector Math"].inputs[0])
-    tree_links.new(new_nodes["Mix"].outputs[0], new_nodes["Math"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.006"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.002"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.001"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.005"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Vector Math.007"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Set Position"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix"].inputs[3])
-    tree_links.new(new_nodes["Math.005"].outputs[0], new_nodes["Mix"].inputs[2])
+    create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Vector Math.003"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Vector Math.002"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math"], "Vector", 0, new_nodes["Vector Math.001"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.001"], "Vector", 0, new_nodes["Vector Math.007"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.002"], "Position", 0, new_nodes["Vector Math.007"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.008"], "Vector", 0, new_nodes["Set Position"], "Offset", 0)
+    create_nodetree_link(tree_links, new_nodes["Math"], "Value", 0, new_nodes["Math.004"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.004"], "Value", 0, new_nodes["Math.005"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.005"], "Value", 0, new_nodes["Vector Math"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Factor", 0, new_nodes["Math"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.007"], "Vector", 0, new_nodes["Vector Math.008"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.003"], "Position", 0, new_nodes["Geometry Proximity"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.005"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.004"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.001"], "Value", 0, new_nodes["Raycast"], "Ray Length", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.001"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Vector Math.006"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Raycast"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.004"], "Value", 0, new_nodes["Math.002"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.002"], "Value", 0, new_nodes["Mix.001"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.002"], "Value", 0, new_nodes["Mix"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.006"], "Vector", 0, new_nodes["Vector Math.005"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.005"], "Vector", 0, new_nodes["Vector Math.004"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.005"], "Vector", 0, new_nodes["Raycast"], "Ray Direction", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Raycast"], "Target Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Factor", 0, new_nodes["Vector Math.008"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix"], "Result", 0, new_nodes["Vector Math.009"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.003"], "Vector", 0, new_nodes["Vector Math.009"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Vector Math"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.001"], "Result", 0, new_nodes["Math"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.006"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.001"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.002"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.003"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Normal", 0, new_nodes["Vector Math.004"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Mix.001"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.003"], "Value", 0, new_nodes["Mix.001"], "A", 0)
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group
@@ -311,80 +388,115 @@ def create_node_group_node_shrinkwrap(node_tree, override_create):
 
 def create_geo_ng_thick_shrinkwrap():
     new_node_group = bpy.data.node_groups.new(name=THICK_SHRINKWRAP_GEO_NG_NAME, type='GeometryNodeTree')
+
     # remove old group inputs and outputs
-    new_node_group.inputs.clear()
-    new_node_group.outputs.clear()
+    if bpy.app.version >= (4, 0, 0):
+        for item in new_node_group.interface.items_tree:
+            if item.item_type == 'SOCKET':
+                new_node_group.interface.remove(item)
+    else:
+        new_node_group.inputs.clear()
+        new_node_group.outputs.clear()
     # create new group inputs and outputs
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
-    new_input.default_value = 1.000000
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
-    new_input.default_value = 3.4028234663852886e+38
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
-    new_input.default_value = 1.000000
-    new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
+    new_in_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_in_socket[0] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Factor", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Target Solid", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Min Distance", in_out='INPUT')
+        new_in_socket[4] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Max Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Relative Offset Factor", in_out='INPUT')
+        new_in_socket[7] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Thick Factor", in_out='INPUT')
+    else:
+        new_in_socket[0] = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Target Solid")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+        new_in_socket[4] = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
+        new_in_socket[7] = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
+    new_in_socket[0].default_value = 1.000000
+    new_in_socket[4].default_value = 340282346638528859811704183484516925440.000000
+    new_in_socket[7].default_value = 1.000000
+    new_out_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
+    else:
+        new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
     tree_nodes = new_node_group.nodes
-    # delete all nodes
+    # delete all existing nodes before creating new nodes
     tree_nodes.clear()
     # create nodes
     new_nodes = {}
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (647, -372)
-    new_nodes["Position.003"] = node
+    new_nodes["Position"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Delta"
     node.location = (647, -235)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.011"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (176, 686)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.001"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (431, 196)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.002"] = node
+    new_nodes["Math.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (431, 529)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.003"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.002"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (431, 353)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.004"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (647, 372)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.001"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Output"
     node.location = (647, 529)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
     new_nodes["Vector Math.002"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
@@ -402,39 +514,53 @@ def create_geo_ng_thick_shrinkwrap():
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (882, 216)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.004"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Apply Factor"
     node.location = (882, 353)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.005"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (176, 353)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.006"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (176, 529)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.007"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.005"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (647, 216)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.010"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.005"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (647, 78)
@@ -443,38 +569,50 @@ def create_geo_ng_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = -1.000000
-    node.inputs[3].default_value = 1.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.001"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: -1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (647, -118)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
     new_nodes["Vector Math.006"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-510, -804)
-    new_nodes["Position.004"] = node
+    new_nodes["Position.002"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-725, -78)
-    new_nodes["Position.002"] = node
+    new_nodes["Position.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-510, -666)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.009"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.007"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (-510, -78)
@@ -486,38 +624,52 @@ def create_geo_ng_thick_shrinkwrap():
     node.location = (-510, 78)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = -1.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.009"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: -1.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.006"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-294, -255)
     node.operation = "DOT_PRODUCT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.007"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.008"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-510, -549)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.008"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.009"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-510, -392)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = 1.100000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.011"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 1.100000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.007"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Solid Nearest"
     node.location = (-725, 78)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity.001"] = node
+    new_nodes["Geometry Proximity"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (-294, 78)
@@ -526,33 +678,45 @@ def create_geo_ng_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-294, -98)
     node.operation = "LESS_THAN"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.010"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.008"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Self Nearest Solid Nearest"
     node.location = (-59, -255)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity"] = node
+    new_nodes["Geometry Proximity.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-59, -98)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.009"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (-59, 78)
@@ -561,12 +725,18 @@ def create_geo_ng_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = 0.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: 0.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
     new_nodes["Mix.002"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
@@ -574,7 +744,7 @@ def create_geo_ng_thick_shrinkwrap():
     node.location = (-59, 274)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.008"] = node
+    new_nodes["Math.010"] = node
     # Group Input
     node = tree_nodes.new(type="NodeGroupInput")
     node.location = (-1000, 274)
@@ -584,68 +754,70 @@ def create_geo_ng_thick_shrinkwrap():
     node.location = (176, 196)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.005"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.011"] = node
     # create links
     tree_links = new_node_group.links
-    tree_links.new(new_nodes["Set Position"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Set Position"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Geometry Proximity.001"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.008"].inputs[2])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[0], new_nodes["Vector Math.002"].inputs[0])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.002"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[0], new_nodes["Vector Math.004"].inputs[0])
-    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Vector Math.004"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.005"].outputs[0], new_nodes["Set Position"].inputs[3])
-    tree_links.new(new_nodes["Math.008"].outputs[0], new_nodes["Math.001"].inputs[0])
-    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Math.003"].inputs[0])
-    tree_links.new(new_nodes["Math.003"].outputs[0], new_nodes["Vector Math"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math.008"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Vector Math.005"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.004"].outputs[0], new_nodes["Vector Math.005"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Geometry Proximity"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math.002"].inputs[0])
-    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Math.004"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Math.004"].inputs[0])
-    tree_links.new(new_nodes["Math.004"].outputs[0], new_nodes["Math.003"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math"].inputs[1])
-    tree_links.new(new_nodes["Mix.002"].outputs[0], new_nodes["Math.002"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Math.002"].inputs[2])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math.005"].inputs[0])
-    tree_links.new(new_nodes["Mix.002"].outputs[0], new_nodes["Math.005"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.006"].inputs[0])
-    tree_links.new(new_nodes["Math.005"].outputs[0], new_nodes["Math.006"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.007"].inputs[0])
-    tree_links.new(new_nodes["Math.006"].outputs[0], new_nodes["Math.007"].inputs[1])
-    tree_links.new(new_nodes["Math.007"].outputs[0], new_nodes["Math.001"].inputs[1])
-    tree_links.new(new_nodes["Position.002"].outputs[0], new_nodes["Geometry Proximity.001"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.011"].outputs[0], new_nodes["Vector Math.006"].inputs[0])
-    tree_links.new(new_nodes["Position.003"].outputs[0], new_nodes["Vector Math.011"].inputs[0])
-    tree_links.new(new_nodes["Math.011"].outputs[0], new_nodes["Raycast"].inputs[8])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Vector Math.009"].inputs[1])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Raycast"].inputs[6])
-    tree_links.new(new_nodes["Vector Math.007"].outputs[1], new_nodes["Math.010"].inputs[0])
-    tree_links.new(new_nodes["Math.010"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Math.010"].outputs[0], new_nodes["Mix.001"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.009"].outputs[0], new_nodes["Vector Math.008"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Vector Math.007"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Raycast"].inputs[7])
-    tree_links.new(new_nodes["Mix.001"].outputs[0], new_nodes["Vector Math.010"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.006"].outputs[0], new_nodes["Vector Math.010"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Vector Math.007"].inputs[0])
-    tree_links.new(new_nodes["Math.009"].outputs[0], new_nodes["Mix"].inputs[2])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Math.011"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[0], new_nodes["Vector Math.009"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[0], new_nodes["Vector Math.011"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.010"].outputs[0], new_nodes["Vector Math"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Math.009"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Mix"].inputs[3])
-    tree_links.new(new_nodes["Mix"].outputs[0], new_nodes["Math.008"].inputs[1])
-    tree_links.new(new_nodes["Mix"].outputs[0], new_nodes["Math"].inputs[0])
-    tree_links.new(new_nodes["Math.010"].outputs[0], new_nodes["Mix.002"].inputs[0])
-    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Mix.002"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Raycast"].inputs[0])
+    create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.010"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.002"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.001"], "Vector", 0, new_nodes["Vector Math.002"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Vector Math.003"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Vector Math.003"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.004"], "Vector", 0, new_nodes["Set Position"], "Offset", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.010"], "Value", 0, new_nodes["Math"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math"], "Value", 0, new_nodes["Math.002"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.002"], "Value", 0, new_nodes["Vector Math.001"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.010"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Factor", 0, new_nodes["Vector Math.004"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.003"], "Vector", 0, new_nodes["Vector Math.004"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.001"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.001"], "Value", 0, new_nodes["Math.003"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.003"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.003"], "Value", 0, new_nodes["Math.002"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Math.009"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.002"], "Result", 0, new_nodes["Math.001"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.001"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.011"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.002"], "Result", 0, new_nodes["Math.011"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.004"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.011"], "Value", 0, new_nodes["Math.004"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.005"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.004"], "Value", 0, new_nodes["Math.005"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.005"], "Value", 0, new_nodes["Math"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Position.003"], "Position", 0, new_nodes["Geometry Proximity"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math"], "Vector", 0, new_nodes["Vector Math.006"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Vector Math"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.007"], "Value", 0, new_nodes["Raycast"], "Ray Length", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.002"], "Position", 0, new_nodes["Vector Math.007"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Position.002"], "Position", 0, new_nodes["Raycast"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.008"], "Value", 0, new_nodes["Math.008"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.008"], "Value", 0, new_nodes["Mix.001"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.008"], "Value", 0, new_nodes["Mix"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.007"], "Vector", 0, new_nodes["Vector Math.009"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Vector Math.008"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Raycast"], "Ray Direction", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix"], "Result", 0, new_nodes["Vector Math.005"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.006"], "Vector", 0, new_nodes["Vector Math.005"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Normal", 0, new_nodes["Vector Math.008"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.006"], "Value", 0, new_nodes["Mix.001"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.007"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.007"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.005"], "Vector", 0, new_nodes["Vector Math.001"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.006"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Mix.001"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.001"], "Result", 0, new_nodes["Math.010"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.001"], "Result", 0, new_nodes["Math.009"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.008"], "Value", 0, new_nodes["Mix.002"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.009"], "Value", 0, new_nodes["Mix.002"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Raycast"], "Target Geometry", 0)
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group
@@ -660,27 +832,49 @@ def create_node_group_node_thick_shrinkwrap(node_tree, override_create):
 
 def create_geo_ng_directional_shrinkwrap():
     new_node_group = bpy.data.node_groups.new(name=DIRECTIONAL_SHRINKWRAP_GEO_NG_NAME, type='GeometryNodeTree')
+    
     # remove old group inputs and outputs
-    new_node_group.inputs.clear()
-    new_node_group.outputs.clear()
+    if bpy.app.version >= (4, 0, 0):
+        for item in new_node_group.interface.items_tree:
+            if item.item_type == 'SOCKET':
+                new_node_group.interface.remove(item)
+    else:
+        new_node_group.inputs.clear()
+        new_node_group.outputs.clear()
     # create new group inputs and outputs
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
-    new_input.default_value = 1.000000
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
-    new_input.default_value = 3.4028234663852886e+38
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
-    new_input.min_value = 0.000000
-    new_input.max_value = 1.000000
-    new_input.default_value = 1.000000
-    new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
+    new_in_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_in_socket[0] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Factor", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Solid Target", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Direction Target", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Min Distance", in_out='INPUT')
+        new_in_socket[5] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Max Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Relative Offset Factor", in_out='INPUT')
+        new_in_socket[8] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Direction Factor", in_out='INPUT')
+    else:
+        new_in_socket[0] = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+        new_in_socket[5] = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
+        new_in_socket[8] = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
+    new_in_socket[0].default_value = 1.000000
+    new_in_socket[5].default_value = 340282346638528859811704183484516925440.000000
+    new_in_socket[8].min_value = 0.000000
+    new_in_socket[8].max_value = 1.000000
+    new_in_socket[8].default_value = 1.000000
+    new_out_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
+    else:
+        new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
     tree_nodes = new_node_group.nodes
-    # delete all nodes
+    # delete all existing nodes before creating new nodes
     tree_nodes.clear()
     # create nodes
     new_nodes = {}
@@ -689,45 +883,57 @@ def create_geo_ng_directional_shrinkwrap():
     node.location = (510, 0)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = -1.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.010"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: -1.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (510, -196)
     node.operation = "DOT_PRODUCT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.016"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (255, -274)
-    new_nodes["Position.004"] = node
+    new_nodes["Position"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (0, -568)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.008"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.001"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-176, -706)
-    new_nodes["Position.003"] = node
+    new_nodes["Position.001"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Direction Nearest"
     node.location = (0, -706)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity.001"] = node
+    new_nodes["Geometry Proximity"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (0, 39)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = 2.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.007"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 2.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.001"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (0, -118)
@@ -736,27 +942,39 @@ def create_geo_ng_directional_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.001"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (0, -294)
     node.operation = "GREATER_THAN"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.008"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (0, -451)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.009"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.002"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (255, 39)
@@ -768,9 +986,13 @@ def create_geo_ng_directional_shrinkwrap():
     node.location = (745, -176)
     node.operation = "LESS_THAN"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.009"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.003"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (745, 0)
@@ -779,54 +1001,70 @@ def create_geo_ng_directional_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.003"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.label = "Relative Distance"
     node.location = (1000, 137)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.003"] = node
+    new_nodes["Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1000, 451)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
     new_nodes["Math.005"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1000, 294)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
     new_nodes["Math.006"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (1000, -333)
-    new_nodes["Position.006"] = node
+    new_nodes["Position.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Direction"
     node.location = (1000, -78)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.015"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Delta"
     node.location = (1000, -196)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.017"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.004"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (1235, -39)
@@ -835,37 +1073,53 @@ def create_geo_ng_directional_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = -1.000000
-    node.inputs[3].default_value = 1.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: -1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
     new_nodes["Mix.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Direction"
     node.location = (1235, 98)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.012"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.005"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (1235, 235)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.004"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.006"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Output"
     node.location = (1235, 372)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.005"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.007"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.label = "Apply Direction Factor"
@@ -875,12 +1129,18 @@ def create_geo_ng_directional_shrinkwrap():
     node.clamp_result = False
     node.data_type = "VECTOR"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = 0.000000
-    node.inputs[3].default_value = 0.000000
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: 0.000000,
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 0.000000,
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.003"] = node
     # Group Output
     node = tree_nodes.new(type="NodeGroupOutput")
     node.location = (1901, 1058)
@@ -892,89 +1152,111 @@ def create_geo_ng_directional_shrinkwrap():
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (1686, 627)
-    new_nodes["Position.005"] = node
+    new_nodes["Position.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (1686, 764)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.010"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.008"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Apply Factor"
     node.location = (1686, 902)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.011"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.009"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-470, -274)
-    new_nodes["Position"] = node
+    new_nodes["Position.004"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-235, 78)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.010"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Delta"
     node.location = (-235, -176)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.001"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.011"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-235, -333)
-    new_nodes["Position.001"] = node
+    new_nodes["Position.005"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Output"
     node.location = (-235, 216)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.002"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.012"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (-235, -59)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.003"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.013"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.label = "Relative Distance"
     node.location = (-470, 59)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math"] = node
+    new_nodes["Math.007"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-470, 216)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.001"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.008"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-470, 372)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.002"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.009"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Solid Nearest"
     node.location = (-470, -118)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity"] = node
+    new_nodes["Geometry Proximity.001"] = node
     # Group Input
     node = tree_nodes.new(type="NodeGroupInput")
     node.location = (-745, 176)
@@ -984,77 +1266,79 @@ def create_geo_ng_directional_shrinkwrap():
     node.location = (1235, 588)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.004"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.010"] = node
     # create links
     tree_links = new_node_group.links
-    tree_links.new(new_nodes["Set Position"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Set Position"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Geometry Proximity"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math"].inputs[2])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.001"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Vector Math.003"].inputs[0])
-    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Vector Math.001"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.002"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Vector Math"].inputs[0])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.002"].inputs[1])
-    tree_links.new(new_nodes["Position.005"].outputs[0], new_nodes["Vector Math.010"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.011"].outputs[0], new_nodes["Set Position"].inputs[3])
-    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Math.001"].inputs[1])
-    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Math.002"].inputs[1])
-    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Vector Math"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Vector Math.011"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.010"].outputs[0], new_nodes["Vector Math.011"].inputs[0])
-    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
-    tree_links.new(new_nodes["Position.003"].outputs[0], new_nodes["Geometry Proximity.001"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Geometry Proximity.001"].inputs[0])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Raycast"].inputs[6])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[0], new_nodes["Vector Math.008"].inputs[0])
-    tree_links.new(new_nodes["Position.003"].outputs[0], new_nodes["Vector Math.008"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Vector Math.009"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.009"].outputs[0], new_nodes["Raycast"].inputs[7])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Raycast"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.001"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.002"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.004"].outputs[0], new_nodes["Vector Math.005"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math.003"].inputs[2])
-    tree_links.new(new_nodes["Math.003"].outputs[0], new_nodes["Math.006"].inputs[1])
-    tree_links.new(new_nodes["Math.006"].outputs[0], new_nodes["Math.005"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math.003"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.006"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.005"].inputs[0])
-    tree_links.new(new_nodes["Math.005"].outputs[0], new_nodes["Vector Math.004"].inputs[3])
-    tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Vector Math.005"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[0], new_nodes["Math.004"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Math.004"].inputs[0])
-    tree_links.new(new_nodes["Math.007"].outputs[0], new_nodes["Raycast"].inputs[8])
-    tree_links.new(new_nodes["Math.004"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[0], new_nodes["Mix"].inputs[4])
-    tree_links.new(new_nodes["Vector Math.005"].outputs[0], new_nodes["Mix"].inputs[5])
-    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Vector Math.010"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.008"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Math.008"].inputs[1])
-    tree_links.new(new_nodes["Math.008"].outputs[0], new_nodes["Mix.001"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Mix.001"].inputs[2])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix.001"].inputs[3])
-    tree_links.new(new_nodes["Mix.001"].outputs[0], new_nodes["Math.007"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.017"].outputs[0], new_nodes["Vector Math.015"].inputs[0])
-    tree_links.new(new_nodes["Position.006"].outputs[0], new_nodes["Vector Math.017"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.016"].outputs[1], new_nodes["Math.009"].inputs[0])
-    tree_links.new(new_nodes["Math.009"].outputs[0], new_nodes["Mix.003"].inputs[0])
-    tree_links.new(new_nodes["Math.009"].outputs[0], new_nodes["Mix.002"].inputs[0])
-    tree_links.new(new_nodes["Mix.002"].outputs[0], new_nodes["Vector Math.012"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.015"].outputs[0], new_nodes["Vector Math.012"].inputs[0])
-    tree_links.new(new_nodes["Math.010"].outputs[0], new_nodes["Mix.003"].inputs[2])
-    tree_links.new(new_nodes["Vector Math.009"].outputs[0], new_nodes["Vector Math.016"].inputs[1])
-    tree_links.new(new_nodes["Raycast"].outputs[3], new_nodes["Math.010"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[3], new_nodes["Mix.003"].inputs[3])
-    tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Vector Math.016"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Vector Math.017"].inputs[1])
-    tree_links.new(new_nodes["Mix.003"].outputs[0], new_nodes["Math.003"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.012"].outputs[0], new_nodes["Vector Math.004"].inputs[0])
+    create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.007"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Math.007"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Position", 0, new_nodes["Vector Math.011"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.011"], "Vector", 0, new_nodes["Vector Math.013"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.005"], "Position", 0, new_nodes["Vector Math.011"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Position", 0, new_nodes["Vector Math.012"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.013"], "Vector", 0, new_nodes["Vector Math.010"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.010"], "Vector", 0, new_nodes["Vector Math.012"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Position.003"], "Position", 0, new_nodes["Vector Math.008"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Set Position"], "Offset", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.007"], "Value", 0, new_nodes["Math.008"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.008"], "Value", 0, new_nodes["Math.009"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.009"], "Value", 0, new_nodes["Vector Math.010"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.007"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Factor", 0, new_nodes["Vector Math.009"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.008"], "Vector", 0, new_nodes["Vector Math.009"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.004"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Geometry Proximity"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Raycast"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.001"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Vector Math.001"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.001"], "Vector", 0, new_nodes["Vector Math.002"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Raycast"], "Ray Direction", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Raycast"], "Target Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.008"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.009"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.006"], "Vector", 0, new_nodes["Vector Math.007"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.004"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Math.004"], "Value", 0, new_nodes["Math.006"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.006"], "Value", 0, new_nodes["Math.005"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.004"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.006"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.005"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.005"], "Value", 0, new_nodes["Vector Math.006"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.007"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Is Hit", 0, new_nodes["Math.010"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Factor", 0, new_nodes["Math.010"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.001"], "Value", 0, new_nodes["Raycast"], "Ray Length", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.010"], "Value", 0, new_nodes["Mix.003"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.012"], "Vector", 0, new_nodes["Mix.003"], "A", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.007"], "Vector", 0, new_nodes["Mix.003"], "B", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.003"], "Result", 1, new_nodes["Vector Math.008"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Math.002"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.002"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.002"], "Value", 0, new_nodes["Mix"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Mix"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Mix"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix"], "Result", 0, new_nodes["Math.001"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.004"], "Vector", 0, new_nodes["Vector Math.003"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.002"], "Position", 0, new_nodes["Vector Math.004"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math"], "Value", 0, new_nodes["Math.003"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.003"], "Value", 0, new_nodes["Mix.001"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.003"], "Value", 0, new_nodes["Mix.002"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.002"], "Result", 0, new_nodes["Vector Math.005"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.003"], "Vector", 0, new_nodes["Vector Math.005"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Math"], "Value", 0, new_nodes["Mix.001"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Vector Math"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Distance", 0, new_nodes["Math"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Distance", 0, new_nodes["Mix.001"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Normal", 0, new_nodes["Vector Math"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.004"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.001"], "Result", 0, new_nodes["Math.004"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.005"], "Vector", 0, new_nodes["Vector Math.006"], "Vector", 0)
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group
@@ -1069,29 +1353,52 @@ def create_node_group_node_directional_shrinkwrap(node_tree, override_create):
 
 def create_geo_ng_directional_thick_shrinkwrap():
     new_node_group = bpy.data.node_groups.new(name=DIRECTIONAL_THICK_SHRINKWRAP_GEO_NG_NAME, type='GeometryNodeTree')
+
     # remove old group inputs and outputs
-    new_node_group.inputs.clear()
-    new_node_group.outputs.clear()
+    if bpy.app.version >= (4, 0, 0):
+        for item in new_node_group.interface.items_tree:
+            if item.item_type == 'SOCKET':
+                new_node_group.interface.remove(item)
+    else:
+        new_node_group.inputs.clear()
+        new_node_group.outputs.clear()
     # create new group inputs and outputs
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
-    new_input.default_value = 1.000000
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
-    new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
-    new_input.default_value = 3.4028234663852886e+38
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
-    new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
-    new_input.default_value = 1.000000
-    new_input = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
-    new_input.min_value = 0.000000
-    new_input.max_value = 1.000000
-    new_input.default_value = 1.000000
-    new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
+    new_in_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_in_socket[0] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Factor", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Solid Target", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Direction Target", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Min Distance", in_out='INPUT')
+        new_in_socket[5] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Max Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Distance", in_out='INPUT')
+        new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Relative Offset Factor", in_out='INPUT')
+        new_in_socket[8] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Thick Factor", in_out='INPUT')
+        new_in_socket[9] = new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Direction Factor", in_out='INPUT')
+    else:
+        new_in_socket[0] = new_node_group.inputs.new(type='NodeSocketFloat', name="Factor")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Geometry")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Solid Target")
+        new_node_group.inputs.new(type='NodeSocketGeometry', name="Direction Target")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Min Distance")
+        new_in_socket[5] = new_node_group.inputs.new(type='NodeSocketFloat', name="Max Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Distance")
+        new_node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
+        new_in_socket[8] = new_node_group.inputs.new(type='NodeSocketFloat', name="Thick Factor")
+        new_in_socket[9] = new_node_group.inputs.new(type='NodeSocketFloat', name="Direction Factor")
+    new_in_socket[0].default_value = 1.000000
+    new_in_socket[5].default_value = 340282346638528859811704183484516925440.000000
+    new_in_socket[8].default_value = 1.000000
+    new_in_socket[9].min_value = 0.000000
+    new_in_socket[9].max_value = 1.000000
+    new_in_socket[9].default_value = 1.000000
+    new_out_socket = {}
+    if bpy.app.version >= (4, 0, 0):
+        new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
+    else:
+        new_node_group.outputs.new(type='NodeSocketGeometry', name="Geometry")
     tree_nodes = new_node_group.nodes
-    # delete all nodes
+    # delete all existing nodes before creating new nodes
     tree_nodes.clear()
     # create nodes
     new_nodes = {}
@@ -1100,28 +1407,36 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.location = (216, 196)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.005"] = node
+    new_nodes["Math"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-39, 353)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.006"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-39, 196)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.008"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (431, 372)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.005"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (902, -216)
@@ -1130,20 +1445,30 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.001"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (902, -59)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = 2.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.020"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 2.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.003"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (1137, 176)
@@ -1155,49 +1480,61 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.location = (2078, 353)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.011"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (2078, 196)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.015"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.005"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (2078, 39)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.016"] = node
+    new_nodes["Math.006"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, 529)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.009"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.007"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, 353)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.010"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.008"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, 725)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.012"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.009"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, 196)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.013"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.010"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (1607, 176)
@@ -1206,118 +1543,158 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.003"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.label = "Relative Distance"
     node.location = (1607, 353)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math.014"] = node
+    new_nodes["Math.011"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Output"
     node.location = (2489, 549)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.006"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.001"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Direction"
     node.location = (2489, 137)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.007"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.002"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (2489, -118)
-    new_nodes["Position.005"] = node
+    new_nodes["Position"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Delta"
     node.location = (2489, 20)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.011"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Direction Away Direction"
     node.location = (2489, 274)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.012"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.004"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (2489, 412)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.008"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.005"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (1137, -137)
-    new_nodes["Position.002"] = node
+    new_nodes["Position.001"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1372, 98)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = -1.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.023"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: -1.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.012"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (1372, -98)
     node.operation = "DOT_PRODUCT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.016"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.006"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1607, 0)
     node.operation = "LESS_THAN"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.022"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.013"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, 39)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.019"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.014"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, -451)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.018"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.015"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Self Nearest Solid Nearest"
     node.location = (1842, -608)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity.003"] = node
+    new_nodes["Geometry Proximity"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (1842, -294)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.017"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.016"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (1842, -118)
@@ -1326,27 +1703,37 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = 0.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.004"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: 0.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.002"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (902, -392)
     node.operation = "GREATER_THAN"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.021"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.017"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-39, -137)
     node.operation = "SUBTRACT"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.007"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.018"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Self Nearest Solid Nearest"
@@ -1357,9 +1744,11 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-490, -470)
     node.operation = "DOT_PRODUCT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.014"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.007"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (-490, -137)
@@ -1368,47 +1757,67 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.005"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.003"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-490, -314)
     node.operation = "LESS_THAN"
     node.use_clamp = False
-    node.inputs[1].default_value = 0.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.024"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 0.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.019"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-706, -862)
-    new_nodes["Position.006"] = node
+    new_nodes["Position.002"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-706, -725)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.017"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.008"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (-706, -608)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.015"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.009"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-706, -137)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = -1.000000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.025"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: -1.000000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.020"] = node
     # Raycast
     node = tree_nodes.new(type="GeometryNodeRaycast")
     node.location = (-706, -294)
@@ -1420,19 +1829,23 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.location = (-902, -510)
     node.operation = "MULTIPLY"
     node.use_clamp = False
-    node.inputs[1].default_value = 1.100000
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.026"] = node
+    set_node_io_values(node, True, {
+        "Value": {
+            1: 1.100000,
+            2: 0.500000,
+            },
+        })
+    new_nodes["Math.021"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (-1117, -412)
-    new_nodes["Position.001"] = node
+    new_nodes["Position.003"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Solid Nearest"
     node.location = (-1117, -255)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity"] = node
+    new_nodes["Geometry Proximity.002"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (-39, 39)
@@ -1441,103 +1854,135 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = 0.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.006"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: 0.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.004"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-39, 510)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.002"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.022"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (-39, 666)
     node.operation = "MINIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.001"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.023"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (216, 353)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.004"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.024"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.location = (216, 510)
     node.operation = "MAXIMUM"
     node.use_clamp = False
-    node.inputs[2].default_value = 0.500000
-    new_nodes["Math.003"] = node
+    set_node_io_values(node, True, {
+        "Value": { 2: 0.500000 },
+        })
+    new_nodes["Math.025"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (647, -294)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.004"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.010"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (451, -431)
-    new_nodes["Position.003"] = node
+    new_nodes["Position.004"] = node
     # Geometry Proximity
     node = tree_nodes.new(type="GeometryNodeProximity")
     node.label = "Direction Nearest"
     node.location = (647, -431)
     node.target_element = "FACES"
-    new_nodes["Geometry Proximity.002"] = node
+    new_nodes["Geometry Proximity.003"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (647, -176)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.003"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.011"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Output"
     node.location = (431, 510)
     node.operation = "ADD"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.001"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.012"] = node
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (431, -157)
-    new_nodes["Position"] = node
+    new_nodes["Position.005"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Delta"
     node.location = (431, -20)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.013"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (431, 98)
     node.operation = "NORMALIZE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.002"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.014"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Solid Away Direction"
     node.location = (431, 235)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.013"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.015"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (216, -78)
@@ -1546,14 +1991,20 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = -1.000000
-    node.inputs[3].default_value = 1.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.007"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: -1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.005"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (2293, 98)
@@ -1562,22 +2013,32 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "FLOAT"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = -1.000000
-    node.inputs[3].default_value = 1.000000
-    node.inputs[4].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[5].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix.002"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: -1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 1.000000,
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.006"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.label = "Apply Factor"
     node.location = (2705, 1019)
     node.operation = "SCALE"
-    node.inputs[1].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    new_nodes["Vector Math.010"] = node
+    set_node_io_values(node, True, {
+        "Vector": {
+            1: (0.000000, 0.000000, 0.000000),
+            2: (0.000000, 0.000000, 0.000000),
+            },
+        })
+    new_nodes["Vector Math.016"] = node
     # Set Position
     node = tree_nodes.new(type="GeometryNodeSetPosition")
     node.location = (2705, 1176)
@@ -1589,14 +2050,16 @@ def create_geo_ng_directional_thick_shrinkwrap():
     # Position
     node = tree_nodes.new(type="GeometryNodeInputPosition")
     node.location = (2705, 745)
-    new_nodes["Position.004"] = node
+    new_nodes["Position.006"] = node
     # Vector Math
     node = tree_nodes.new(type="ShaderNodeVectorMath")
     node.location = (2705, 882)
     node.operation = "SUBTRACT"
-    node.inputs[2].default_value = (0.000000, 0.000000, 0.000000)
-    node.inputs[3].default_value = 1.000000
-    new_nodes["Vector Math.009"] = node
+    set_node_io_values(node, True, {
+        "Vector": { 2: (0.000000, 0.000000, 0.000000) },
+        "Scale": { 0: 1.000000 },
+        })
+    new_nodes["Vector Math.017"] = node
     # Mix
     node = tree_nodes.new(type="ShaderNodeMix")
     node.location = (2489, 764)
@@ -1605,144 +2068,150 @@ def create_geo_ng_directional_thick_shrinkwrap():
     node.clamp_result = False
     node.data_type = "VECTOR"
     node.factor_mode = "UNIFORM"
-    node.inputs[1].default_value = (0.500000, 0.500000, 0.500000)
-    node.inputs[2].default_value = 0.000000
-    node.inputs[3].default_value = 0.000000
-    node.inputs[6].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    node.inputs[7].default_value = (0.500000, 0.500000, 0.500000, 1.000000)
-    new_nodes["Mix"] = node
+    set_node_io_values(node, True, {
+        "Factor": { 1: (0.500000, 0.500000, 0.500000) },
+        "A": {
+            0: 0.000000,
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        "B": {
+            0: 0.000000,
+            2: (0.500000, 0.500000, 0.500000, 1.000000),
+            },
+        })
+    new_nodes["Mix.007"] = node
     # Math
     node = tree_nodes.new(type="ShaderNodeMath")
     node.label = "Relative Distance"
     node.location = (-255, 588)
     node.operation = "MULTIPLY_ADD"
     node.use_clamp = False
-    new_nodes["Math"] = node
+    new_nodes["Math.026"] = node
     # Group Input
     node = tree_nodes.new(type="NodeGroupInput")
     node.location = (-1470, 255)
     new_nodes["Group Input"] = node
     # create links
     tree_links = new_node_group.links
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Geometry Proximity"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math"].inputs[2])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math"].inputs[1])
-    tree_links.new(new_nodes["Vector Math"].outputs[0], new_nodes["Vector Math.002"].inputs[0])
-    tree_links.new(new_nodes["Position"].outputs[0], new_nodes["Vector Math"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.001"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.005"].outputs[0], new_nodes["Vector Math.001"].inputs[1])
-    tree_links.new(new_nodes["Math"].outputs[0], new_nodes["Math.001"].inputs[0])
-    tree_links.new(new_nodes["Math.001"].outputs[0], new_nodes["Math.003"].inputs[0])
-    tree_links.new(new_nodes["Math.003"].outputs[0], new_nodes["Vector Math.005"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Geometry Proximity.001"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Geometry Proximity.001"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Math.005"].inputs[0])
-    tree_links.new(new_nodes["Math.005"].outputs[0], new_nodes["Math.004"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.004"].inputs[0])
-    tree_links.new(new_nodes["Math.004"].outputs[0], new_nodes["Math.003"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.007"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.001"].outputs[1], new_nodes["Math.007"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.005"].inputs[2])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Math.008"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.006"].inputs[0])
-    tree_links.new(new_nodes["Math.008"].outputs[0], new_nodes["Math.006"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.002"].inputs[0])
-    tree_links.new(new_nodes["Math.006"].outputs[0], new_nodes["Math.002"].inputs[1])
-    tree_links.new(new_nodes["Math.002"].outputs[0], new_nodes["Math.001"].inputs[1])
-    tree_links.new(new_nodes["Position.001"].outputs[0], new_nodes["Geometry Proximity"].inputs[1])
-    tree_links.new(new_nodes["Position.003"].outputs[0], new_nodes["Geometry Proximity.002"].inputs[1])
-    tree_links.new(new_nodes["Position.002"].outputs[0], new_nodes["Raycast"].inputs[6])
-    tree_links.new(new_nodes["Geometry Proximity.002"].outputs[0], new_nodes["Vector Math.004"].inputs[0])
-    tree_links.new(new_nodes["Position.003"].outputs[0], new_nodes["Vector Math.004"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.004"].outputs[0], new_nodes["Vector Math.003"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Raycast"].inputs[7])
-    tree_links.new(new_nodes["Vector Math.011"].outputs[0], new_nodes["Vector Math.007"].inputs[0])
-    tree_links.new(new_nodes["Position.005"].outputs[0], new_nodes["Vector Math.011"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Vector Math.011"].inputs[1])
-    tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Vector Math.006"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[0], new_nodes["Math.012"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[3], new_nodes["Geometry Proximity.002"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Raycast"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[9], new_nodes["Math.012"].inputs[0])
-    tree_links.new(new_nodes["Position.004"].outputs[0], new_nodes["Vector Math.009"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.010"].outputs[0], new_nodes["Set Position"].inputs[3])
-    tree_links.new(new_nodes["Vector Math.009"].outputs[0], new_nodes["Vector Math.010"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[0], new_nodes["Vector Math.010"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[6], new_nodes["Math.014"].inputs[2])
-    tree_links.new(new_nodes["Group Input"].outputs[7], new_nodes["Math.014"].inputs[0])
-    tree_links.new(new_nodes["Math.009"].outputs[0], new_nodes["Math.011"].inputs[0])
-    tree_links.new(new_nodes["Math.011"].outputs[0], new_nodes["Vector Math.008"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Geometry Proximity.003"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Math.016"].inputs[0])
-    tree_links.new(new_nodes["Math.016"].outputs[0], new_nodes["Math.015"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.015"].inputs[0])
-    tree_links.new(new_nodes["Math.015"].outputs[0], new_nodes["Math.011"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity.003"].outputs[1], new_nodes["Math.018"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[4], new_nodes["Math.016"].inputs[2])
-    tree_links.new(new_nodes["Group Input"].outputs[8], new_nodes["Math.019"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.013"].inputs[0])
-    tree_links.new(new_nodes["Math.019"].outputs[0], new_nodes["Math.013"].inputs[1])
-    tree_links.new(new_nodes["Group Input"].outputs[5], new_nodes["Math.010"].inputs[0])
-    tree_links.new(new_nodes["Math.013"].outputs[0], new_nodes["Math.010"].inputs[1])
-    tree_links.new(new_nodes["Math.010"].outputs[0], new_nodes["Math.009"].inputs[1])
-    tree_links.new(new_nodes["Math.014"].outputs[0], new_nodes["Math.009"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.008"].outputs[0], new_nodes["Vector Math.006"].inputs[1])
-    tree_links.new(new_nodes["Raycast"].outputs[1], new_nodes["Geometry Proximity.003"].inputs[1])
-    tree_links.new(new_nodes["Raycast"].outputs[3], new_nodes["Math.018"].inputs[0])
-    tree_links.new(new_nodes["Set Position"].outputs[0], new_nodes["Group Output"].inputs[0])
-    tree_links.new(new_nodes["Group Input"].outputs[1], new_nodes["Set Position"].inputs[0])
-    tree_links.new(new_nodes["Math.018"].outputs[0], new_nodes["Math.017"].inputs[0])
-    tree_links.new(new_nodes["Math.021"].outputs[0], new_nodes["Mix.001"].inputs[0])
-    tree_links.new(new_nodes["Mix.001"].outputs[0], new_nodes["Math.020"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix.001"].inputs[3])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.021"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity.002"].outputs[1], new_nodes["Math.021"].inputs[1])
-    tree_links.new(new_nodes["Geometry Proximity.002"].outputs[1], new_nodes["Mix.001"].inputs[2])
-    tree_links.new(new_nodes["Math.020"].outputs[0], new_nodes["Raycast"].inputs[8])
-    tree_links.new(new_nodes["Math.012"].outputs[0], new_nodes["Mix"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.001"].outputs[0], new_nodes["Mix"].inputs[4])
-    tree_links.new(new_nodes["Vector Math.006"].outputs[0], new_nodes["Mix"].inputs[5])
-    tree_links.new(new_nodes["Mix"].outputs[1], new_nodes["Vector Math.009"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.016"].outputs[1], new_nodes["Math.022"].inputs[0])
-    tree_links.new(new_nodes["Math.022"].outputs[0], new_nodes["Mix.003"].inputs[0])
-    tree_links.new(new_nodes["Math.022"].outputs[0], new_nodes["Mix.002"].inputs[0])
-    tree_links.new(new_nodes["Mix.002"].outputs[0], new_nodes["Vector Math.012"].inputs[3])
-    tree_links.new(new_nodes["Math.023"].outputs[0], new_nodes["Mix.003"].inputs[2])
-    tree_links.new(new_nodes["Vector Math.003"].outputs[0], new_nodes["Vector Math.016"].inputs[1])
-    tree_links.new(new_nodes["Raycast"].outputs[2], new_nodes["Vector Math.016"].inputs[0])
-    tree_links.new(new_nodes["Raycast"].outputs[3], new_nodes["Mix.003"].inputs[3])
-    tree_links.new(new_nodes["Raycast"].outputs[3], new_nodes["Math.023"].inputs[0])
-    tree_links.new(new_nodes["Mix.003"].outputs[0], new_nodes["Math.014"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.007"].outputs[0], new_nodes["Vector Math.012"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.012"].outputs[0], new_nodes["Vector Math.008"].inputs[0])
-    tree_links.new(new_nodes["Math.022"].outputs[0], new_nodes["Mix.004"].inputs[0])
-    tree_links.new(new_nodes["Math.017"].outputs[0], new_nodes["Mix.004"].inputs[3])
-    tree_links.new(new_nodes["Mix.004"].outputs[0], new_nodes["Math.016"].inputs[1])
-    tree_links.new(new_nodes["Mix.004"].outputs[0], new_nodes["Math.019"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.014"].outputs[1], new_nodes["Math.024"].inputs[0])
-    tree_links.new(new_nodes["Math.024"].outputs[0], new_nodes["Mix.005"].inputs[0])
-    tree_links.new(new_nodes["Math.024"].outputs[0], new_nodes["Mix.007"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.015"].outputs[0], new_nodes["Vector Math.014"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.015"].outputs[0], new_nodes["Raycast.001"].inputs[7])
-    tree_links.new(new_nodes["Mix.007"].outputs[0], new_nodes["Vector Math.013"].inputs[3])
-    tree_links.new(new_nodes["Raycast.001"].outputs[2], new_nodes["Vector Math.014"].inputs[0])
-    tree_links.new(new_nodes["Math.025"].outputs[0], new_nodes["Mix.005"].inputs[2])
-    tree_links.new(new_nodes["Math.024"].outputs[0], new_nodes["Mix.006"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.025"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Mix.005"].inputs[3])
-    tree_links.new(new_nodes["Position.006"].outputs[0], new_nodes["Vector Math.017"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.017"].outputs[0], new_nodes["Vector Math.015"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[0], new_nodes["Vector Math.017"].inputs[0])
-    tree_links.new(new_nodes["Geometry Proximity"].outputs[1], new_nodes["Math.026"].inputs[0])
-    tree_links.new(new_nodes["Math.026"].outputs[0], new_nodes["Raycast.001"].inputs[8])
-    tree_links.new(new_nodes["Mix.005"].outputs[0], new_nodes["Math"].inputs[1])
-    tree_links.new(new_nodes["Math.007"].outputs[0], new_nodes["Mix.006"].inputs[3])
-    tree_links.new(new_nodes["Group Input"].outputs[2], new_nodes["Raycast.001"].inputs[0])
-    tree_links.new(new_nodes["Mix.006"].outputs[0], new_nodes["Math.008"].inputs[1])
-    tree_links.new(new_nodes["Mix.006"].outputs[0], new_nodes["Math.005"].inputs[1])
-    tree_links.new(new_nodes["Vector Math.002"].outputs[0], new_nodes["Vector Math.013"].inputs[0])
-    tree_links.new(new_nodes["Vector Math.013"].outputs[0], new_nodes["Vector Math.005"].inputs[0])
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.002"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.026"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Vector Math.013"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.013"], "Vector", 0, new_nodes["Vector Math.014"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.005"], "Position", 0, new_nodes["Vector Math.013"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Vector Math.012"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math"], "Vector", 0, new_nodes["Vector Math.012"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.026"], "Value", 0, new_nodes["Math.023"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.023"], "Value", 0, new_nodes["Math.025"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.025"], "Value", 0, new_nodes["Vector Math"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.026"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math"], "Value", 0, new_nodes["Math.024"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.024"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.024"], "Value", 0, new_nodes["Math.025"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Math.018"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Math.018"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.002"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.001"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.002"], "Value", 0, new_nodes["Math.001"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.022"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.001"], "Value", 0, new_nodes["Math.022"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.022"], "Value", 0, new_nodes["Math.023"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Position.003"], "Position", 0, new_nodes["Geometry Proximity.002"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.004"], "Position", 0, new_nodes["Geometry Proximity.003"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Raycast"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.003"], "Position", 0, new_nodes["Vector Math.010"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.004"], "Position", 0, new_nodes["Vector Math.010"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.010"], "Vector", 0, new_nodes["Vector Math.011"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.011"], "Vector", 0, new_nodes["Raycast"], "Ray Direction", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.003"], "Vector", 0, new_nodes["Vector Math.002"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Vector Math.003"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.003"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.001"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Is Hit", 0, new_nodes["Math.009"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity.003"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Raycast"], "Target Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Factor", 0, new_nodes["Math.009"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.006"], "Position", 0, new_nodes["Vector Math.017"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.016"], "Vector", 0, new_nodes["Set Position"], "Offset", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.017"], "Vector", 0, new_nodes["Vector Math.016"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Factor", 0, new_nodes["Vector Math.016"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.011"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.011"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.007"], "Value", 0, new_nodes["Math.004"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.004"], "Value", 0, new_nodes["Vector Math.005"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.006"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.006"], "Value", 0, new_nodes["Math.005"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.005"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.005"], "Value", 0, new_nodes["Math.004"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Distance", 0, new_nodes["Math.015"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.006"], "Value", 2)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.014"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.010"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.014"], "Value", 0, new_nodes["Math.010"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Max Distance", 0, new_nodes["Math.008"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.010"], "Value", 0, new_nodes["Math.008"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.008"], "Value", 0, new_nodes["Math.007"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.011"], "Value", 0, new_nodes["Math.007"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.005"], "Vector", 0, new_nodes["Vector Math.001"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Geometry Proximity"], "Source Position", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Distance", 0, new_nodes["Math.015"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.015"], "Value", 0, new_nodes["Math.016"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.017"], "Value", 0, new_nodes["Mix"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix"], "Result", 0, new_nodes["Math.003"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Mix"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Math.017"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.003"], "Distance", 0, new_nodes["Math.017"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.003"], "Distance", 0, new_nodes["Mix"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.003"], "Value", 0, new_nodes["Raycast"], "Ray Length", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.009"], "Value", 0, new_nodes["Mix.007"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.012"], "Vector", 0, new_nodes["Mix.007"], "A", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.001"], "Vector", 0, new_nodes["Mix.007"], "B", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.007"], "Result", 1, new_nodes["Vector Math.017"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.006"], "Value", 0, new_nodes["Math.013"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.013"], "Value", 0, new_nodes["Mix.001"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.013"], "Value", 0, new_nodes["Mix.006"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.006"], "Result", 0, new_nodes["Vector Math.004"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.012"], "Value", 0, new_nodes["Mix.001"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.011"], "Vector", 0, new_nodes["Vector Math.006"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Normal", 0, new_nodes["Vector Math.006"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Distance", 0, new_nodes["Mix.001"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Distance", 0, new_nodes["Math.012"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.001"], "Result", 0, new_nodes["Math.011"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Vector Math.004"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.004"], "Vector", 0, new_nodes["Vector Math.005"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.013"], "Value", 0, new_nodes["Mix.002"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.016"], "Value", 0, new_nodes["Mix.002"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.002"], "Result", 0, new_nodes["Math.006"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.002"], "Result", 0, new_nodes["Math.014"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.007"], "Value", 0, new_nodes["Math.019"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.019"], "Value", 0, new_nodes["Mix.003"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.019"], "Value", 0, new_nodes["Mix.005"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Vector Math.007"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.009"], "Vector", 0, new_nodes["Raycast.001"], "Ray Direction", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.005"], "Result", 0, new_nodes["Vector Math.015"], "Scale", 0)
+    create_nodetree_link(tree_links, new_nodes["Raycast.001"], "Hit Normal", 0, new_nodes["Vector Math.007"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.020"], "Value", 0, new_nodes["Mix.003"], "A", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.019"], "Value", 0, new_nodes["Mix.004"], "Factor", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Math.020"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Mix.003"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Position.002"], "Position", 0, new_nodes["Vector Math.008"], "Vector", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.008"], "Vector", 0, new_nodes["Vector Math.009"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Vector Math.008"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Distance", 0, new_nodes["Math.021"], "Value", 0)
+    create_nodetree_link(tree_links, new_nodes["Math.021"], "Value", 0, new_nodes["Raycast.001"], "Ray Length", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.003"], "Result", 0, new_nodes["Math.026"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Math.018"], "Value", 0, new_nodes["Mix.004"], "B", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Raycast.001"], "Target Geometry", 0)
+    create_nodetree_link(tree_links, new_nodes["Mix.004"], "Result", 0, new_nodes["Math.002"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Mix.004"], "Result", 0, new_nodes["Math"], "Value", 1)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.014"], "Vector", 0, new_nodes["Vector Math.015"], "Vector", 0)
+    create_nodetree_link(tree_links, new_nodes["Vector Math.015"], "Vector", 0, new_nodes["Vector Math"], "Vector", 0)
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_node_group

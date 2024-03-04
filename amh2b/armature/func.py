@@ -406,6 +406,11 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
     # ensure these armatures are selected in order to get their edit_bone.roll values later
     script_state["source_object"].select_set(True)
     script_state["dest_object"].select_set(True)
+    if bpy.app.version >= (4, 0, 0):
+        if "Src Bones" not in xfer_arm.collections:
+            xfer_arm.collections.new("Src Bones")
+        if "Dest Bones" not in xfer_arm.collections:
+            xfer_arm.collections.new("Dest Bones")
     bpy.ops.object.mode_set(mode='EDIT')
     for d in op_data:
         if not isinstance(d, tuple):
@@ -436,10 +441,6 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
         if xfer_dest_bone is None:
             xfer_dest_bone = xfer_arm.edit_bones.new(dest_bone_name)
         dest_bone_name = xfer_dest_bone.name
-        # put new bones in first and second layers
-        for i in range(32):
-            xfer_source_bone.layers[i] = i == 0
-            xfer_dest_bone.layers[i] = i == 1
         # copy source bone exactly to Transfer Armature
         xfer_source_bone.head.x = source_arm.edit_bones[source_bone_name].head.x
         xfer_source_bone.head.y = source_arm.edit_bones[source_bone_name].head.y
@@ -471,6 +472,17 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
         xfer_dest_bone.parent = xfer_source_bone
         # keep references to bones so bone constraints can be added later
         constraint_inputs.append( (source_bone_name, dest_bone_name, xfer_source_bone.name, xfer_dest_bone.name) )
+
+        if bpy.app.version >= (4, 0 , 0):
+            # put new bones in their own layer collections
+            xfer_arm.collections["Src Bones"].assign(xfer_source_bone)
+            xfer_arm.collections["Dest Bones"].assign(xfer_dest_bone)
+            pass
+        else:
+            # put new bones in first and second layers
+            for i in range(32):
+                xfer_source_bone.layers[i] = i == 0
+                xfer_dest_bone.layers[i] = i == 1
 
     # add constraints in Pose mode
     bpy.ops.object.mode_set(mode='POSE')

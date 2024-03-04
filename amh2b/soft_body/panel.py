@@ -42,7 +42,7 @@ def draw_panel_soft_body(self, context, box):
         layout.separator()
         layout.operator(AMH2B_OT_FinishSoftBodyWeightCalc.bl_idname)
         layout.prop(a, "sb_apply_sk_mix")
-        if act_ob.type != 'MESH' or act_ob.data is None:
+        if act_ob is None or act_ob.type != 'MESH' or act_ob.data is None:
             layout.prop(a, "sb_weight_geo_modifier", text="")
         else:
             layout.prop_search(a, "sb_weight_geo_modifier", act_ob, "modifiers", text="")

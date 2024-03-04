@@ -16,6 +16,8 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+from ..node_other import (set_node_io_values, create_nodetree_link)
+
 def create_weight_test_mat_nodes(material, goal_vg_name, mask_vg_name, mass_vg_name, spring_vg_name):
     tree_nodes = material.node_tree.nodes
     # delete all nodes
@@ -30,10 +32,12 @@ def create_weight_test_mat_nodes(material, goal_vg_name, mask_vg_name, mass_vg_n
     # Emission
     node = tree_nodes.new(type="ShaderNodeEmission")
     node.location = (274, 314)
-    node.inputs[1].default_value = 1.000000
-    node.inputs[2].default_value = 0.000000
+    set_node_io_values(node, True, {
+        "Strength": { 0: 1.000000 },
+        "Weight": { 0: 0.000000 },
+        })
     new_nodes["Emission"] = node
-    # ColorRamp
+    # Color Ramp
     node = tree_nodes.new(type="ShaderNodeValToRGB")
     node.location = (-20, 314)
     node.color_ramp.color_mode = "RGB"
@@ -46,7 +50,7 @@ def create_weight_test_mat_nodes(material, goal_vg_name, mask_vg_name, mass_vg_n
     elem.color = (0.000000, 1.000000, 0.000000, 1.000000)
     elem = node.color_ramp.elements.new(1.000000)
     elem.color = (1.000000, 0.000000, 0.000000, 1.000000)
-    new_nodes["ColorRamp"] = node
+    new_nodes["Color Ramp"] = node
     # Attribute
     node = tree_nodes.new(type="ShaderNodeAttribute")
     node.location = (-333, 98)
@@ -73,9 +77,9 @@ def create_weight_test_mat_nodes(material, goal_vg_name, mask_vg_name, mass_vg_n
     new_nodes["Attribute"] = node
     # create links
     tree_links = material.node_tree.links
-    tree_links.new(new_nodes["ColorRamp"].outputs[0], new_nodes["Emission"].inputs[0])
-    tree_links.new(new_nodes["Emission"].outputs[0], new_nodes["Material Output"].inputs[0])
-    tree_links.new(new_nodes["Attribute"].outputs[2], new_nodes["ColorRamp"].inputs[0])
+    create_nodetree_link(tree_links, new_nodes["Color Ramp"], "Color", 0, new_nodes["Emission"], "Color", 0)
+    create_nodetree_link(tree_links, new_nodes["Emission"], "Emission", 0, new_nodes["Material Output"], "Surface", 0)
+    create_nodetree_link(tree_links, new_nodes["Attribute"], "Fac", 0, new_nodes["Color Ramp"], "Fac", 0)
     # deselect all new nodes
     for n in new_nodes.values(): n.select = False
     return new_nodes
