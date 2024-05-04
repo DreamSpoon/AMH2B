@@ -170,6 +170,11 @@ class AMH2B_OT_ApplyActionFrame(Operator):
     apply_action_scl_pow: FloatVectorProperty(name="Scale Power", description="Pose bone Action scale " \
         "values are raised to this value when applied, i.e. value = pow(value, scale_power)", subtype='XYZ',
         default=(1.0, 1.0, 1.0))
+    left_factor: FloatProperty(name="Left Factor", description="Left side bone values will be multiplied/raised " \
+        "to this value when applied", default=1.0)
+    right_factor: FloatProperty(name="Right Factor", description="Right side bone values will be multiplied/raised " \
+        "to this value when applied", default=1.0)
+    mirror: BoolProperty(name="Mirror", description="Left and right bone values will be swapped", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -186,11 +191,12 @@ class AMH2B_OT_ApplyActionFrame(Operator):
         rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
         scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, self.only_selected,
-                                       scn.frame_current, blend_factor=self.blend_factor)
+            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
+                                       self.right_factor, self.mirror, self.only_selected, scn.frame_current,
+                                       self.blend_factor)
         else:
-            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow, self.only_selected,
-                              blend_factor=self.blend_factor)
+            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
+                              self.right_factor, self.mirror, self.only_selected, blend_factor=self.blend_factor)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):

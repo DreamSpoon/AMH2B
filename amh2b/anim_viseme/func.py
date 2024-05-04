@@ -335,8 +335,42 @@ def get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale):
     scaled_quat_exp_map = build_quat.to_exponential_map() * rot_scale
     return Quaternion(scaled_quat_exp_map)
 
-def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame=None, result_action=None,
-                      use_defaults=None, blend_factor=1.0):
+def getBoneSideAndBaseName(bone_name):
+    lb_name = bone_name.lower()
+    if lb_name.startswith("left"):
+        return (0, bone_name[4:])
+    elif lb_name[0] == "l" and lb_name[1] in [".", "_", "-"]:
+        return (0, bone_name[2:])
+    elif lb_name.endswith("left"):
+        return (0, bone_name[:-4])
+    elif lb_name[-1] == "l" and lb_name[-2] in [".", "_", "-"]:
+        return (0, bone_name[:-2])
+    elif lb_name.startswith("right"):
+        return (1, bone_name[5:])
+    elif lb_name[0] == "r" and lb_name[1] in [".", "_", "-"]:
+        return (1, bone_name[2:])
+    elif lb_name.endswith("right"):
+        return (1, bone_name[:-5])
+    elif lb_name[-1] == "r" and lb_name[-2] in [".", "_", "-"]:
+        return (1, bone_name[:-2])
+    else:
+        return (-1, None)
+
+def getBoneLeftRightLookups(bone_names):
+    bone_side = {}
+    bone_base_lr = {}
+    for b_name in bone_names:
+        side, base_name = getBoneSideAndBaseName(b_name)
+        bone_side[b_name] = (side, base_name)
+        if side == -1:
+            continue
+        if base_name not in bone_base_lr:
+            bone_base_lr[base_name] = [ None, None ]
+        bone_base_lr[base_name][side] = b_name
+    return bone_side, bone_base_lr
+
+def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror, only_selected,
+                      frame=None, result_action=None, use_defaults=None, blend_factor=1.0):
     arm = ob.data
     if arm is None:
         return {}
@@ -346,6 +380,7 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
     if not is_bone_action(apply_action):
         return {}
     pose_bones = ob.pose.bones
+    bone_side_lookup, bone_base_lr_lookup = getBoneLeftRightLookups(pose_bones.keys())
     frame_data = {}
     for fc in apply_action.fcurves:
         if not fc.data_path.startswith("pose.bones["):
@@ -378,32 +413,54 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
     for data_path, indexed_values in frame_data.items():
         fc_tokens, _ = lex_py_attributes(data_path)
         bone_name = data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
+        bone_side = bone_side_lookup[bone_name][0]
+        if mirror and bone_side != -1:
+            bone_name = bone_base_lr_lookup[bone_side_lookup[bone_name][1]][1 - bone_side]
+            bone_side = 1 - bone_side
+            mirror_applied = True
+        else:
+            mirror_applied = False
+        if bone_side == -1:
+            bone_side_mult = 1.0
+        elif bone_side == 0:
+            bone_side_mult = left_factor
+        else:
+            bone_side_mult = right_factor
         thing_to_keyframe = get_thing_to_keyframe(ob, data_path, fc_tokens, bone_name)
         if thing_to_keyframe is None:
             continue
         prop_name = data_path[data_path.rfind(".")+1:]
         new_quat_value = None
         if prop_name == "rotation_quaternion":
-            new_quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult)
+            new_quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult * bone_side_mult)
             old_quat_value = pose_bones[bone_name].rotation_quaternion
         for array_index, value in indexed_values.items():
             if prop_name == "location":
-                value = value * loc_mult[array_index]
+                value = value * loc_mult[array_index] * bone_side_mult
+                if mirror_applied and array_index == 0:
+                    value = value * -1
                 if blend_factor != 1.0:
                     value *= blend_factor
                     value += pose_bones[bone_name].location[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_euler":
-                value = value * rot_mult
+                value = value * rot_mult * bone_side_mult
+                if mirror_applied and array_index in [ 1, 2 ]:
+                    value = value * -1
                 if blend_factor != 1.0:
                     value *= blend_factor
                     value += pose_bones[bone_name].rotation_euler[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_axis_angle":
                 if array_index == 0:
-                    value = value * rot_mult
+                    value = value * rot_mult * bone_side_mult
+                if mirror_applied and array_index in [ 0, 1 ]:
+                    value = value * -1
                 if blend_factor != 1.0:
                     value *= blend_factor
                     value += pose_bones[bone_name].rotation_axis_angle[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_quaternion" and new_quat_value != None:
+                if mirror_applied:
+                    new_quat_value[1] = -new_quat_value[1]
+                    new_quat_value[3] = -new_quat_value[3]
                 if blend_factor >= 0.0 and blend_factor <= 1.0:
                     blend_quat_value = old_quat_value.slerp(new_quat_value, blend_factor)
                 else:
@@ -414,8 +471,8 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
                 value = blend_quat_value[array_index]
             elif prop_name == "scale":
                 # prevent divide by zero exception
-                if value != 0.0 or scl_pow[array_index] >= 0.0:
-                    value = pow(value, scl_pow[array_index])
+                if value != 0.0 or scl_pow[array_index] * bone_side_mult >= 0.0:
+                    value = pow(value, scl_pow[array_index] * bone_side_mult)
                 if blend_factor != 1.0:
                     value *= blend_factor
                     value += pose_bones[bone_name].scale[array_index] * (1.0 - blend_factor)
@@ -460,14 +517,15 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selecte
                         setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
-def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame, blend_factor):
+def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
+                               only_selected, frame, blend_factor):
     # create animation / Action data if needed, before applying script
     if ob.animation_data is None:
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, only_selected, frame, ob.animation_data.action,
-                      blend_factor=blend_factor)
+    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
+                      only_selected, frame, ob.animation_data.action, blend_factor=blend_factor)
     do_tag_redraw()
 
 def convert_moho_file(filepath):
