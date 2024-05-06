@@ -434,6 +434,14 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor,
         if prop_name == "rotation_quaternion":
             new_quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult * bone_side_mult)
             old_quat_value = pose_bones[bone_name].rotation_quaternion
+        rotation_euler_mirror_axes = []
+        if prop_name == "rotation_euler":
+            if pose_bones[bone_name].rotation_mode in [ "XYZ", "XZY" ]:
+                rotation_euler_mirror_axes = [ 1, 2 ]
+            elif pose_bones[bone_name].rotation_mode in [ "YXZ", "ZXY" ]:
+                rotation_euler_mirror_axes = [ 0, 2 ]
+            elif pose_bones[bone_name].rotation_mode in [ "YZX", "ZYX" ]:
+                rotation_euler_mirror_axes = [ 0, 1 ]
         for array_index, value in indexed_values.items():
             if prop_name == "location":
                 value = value * loc_mult[array_index] * bone_side_mult
@@ -444,7 +452,7 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor,
                     value += pose_bones[bone_name].location[array_index] * (1.0 - blend_factor)
             elif prop_name == "rotation_euler":
                 value = value * rot_mult * bone_side_mult
-                if mirror_applied and array_index in [ 1, 2 ]:
+                if mirror_applied and array_index in rotation_euler_mirror_axes:
                     value = value * -1
                 if blend_factor != 1.0:
                     value *= blend_factor
