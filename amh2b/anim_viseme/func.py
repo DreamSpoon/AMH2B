@@ -337,22 +337,37 @@ def get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale):
 
 def getBoneSideAndBaseName(bone_name):
     lb_name = bone_name.lower()
+    # check for number extension and remove from name before doing left/right check
+    number_ext = ""
+    for c in reversed(lb_name):
+        if c in [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" ]:
+            number_ext = c + number_ext
+        elif c in [ ".", "-", "_" ]:
+            number_ext = c + number_ext
+            break
+        else:
+            break
+    ext_len = len(number_ext)
+    if ext_len > 0:
+        lb_name = lb_name[:-ext_len]
+        bone_name = bone_name[:-ext_len]
+    # check for left/right name and return left(0) or right(1) or center(-1), with base name (including number extension)
     if lb_name.startswith("left"):
-        return (0, bone_name[4:])
+        return (0, bone_name[4:] + number_ext)
     elif lb_name[0] == "l" and lb_name[1] in [".", "_", "-"]:
-        return (0, bone_name[2:])
+        return (0, bone_name[2:] + number_ext)
     elif lb_name.endswith("left"):
-        return (0, bone_name[:-4])
+        return (0, bone_name[:-4] + number_ext)
     elif lb_name[-1] == "l" and lb_name[-2] in [".", "_", "-"]:
-        return (0, bone_name[:-2])
+        return (0, bone_name[:-2] + number_ext)
     elif lb_name.startswith("right"):
-        return (1, bone_name[5:])
+        return (1, bone_name[5:] + number_ext)
     elif lb_name[0] == "r" and lb_name[1] in [".", "_", "-"]:
-        return (1, bone_name[2:])
+        return (1, bone_name[2:] + number_ext)
     elif lb_name.endswith("right"):
-        return (1, bone_name[:-5])
+        return (1, bone_name[:-5] + number_ext)
     elif lb_name[-1] == "r" and lb_name[-2] in [".", "_", "-"]:
-        return (1, bone_name[:-2])
+        return (1, bone_name[:-2] + number_ext)
     else:
         return (-1, None)
 
