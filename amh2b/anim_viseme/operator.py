@@ -20,13 +20,12 @@ import os
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import (BoolProperty, FloatProperty, FloatVectorProperty, StringProperty)
+from bpy.props import StringProperty
 from bpy.types import Operator
 
 from ..const import ADDON_BASE_FILE
 from .func import (load_action_frames_from_text, save_action_frames_to_text, load_action_frames_from_preset,
-    save_action_frames_to_preset, refresh_viseme_actions_presets, copy_action_frame, keyframe_copy_action_frame,
-    load_viseme_script_moho, playback_frames)
+    save_action_frames_to_preset, refresh_viseme_actions_presets, load_viseme_script_moho)
 from .func_word_viseme import (load_word_phonemes_dictionary, clear_word_phonemes_dictionary,
     refresh_phoneme_viseme_presets, viseme_keyframe_words_actions_string, viseme_keyframe_preview_text,
     viseme_keyframe_marker_words, get_word_phonemes_dictionary_len)
@@ -148,55 +147,6 @@ class AMH2B_OT_RefreshPhonemeVisemePresets(Operator):
 
     def execute(self, context):
         refresh_phoneme_viseme_presets()
-        return {'FINISHED'}
-
-class AMH2B_OT_ApplyActionFrame(Operator):
-    """Copy values at frame zero of selected Action to active object Pose bones. If 'Auto Keying' is enabled """ \
-        """then keyframes will be inserted in current Action"""
-    bl_idname = "amh2b.apply_action_frame"
-    bl_label = "Apply Action Frame"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    blend_factor: FloatProperty(name="Blend Factor", description="Blend between original location/rotation/scale " \
-        "values (0.0) and Action frame location/rotation/scale values (1.0)", default=1.0)
-    only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will be be modified",
-        default=False)
-    apply_action_uniform_mult: FloatProperty(name="Uniform Multiply", description="Pose bone Action rotation/" \
-        "location/scale values will be multiplied/raised to this value when applied", default=1.0)
-    apply_action_loc_mult: FloatVectorProperty(name="Location Multiply", description="Pose bone Action location " \
-        "values are multiplied by this value when applied", subtype='XYZ', default=(1.0, 1.0, 1.0))
-    apply_action_rot_mult: FloatProperty(name="Rotation Multiply", description="Pose bone Action rotation " \
-        "values are multiplied by this value when applied", default=1.0)
-    apply_action_scl_pow: FloatVectorProperty(name="Scale Power", description="Pose bone Action scale " \
-        "values are raised to this value when applied, i.e. value = pow(value, scale_power)", subtype='XYZ',
-        default=(1.0, 1.0, 1.0))
-    left_factor: FloatProperty(name="Left Factor", description="Left side bone values will be multiplied/raised " \
-        "to this value when applied", default=1.0)
-    right_factor: FloatProperty(name="Right Factor", description="Right side bone values will be multiplied/raised " \
-        "to this value when applied", default=1.0)
-    mirror: BoolProperty(name="Mirror", description="Left and right bone values will be swapped", default=False)
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object != None and context.active_object.type == 'ARMATURE' \
-            and len([ a for a in bpy.data.actions if a.name == context.scene.amh2b.viseme.apply_action ]) > 0
-
-    def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            return {'CANCELLED'}
-        scn = context.scene
-        v_pg = scn.amh2b.viseme
-        loc_mult = [ lv * self.apply_action_uniform_mult for lv in self.apply_action_loc_mult ]
-        rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
-        scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
-        if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, v_pg.apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
-                                       self.right_factor, self.mirror, self.only_selected, scn.frame_current,
-                                       self.blend_factor)
-        else:
-            copy_action_frame(act_ob, scn.amh2b.viseme.apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
-                              self.right_factor, self.mirror, self.only_selected, blend_factor=self.blend_factor)
         return {'FINISHED'}
 
 class AMH2B_OT_LoadActionScriptMOHO(Operator, ImportHelper):
@@ -450,16 +400,4 @@ class AMH2B_OT_VisemeKeyframeMarkerWords(Operator):
             v_pg.translate_output_text, v_pg.moho_output_text, v_pg.action_name_prepend,
             v_pg.script_replace_unknown_action, v_pg.shapekey_name_prepend, v_pg.script_replace_unknown_shapekey,
             v_pg.marker_cutoff_use, v_pg.marker_cutoff_start, v_pg.marker_cutoff_end)
-        return {'FINISHED'}
-
-class AMH2B_OT_PlayBackFrames(Operator):
-    """Use Blender's 'play' function to play forward a given amount of frames, and then back (subtract) another """ \
-        """given amount of frames"""
-    bl_idname = "amh2b.viseme_playback_frames"
-    bl_label = "Play Back"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        v_pg = context.scene.amh2b.viseme
-        playback_frames(v_pg.play_forward_frames, v_pg.play_back_frames)
         return {'FINISHED'}

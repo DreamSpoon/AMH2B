@@ -23,17 +23,16 @@ import bpy
 from mathutils import Quaternion
 
 from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name,
-    keyframe_shapekey_value)
+    keyframe_shapekey_value, get_thing_to_keyframe)
 from ..const import ADDON_BASE_FILE
 from ..lex_py_attributes import lex_py_attributes
+from ..armature.func import (copy_action_frame, is_bone_action)
 
-VISEME_FUNC_APPLY_ACTION_FRAME = "APPLY_ACTION_FRAME"
 VISEME_FUNC_VISEME_SCRIPT = "VISEME_SCRIPT"
 VISEME_FUNC_VISEME_TEXT = "VISEME_TEXT"
 VISEME_FUNC_LOAD_ACTION = "LOAD_ACTION"
 VISEME_FUNC_SAVE_ACTION = "SAVE_ACTION"
 VISEME_FUNC_ITEMS = [
-    (VISEME_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frames of Action to Pose of active Armature"),
     (VISEME_FUNC_VISEME_SCRIPT, "Viseme  Script", "Apply a script (e.g. Papagayo MOHO .dat file) with " \
      "named Viseme Actions to create mouth/face animations on selected Armatures/Meshes"),
     (VISEME_FUNC_VISEME_TEXT, "Word to Viseme", "Convert words of text to Viseme Actions and apply to selected " \
@@ -57,19 +56,6 @@ ROTATION_MODE_STRINGS = {
     5: 'ZXY',
     6: 'ZYX',
     }
-
-GLOBAL_POSE_PROP_DEFAULTS = {
-    'location': (0.0, 0.0, 0.0),
-    'rotation_mode': 0,
-    'rotation_axis_angle': (0.0, 0.0, 1.0, 0.0),
-    'rotation_euler': (0.0, 0.0, 0.0),
-    'rotation_quaternion': (1.0, 0.0, 0.0, 0.0),
-    'scale': (1.0, 1.0, 1.0),
-    'influence': 1.0,
-    }
-GLOBAL_POSE_PROP_NAMES = [ x for x in GLOBAL_POSE_PROP_DEFAULTS.keys() ]
-
-playback_dict = { "end_frame": None, "back_frames": None }
 
 def viseme_actions_preset_items(self, context):
     items = []
@@ -102,14 +88,6 @@ def refresh_viseme_actions_presets():
         if not isinstance(preset_data, dict) or not isinstance(preset_data.get("data"), dict):
             continue
         viseme_actions_presets[fp] = preset_data
-
-def is_bone_action(action):
-    if not isinstance(action, bpy.types.Action):
-        return False
-    for fc in action.fcurves:
-        if fc.data_path.startswith("pose.bones"):
-            return True
-    return False
 
 def get_ref_bone_loc_data(arm, ref_action_name):
     if arm is None:
@@ -192,19 +170,6 @@ def add_point_to_bounds(bounds, point):
         bounds["max"] = point
     else:
         bounds["max"] = [ point[x] if point[x] > bounds["max"][x] else bounds["max"][x] for x in range(3) ]
-
-def get_thing_to_keyframe(ob, datapath, tokens, bone_name):
-    if bone_name not in ob.pose.bones:
-        return None
-# e.g.
-#     pose.bones['Bone'].location
-    if len(tokens) == 4:
-        return ob.pose.bones[bone_name]
-# e.g.
-#     pose.bones['Bone'].constraints['Copy Transforms'].influence
-    elif len(tokens) == 6 and datapath[ tokens[3][0] : tokens[3][1] ] == 'constraints':
-        return ob.pose.bones[bone_name].constraints.get( datapath[ tokens[4][0]+2 : tokens[4][1]-2 ] )
-    return None
 
 def create_actions_from_frame_data(ob, frame_data, action_name_prepend, mark_asset):
     if ob.animation_data is None:
@@ -327,230 +292,6 @@ def load_action_frames_from_preset(ob, pose_preset, action_name_prepend, mark_as
         return 0
     return create_actions_from_frame_data(ob, v_preset.get("data"), action_name_prepend, mark_asset)
 
-def get_scaled_quaternion_from_indexed_values(indexed_values, rot_scale):
-    build_quat = { 0: 1.0, 1: 0.0, 2: 0.0, 3: 0.0 }
-    for i, v in indexed_values.items():
-        build_quat[i] = v
-    build_quat = Quaternion( (build_quat[0], build_quat[1], build_quat[2], build_quat[3]) )
-    scaled_quat_exp_map = build_quat.to_exponential_map() * rot_scale
-    return Quaternion(scaled_quat_exp_map)
-
-def getBoneSideAndBaseName(bone_name):
-    lb_name = bone_name.lower()
-    # check for number extension and remove from name before doing left/right check
-    number_ext = ""
-    for c in reversed(lb_name):
-        if c in [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" ]:
-            number_ext = c + number_ext
-        elif c in [ ".", "-", "_" ]:
-            number_ext = c + number_ext
-            break
-        else:
-            break
-    ext_len = len(number_ext)
-    if ext_len > 0:
-        lb_name = lb_name[:-ext_len]
-        bone_name = bone_name[:-ext_len]
-    # check for left/right name and return left(0) or right(1) or center(-1), with base name (including number extension)
-    if lb_name.startswith("left"):
-        return (0, bone_name[4:] + number_ext)
-    elif lb_name[0] == "l" and lb_name[1] in [".", "_", "-"]:
-        return (0, bone_name[2:] + number_ext)
-    elif lb_name.endswith("left"):
-        return (0, bone_name[:-4] + number_ext)
-    elif lb_name[-1] == "l" and lb_name[-2] in [".", "_", "-"]:
-        return (0, bone_name[:-2] + number_ext)
-    elif lb_name.startswith("right"):
-        return (1, bone_name[5:] + number_ext)
-    elif lb_name[0] == "r" and lb_name[1] in [".", "_", "-"]:
-        return (1, bone_name[2:] + number_ext)
-    elif lb_name.endswith("right"):
-        return (1, bone_name[:-5] + number_ext)
-    elif lb_name[-1] == "r" and lb_name[-2] in [".", "_", "-"]:
-        return (1, bone_name[:-2] + number_ext)
-    else:
-        return (-1, None)
-
-def getBoneLeftRightLookups(bone_names):
-    bone_side = {}
-    bone_base_lr = {}
-    for b_name in bone_names:
-        side, base_name = getBoneSideAndBaseName(b_name)
-        bone_side[b_name] = (side, base_name)
-        if side == -1:
-            continue
-        if base_name not in bone_base_lr:
-            bone_base_lr[base_name] = [ None, None ]
-        bone_base_lr[base_name][side] = b_name
-    return bone_side, bone_base_lr
-
-def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror, only_selected,
-                      frame=None, result_action=None, use_defaults=None, blend_factor=1.0):
-    arm = ob.data
-    if arm is None:
-        return {}
-    apply_action = bpy.data.actions.get(action_name)
-    if apply_action is None:
-        return {}
-    if not is_bone_action(apply_action):
-        return {}
-    pose_bones = ob.pose.bones
-    bone_side_lookup, bone_base_lr_lookup = getBoneLeftRightLookups(pose_bones.keys())
-    frame_data = {}
-    for fc in apply_action.fcurves:
-        if not fc.data_path.startswith("pose.bones["):
-            continue
-        fc_tokens, _ = lex_py_attributes(fc.data_path)
-        if len(fc_tokens) < 4:
-            continue
-        bone_name = fc.data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
-        if bone_name not in pose_bones:
-            continue
-        if only_selected and not ob.data.bones[bone_name].select:
-            continue
-        prop_name = fc.data_path[fc.data_path.rfind(".")+1:]
-        if fc.data_path not in frame_data:
-            frame_data[fc.data_path] = {}
-        # check for 'use default value', and store the result value
-        value = fc.evaluate(EVAL_FRAME_NUM)
-        if use_defaults == True and prop_name in GLOBAL_POSE_PROP_DEFAULTS:
-            default_val = GLOBAL_POSE_PROP_DEFAULTS[prop_name]
-            if hasattr(default_val, "__len__") and len(default_val) > 0:
-                if fc.array_index < len(default_val):
-                    value = default_val[fc.array_index]
-                else:
-                    value = default_val[0]
-            else:
-                value = default_val
-        frame_data[fc.data_path][fc.array_index] = value
-    # set Armature Pose properties, and keyframe if needed - these keyframes will automatically replace any keyframes
-    # created by 'F Curves to reset' code
-    for data_path, indexed_values in frame_data.items():
-        fc_tokens, _ = lex_py_attributes(data_path)
-        bone_name = data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
-        bone_side = bone_side_lookup[bone_name][0]
-        if mirror and bone_side != -1:
-            bone_name = bone_base_lr_lookup[bone_side_lookup[bone_name][1]][1 - bone_side]
-            bone_side = 1 - bone_side
-            mirror_applied = True
-        else:
-            mirror_applied = False
-        if bone_side == -1:
-            bone_side_mult = 1.0
-        elif bone_side == 0:
-            bone_side_mult = left_factor
-        else:
-            bone_side_mult = right_factor
-        thing_to_keyframe = get_thing_to_keyframe(ob, data_path, fc_tokens, bone_name)
-        if thing_to_keyframe is None:
-            continue
-        prop_name = data_path[data_path.rfind(".")+1:]
-        new_quat_value = None
-        if prop_name == "rotation_quaternion":
-            new_quat_value = get_scaled_quaternion_from_indexed_values(indexed_values, rot_mult * bone_side_mult)
-            old_quat_value = pose_bones[bone_name].rotation_quaternion
-        rotation_euler_mirror_axes = []
-        if prop_name == "rotation_euler":
-            if pose_bones[bone_name].rotation_mode in [ "XYZ", "XZY" ]:
-                rotation_euler_mirror_axes = [ 1, 2 ]
-            elif pose_bones[bone_name].rotation_mode in [ "YXZ", "ZXY" ]:
-                rotation_euler_mirror_axes = [ 0, 2 ]
-            elif pose_bones[bone_name].rotation_mode in [ "YZX", "ZYX" ]:
-                rotation_euler_mirror_axes = [ 0, 1 ]
-        for array_index, value in indexed_values.items():
-            if prop_name == "location":
-                value = value * loc_mult[array_index] * bone_side_mult
-                if mirror_applied and array_index == 0:
-                    value = value * -1
-                if blend_factor != 1.0:
-                    value *= blend_factor
-                    value += pose_bones[bone_name].location[array_index] * (1.0 - blend_factor)
-            elif prop_name == "rotation_euler":
-                value = value * rot_mult * bone_side_mult
-                if mirror_applied and array_index in rotation_euler_mirror_axes:
-                    value = value * -1
-                if blend_factor != 1.0:
-                    value *= blend_factor
-                    value += pose_bones[bone_name].rotation_euler[array_index] * (1.0 - blend_factor)
-            elif prop_name == "rotation_axis_angle":
-                if array_index == 0:
-                    value = value * rot_mult * bone_side_mult
-                if mirror_applied and array_index in [ 0, 1 ]:
-                    value = value * -1
-                if blend_factor != 1.0:
-                    value *= blend_factor
-                    value += pose_bones[bone_name].rotation_axis_angle[array_index] * (1.0 - blend_factor)
-            elif prop_name == "rotation_quaternion" and new_quat_value != None:
-                if mirror_applied:
-                    new_quat_value[1] = -new_quat_value[1]
-                    new_quat_value[3] = -new_quat_value[3]
-                if blend_factor >= 0.0 and blend_factor <= 1.0:
-                    blend_quat_value = old_quat_value.slerp(new_quat_value, blend_factor)
-                else:
-                    q1 = old_quat_value.to_exponential_map()
-                    q2 = new_quat_value.to_exponential_map()
-                    q3 = q1 * (1.0 - blend_factor) + q2 * blend_factor
-                    blend_quat_value = Quaternion(q3)
-                value = blend_quat_value[array_index]
-            elif prop_name == "scale":
-                # prevent divide by zero exception
-                if value != 0.0 or scl_pow[array_index] * bone_side_mult >= 0.0:
-                    value = pow(value, scl_pow[array_index] * bone_side_mult)
-                if blend_factor != 1.0:
-                    value *= blend_factor
-                    value += pose_bones[bone_name].scale[array_index] * (1.0 - blend_factor)
-            # keyframe property values
-            if isinstance(frame, (float, int)) and result_action != None:
-                fc = result_action.fcurves.find(data_path=data_path, index=array_index)
-                if fc is None:
-                    color_mode = 'AUTO_RAINBOW'
-                    if prop_name == 'rotation_mode' or prop_name == 'influence':
-                        if not thing_to_keyframe.keyframe_insert(data_path=prop_name, frame=frame, group=bone_name):
-                            continue
-                        fc = result_action.fcurves.find(data_path=data_path)
-                    else:
-                        if not thing_to_keyframe.keyframe_insert(data_path=prop_name, index=array_index, frame=frame,
-                                                                 group=bone_name):
-                            continue
-                        fc = result_action.fcurves.find(data_path=data_path, index=array_index)
-                        color_mode = 'AUTO_RGB'
-                    if fc is None:
-                        continue
-                    fc.color_mode = color_mode
-                    kp = fc.keyframe_points[0]
-                    kp.co = (frame, value)
-                else:
-                    fc.keyframe_points.insert(frame, value, keyframe_type='KEYFRAME')
-            # only set property values
-            else:
-                if len(fc_tokens) == 4:
-                    if prop_name == 'rotation_mode' and value in ROTATION_MODE_STRINGS:
-                        setattr(thing_to_keyframe, prop_name, ROTATION_MODE_STRINGS[value])
-                    else:
-                        prop = getattr(thing_to_keyframe, prop_name)
-                        if hasattr(prop, "__len__"):
-                            prop[array_index] = value
-                        else:
-                            setattr(thing_to_keyframe, prop_name, value)
-                elif len(fc_tokens) == 6 and data_path[ fc_tokens[3][0] : fc_tokens[3][1] ] == 'constraints':
-                    prop = getattr(thing_to_keyframe, prop_name)
-                    if hasattr(prop, "__len__"):
-                        prop[array_index] = value
-                    else:
-                        setattr(thing_to_keyframe, prop_name, value)
-    return frame_data
-
-def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
-                               only_selected, frame, blend_factor):
-    # create animation / Action data if needed, before applying script
-    if ob.animation_data is None:
-        ob.animation_data_create()
-    if ob.animation_data.action is None:
-        ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
-                      only_selected, frame, ob.animation_data.action, blend_factor=blend_factor)
-    do_tag_redraw()
-
 def convert_moho_file(filepath):
     try:
         with open(filepath) as f:
@@ -596,10 +337,10 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
         # copy Action frames with Armature objects
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
-                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame,
-                                  arm_ob.animation_data.action, True)
-            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame,
-                              arm_ob.animation_data.action, False)
+                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False,
+                                  False, frame, arm_ob.animation_data.action, True)
+            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False, False,
+                              frame, arm_ob.animation_data.action, False)
         prev_action_name = action_name
         # keyframe Shape Keys with Mesh objects
         shapekey_name = shapekey_name_prepend + command_name
@@ -639,26 +380,3 @@ def load_viseme_script_moho(filepath, arm_list, mesh_list, frame_scale, frame_of
     exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_prepend, replace_unknown_action_name,
                               shapekey_name_prepend, replace_unknown_shapekey_name)
     return None
-
-def playback_frame_handler(scene):
-    if scene.frame_current >= playback_dict["end_frame"]:
-        bpy.ops.screen.animation_cancel()
-        scene.frame_current = scene.frame_current - playback_dict["back_frames"]
-
-def playback_remove_handler(scene):
-    if playback_frame_handler in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
-    if playback_remove_handler in bpy.app.handlers.animation_playback_post:
-        bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
-
-def playback_frames(forward_frames, back_frames):
-    # ensure no previous instances of this handler are present before appending the handler
-    if playback_frame_handler in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
-    if playback_remove_handler in bpy.app.handlers.animation_playback_post:
-        bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
-    playback_dict["end_frame"] = bpy.context.scene.frame_current + forward_frames
-    playback_dict["back_frames"] = back_frames - forward_frames
-    bpy.app.handlers.frame_change_pre.append(playback_frame_handler)
-    bpy.app.handlers.animation_playback_post.append(playback_remove_handler)
-    bpy.ops.screen.animation_play()

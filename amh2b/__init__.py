@@ -46,19 +46,20 @@ from .anim_viseme.func_word_viseme import (refresh_phoneme_viseme_presets, phone
 from .anim_viseme.list import AMH2B_UL_SelectAction
 from .anim_viseme.operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadText,
     AMH2B_OT_ActionFrameLoadPreset, AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshVisemeActionsPresets,
-    AMH2B_OT_ApplyActionFrame, AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary,
+    AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary,
     AMH2B_OT_ClearWordPhonemesDictionary, AMH2B_OT_RefreshPhonemeVisemePresets,
     AMH2B_OT_VisemeKeyframeWordsActionsString, AMH2B_OT_VisemeKeyframePreviewText,
-    AMH2B_OT_VisemeTextPreviewToWordString, AMH2B_OT_VisemeKeyframeMarkerWords, AMH2B_OT_PlayBackFrames)
+    AMH2B_OT_VisemeTextPreviewToWordString, AMH2B_OT_VisemeKeyframeMarkerWords)
 from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AMH2B_PT_View3dVisemeTranslation,
     AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
-    AMH2B_PT_DopesheetVisemeOutput, AMH2B_PT_DopesheetVisemeBase, AMH2B_PT_SequenceEditorVisemeBase)
+    AMH2B_PT_DopesheetVisemeOutput, AMH2B_PT_DopesheetVisemeBase)
 from .armature.func import ARM_FUNC_ITEMS
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
-    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones, AMH2B_OT_SelectBonesWithFCurves)
+    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones, AMH2B_OT_SelectBonesWithFCurves,
+    AMH2B_OT_ApplyActionFrame, AMH2B_OT_PlayBackFrames)
 from .armature.panel import draw_panel_armature
 from .attributes.func import ATTR_CONV_FUNC_ITEMS
 from .attributes.operator import AMH2B_OT_AttributeConvert
@@ -203,8 +204,6 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         default="Pose")
     actions_preset: EnumProperty(name="Viseme Actions Preset", description="Viseme Actions preset to load",
         items=viseme_actions_preset_items)
-    apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
-        "Pose of active Armature")
     script_frame_offset: IntProperty(name="Frame Offset", description="Scripted Actions are offset in time " \
         "by 'Frame Offset' frames", default=0)
     script_frame_scale: FloatProperty(name="Frame Scale", description="Script frame times are scaled by this " \
@@ -250,10 +249,6 @@ class AMH2B_PG_ScnAMH2BViseme(PropertyGroup):
         "will be ignored (cutoff)", default=0)
     marker_cutoff_end: IntProperty(name="Marker Frame Cutoff End", description="Markers after this frame " \
         "will be ignored (cutoff)", default=250)
-    play_forward_frames: IntProperty(name="Forward Frames", description="This many frames are played before stopping",
-        default=5, min=1)
-    play_back_frames: IntProperty(name="Back Frames", description="This many frames will be subtracted from current " \
-        "frame after stopping", default=5, min=0)
 
 class AMH2B_PG_ScnAMH2B(PropertyGroup):
     function_group: EnumProperty(name="Function Group", items=FUNC_GRP_ITEMS, description="Type of function to " \
@@ -273,6 +268,12 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
     arm_apply_object_scale: BoolProperty(name="Apply Object Scale", description="Apply Scale transform to objects",
         default=True)
+    arm_play_forward_frames: IntProperty(name="Forward Frames", description="This many frames are played before stopping",
+        default=5, min=1)
+    arm_play_reverse_frames: IntProperty(name="Reverse Frames", description="This many frames will be subtracted from current " \
+        "frame before starting playback", default=5, min=0)
+    arm_apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
+        "Pose of active Armature")
     attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
     attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")
@@ -514,7 +515,6 @@ classes = [
     AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_DopesheetVisemeAnimation,
     AMH2B_PT_DopesheetVisemeOutput,
-    AMH2B_PT_SequenceEditorVisemeBase,
 ]
 
 def register():

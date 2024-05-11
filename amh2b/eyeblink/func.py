@@ -20,7 +20,7 @@ import random
 
 import bpy
 
-from ..anim_viseme.func import copy_action_frame
+from ..armature.func import copy_action_frame
 from ..bl_util import keyframe_shapekey_value
 
 F_MIN_CLOSING_TIME = 0.0001
@@ -98,10 +98,10 @@ def generate_blink_action(arm_list, mesh_list, blink_settings):
                         else:
                             a_name = blink_settings["open_action"]
                     if prev_a_name != None and prev_a_name != a_name:
-                        copy_action_frame(arm_ob, prev_a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False,
-                                          frame_num, result_action, True)
-                    copy_action_frame(arm_ob, a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), False, frame_num,
-                                      result_action, use_default)
+                        copy_action_frame(arm_ob, prev_a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False,
+                                          False, frame_num, result_action, True)
+                    copy_action_frame(arm_ob, a_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False, False,
+                                      frame_num, result_action, use_default)
                     prev_a_name = a_name
         # insert Mesh Shapekey value keyframes, if needed
         if blink_settings["close_shapekey"] != "":

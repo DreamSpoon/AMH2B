@@ -138,3 +138,16 @@ def keyframe_shapekey_value(ob, shapekey_name, frame, value):
         kp.co = (frame, value)
     else:
         kp = fc.keyframe_points.insert(frame=frame, value=value)
+
+def get_thing_to_keyframe(ob, datapath, tokens, bone_name):
+    if bone_name not in ob.pose.bones:
+        return None
+# e.g.
+#     pose.bones['Bone'].location
+    if len(tokens) == 4:
+        return ob.pose.bones[bone_name]
+# e.g.
+#     pose.bones['Bone'].constraints['Copy Transforms'].influence
+    elif len(tokens) == 6 and datapath[ tokens[3][0] : tokens[3][1] ] == 'constraints':
+        return ob.pose.bones[bone_name].constraints.get( datapath[ tokens[4][0]+2 : tokens[4][1]-2 ] )
+    return None

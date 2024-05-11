@@ -18,11 +18,12 @@
 
 import bpy
 
-from .func import (ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
+from .func import (ARM_FUNC_APPLY_ACTION_FRAME, ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
 from .operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
-    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones, AMH2B_OT_SelectBonesWithFCurves)
+    AMH2B_OT_SnapTransferTarget, AMH2B_OT_SelectRetargetBones, AMH2B_OT_SelectBonesWithFCurves,
+    AMH2B_OT_ApplyActionFrame, AMH2B_OT_PlayBackFrames)
 
 def draw_panel_armature(self, context, func_grp_box):
     layout = self.layout
@@ -54,6 +55,14 @@ def draw_panel_armature(self, context, func_grp_box):
         layout.operator(AMH2B_OT_SelectRetargetBones.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_RemoveRetargetConstraints.bl_idname)
+    elif a.arm_function == ARM_FUNC_APPLY_ACTION_FRAME:
+        layout.operator(AMH2B_OT_ApplyActionFrame.bl_idname)
+        layout.prop_search(a, "arm_apply_action", bpy.data, "actions", text="")
+        layout.separator()
+        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
+        col = layout.column()
+        col.prop(a, "arm_play_reverse_frames")
+        col.prop(a, "arm_play_forward_frames")
     elif a.arm_function == ARM_FUNC_UTILITY:
         layout.operator(AMH2B_OT_SelectBonesWithFCurves.bl_idname)
         layout.operator(AMH2B_OT_CleanupGizmos.bl_idname)

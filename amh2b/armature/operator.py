@@ -17,13 +17,14 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, IntProperty, StringProperty)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, StringProperty)
 from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
     is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_retarget_constraints,
-    snap_transfer_target_constraints, select_retarget_bones, select_fcurve_bones)
+    snap_transfer_target_constraints, select_retarget_bones, select_fcurve_bones, copy_action_frame,
+    keyframe_copy_action_frame, playback_frames)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -353,4 +354,65 @@ class AMH2B_OT_SelectBonesWithFCurves(Operator):
             return {'CANCELLED'}
         bone_count = select_fcurve_bones(act_ob)
         self.report({'INFO'}, "Selected %d bones with F-Curves" % bone_count)
+        return {'FINISHED'}
+
+class AMH2B_OT_ApplyActionFrame(Operator):
+    """Copy values at frame zero of selected Action to active object Pose bones. If 'Auto Keying' is enabled """ \
+        """then keyframes will be inserted in current Action"""
+    bl_idname = "amh2b.apply_action_frame"
+    bl_label = "Apply Action Frame"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    blend_factor: FloatProperty(name="Blend Factor", description="Blend between original location/rotation/scale " \
+        "values (0.0) and Action frame location/rotation/scale values (1.0)", default=1.0)
+    only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will be be modified",
+        default=False)
+    apply_action_uniform_mult: FloatProperty(name="Uniform Multiply", description="Pose bone Action rotation/" \
+        "location/scale values will be multiplied/raised to this value when applied", default=1.0)
+    apply_action_loc_mult: FloatVectorProperty(name="Location Multiply", description="Pose bone Action location " \
+        "values are multiplied by this value when applied", subtype='XYZ', default=(1.0, 1.0, 1.0))
+    apply_action_rot_mult: FloatProperty(name="Rotation Multiply", description="Pose bone Action rotation " \
+        "values are multiplied by this value when applied", default=1.0)
+    apply_action_scl_pow: FloatVectorProperty(name="Scale Power", description="Pose bone Action scale " \
+        "values are raised to this value when applied, i.e. value = pow(value, scale_power)", subtype='XYZ',
+        default=(1.0, 1.0, 1.0))
+    left_factor: FloatProperty(name="Left Factor", description="Left side bone values will be multiplied/raised " \
+        "to this value when applied", default=1.0)
+    right_factor: FloatProperty(name="Right Factor", description="Right side bone values will be multiplied/raised " \
+        "to this value when applied", default=1.0)
+    mirror: BoolProperty(name="Mirror", description="Left and right bone values will be swapped", default=False)
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object != None and context.active_object.type == 'ARMATURE' \
+            and len([ a for a in bpy.data.actions if a.name == context.scene.amh2b.arm_apply_action ]) > 0
+
+    def execute(self, context):
+        act_ob = context.active_object
+        if act_ob is None or act_ob.type != 'ARMATURE':
+            return {'CANCELLED'}
+        scn = context.scene
+        a = scn.amh2b
+        loc_mult = [ lv * self.apply_action_uniform_mult for lv in self.apply_action_loc_mult ]
+        rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
+        scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
+        if scn.tool_settings.use_keyframe_insert_auto:
+            keyframe_copy_action_frame(act_ob, a.arm_apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
+                                       self.right_factor, self.mirror, self.only_selected, scn.frame_current,
+                                       self.blend_factor)
+        else:
+            copy_action_frame(act_ob, a.arm_apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
+                              self.right_factor, self.mirror, self.only_selected, blend_factor=self.blend_factor)
+        return {'FINISHED'}
+
+class AMH2B_OT_PlayBackFrames(Operator):
+    """Use Blender's 'play' function to play forward a given amount of frames, and then back (subtract) another """ \
+        """given amount of frames"""
+    bl_idname = "amh2b.playback_frames"
+    bl_label = "Play Back"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        a = context.scene.amh2b
+        playback_frames(context.scene, a.arm_play_forward_frames, a.arm_play_reverse_frames)
         return {'FINISHED'}

@@ -20,15 +20,15 @@ import bpy
 
 from bpy.types import Panel
 
-from .func import (VISEME_FUNC_LOAD_ACTION, VISEME_FUNC_SAVE_ACTION, VISEME_FUNC_APPLY_ACTION_FRAME,
-    VISEME_FUNC_VISEME_SCRIPT, VISEME_FUNC_VISEME_TEXT)
+from .func import (VISEME_FUNC_LOAD_ACTION, VISEME_FUNC_SAVE_ACTION, VISEME_FUNC_VISEME_SCRIPT,
+    VISEME_FUNC_VISEME_TEXT)
 from .func_word_viseme import get_word_phonemes_dictionary_len
 from .operator import (AMH2B_OT_ActionFrameSaveText, AMH2B_OT_ActionFrameLoadText, AMH2B_OT_ActionFrameLoadPreset,
-    AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshVisemeActionsPresets, AMH2B_OT_ApplyActionFrame,
+    AMH2B_OT_ActionFrameSavePreset, AMH2B_OT_RefreshVisemeActionsPresets,
     AMH2B_OT_LoadActionScriptMOHO, AMH2B_OT_LoadWordPhonemesDictionary, AMH2B_OT_ClearWordPhonemesDictionary,
     AMH2B_OT_RefreshPhonemeVisemePresets, AMH2B_OT_VisemeKeyframeWordsActionsString,
     AMH2B_OT_VisemeKeyframePreviewText, AMH2B_OT_VisemeTextPreviewToWordString,
-    AMH2B_OT_VisemeKeyframeMarkerWords, AMH2B_OT_PlayBackFrames)
+    AMH2B_OT_VisemeKeyframeMarkerWords)
 
 FUNC_GRP_ANIM_VISEME = "FUNC_GRP_ANIM_VISEME"
 
@@ -60,14 +60,6 @@ def draw_panel_anim_viseme(self, context, func_grp_box):
         layout.operator(AMH2B_OT_ActionFrameSavePreset.bl_idname)
         layout.operator(AMH2B_OT_ActionFrameSaveText.bl_idname)
         layout.prop(v_pg, "save_action_frame_text", text="")
-    elif v_pg.sub_function == VISEME_FUNC_APPLY_ACTION_FRAME:
-        layout.operator(AMH2B_OT_ApplyActionFrame.bl_idname)
-        layout.prop_search(v_pg, "apply_action", bpy.data, "actions", text="")
-        layout.separator()
-        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
-        col = layout.column()
-        col.prop(v_pg, "play_forward_frames")
-        col.prop(v_pg, "play_back_frames")
     elif v_pg.sub_function == VISEME_FUNC_VISEME_SCRIPT:
         layout.operator(AMH2B_OT_LoadActionScriptMOHO.bl_idname)
         layout.label(text="Prepend to Names")
@@ -99,11 +91,6 @@ class AMH2B_PT_DopesheetVisemeBase(Panel):
     def draw(self, context):
         v_pg = context.scene.amh2b.viseme
         layout = self.layout
-        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
-        col = layout.column()
-        col.prop(v_pg, "play_forward_frames")
-        col.prop(v_pg, "play_back_frames")
-        layout.separator()
         layout.label(text="Marker Words to Visemes")
 
 class AMH2B_PT_VisemeTranslation(Panel):
@@ -248,18 +235,3 @@ class AMH2B_PT_View3dVisemeOutput(AMH2B_PT_VisemeOutput):
 class AMH2B_PT_DopesheetVisemeOutput(AMH2B_PT_VisemeOutput):
     bl_space_type = "DOPESHEET_EDITOR"
     bl_parent_id = "AMH2B_PT_DopesheetVisemeBase"
-
-class AMH2B_PT_SequenceEditorVisemeBase(Panel):
-    bl_idname = "AMH2B_PT_SequenceEditorVisemeBase"
-    bl_space_type = "SEQUENCE_EDITOR"
-    bl_region_type = "UI"
-    bl_label = "AMH2B"
-    bl_category = "AMH2B"
-
-    def draw(self, context):
-        v_pg = context.scene.amh2b.viseme
-        layout = self.layout
-        layout.operator(AMH2B_OT_PlayBackFrames.bl_idname)
-        col = layout.column()
-        col.prop(v_pg, "play_forward_frames")
-        col.prop(v_pg, "play_back_frames")
