@@ -46,17 +46,6 @@ LOAD_FRAME_NUM = 0
 
 viseme_actions_presets = {}
 
-ROTATION_MODE_STRINGS = {
-    -1: 'AXIS_ANGLE',
-    0: 'QUATERNION',
-    1: 'XYZ',
-    2: 'XZY',
-    3: 'YXZ',
-    4: 'YZX',
-    5: 'ZXY',
-    6: 'ZYX',
-    }
-
 def viseme_actions_preset_items(self, context):
     items = []
     for filename, pose_preset_data in viseme_actions_presets.items():
@@ -337,9 +326,9 @@ def exec_viseme_action_script(arm_list, mesh_list, mod_script_data, action_name_
         # copy Action frames with Armature objects
         for arm_ob in arm_list:
             if prev_action_name != None and prev_action_name != action_name:
-                copy_action_frame(arm_ob, prev_action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False,
-                                  False, frame, arm_ob.animation_data.action, True)
-            copy_action_frame(arm_ob, action_name, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False, False,
+                copy_action_frame(arm_ob, prev_action_name, 0, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0,
+                                  False, False, frame, arm_ob.animation_data.action, True)
+            copy_action_frame(arm_ob, action_name, 0, (1.0, 1.0, 1.0), 1.0, (1.0, 1.0, 1.0), 1.0, 1.0, False, False,
                               frame, arm_ob.animation_data.action, False)
         prev_action_name = action_name
         # keyframe Shape Keys with Mesh objects

@@ -17,7 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, StringProperty)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty)
 from bpy.types import Operator
 
 from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_generic, unname_bone_generic,
@@ -357,12 +357,14 @@ class AMH2B_OT_SelectBonesWithFCurves(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_ApplyActionFrame(Operator):
-    """Copy values at frame zero of selected Action to active object Pose bones. If 'Auto Keying' is enabled """ \
+    """Copy values at source frame of source Action to active object Pose bones. If 'Auto Keying' is enabled """ \
         """then keyframes will be inserted in current Action"""
     bl_idname = "amh2b.apply_action_frame"
     bl_label = "Apply Action Frame"
     bl_options = {'REGISTER', 'UNDO'}
 
+    src_frame_num: IntProperty(name="Source Frame", description="Frame of source Action to apply to destination Action",
+                               default=0)
     blend_factor: FloatProperty(name="Blend Factor", description="Blend between original location/rotation/scale " \
         "values (0.0) and Action frame location/rotation/scale values (1.0)", default=1.0)
     only_selected: BoolProperty(name="Only Selected Bones", description="Only selected bones will be be modified",
@@ -397,12 +399,13 @@ class AMH2B_OT_ApplyActionFrame(Operator):
         rot_mult = self.apply_action_uniform_mult * self.apply_action_rot_mult
         scl_pow = [ sv * self.apply_action_uniform_mult for sv in self.apply_action_scl_pow ]
         if scn.tool_settings.use_keyframe_insert_auto:
-            keyframe_copy_action_frame(act_ob, a.arm_apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
-                                       self.right_factor, self.mirror, self.only_selected, scn.frame_current,
-                                       self.blend_factor)
+            keyframe_copy_action_frame(act_ob, a.arm_apply_action, self.src_frame_num, loc_mult, rot_mult, scl_pow,
+                                       self.left_factor, self.right_factor, self.mirror, self.only_selected,
+                                       scn.frame_current, self.blend_factor)
         else:
-            copy_action_frame(act_ob, a.arm_apply_action, loc_mult, rot_mult, scl_pow, self.left_factor,
-                              self.right_factor, self.mirror, self.only_selected, blend_factor=self.blend_factor)
+            copy_action_frame(act_ob, a.arm_apply_action, self.src_frame_num, loc_mult, rot_mult, scl_pow,
+                              self.left_factor, self.right_factor, self.mirror, self.only_selected,
+                              blend_factor=self.blend_factor)
         return {'FINISHED'}
 
 class AMH2B_OT_PlayBackFrames(Operator):

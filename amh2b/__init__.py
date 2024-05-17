@@ -272,7 +272,7 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         default=5, min=1)
     arm_play_reverse_frames: IntProperty(name="Reverse Frames", description="This many frames will be subtracted from current " \
         "frame before starting playback", default=5, min=0)
-    arm_apply_action: StringProperty(name="Apply Action", description="Name of Action that will be applied to " \
+    arm_apply_action: StringProperty(name="Source Action", description="Name of Action that will be applied to " \
         "Pose of active Armature")
     attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
     attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")

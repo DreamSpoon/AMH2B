@@ -31,8 +31,8 @@ ARM_FUNC_RETARGET = "ARM_FUNC_RETARGET"
 ARM_FUNC_APPLY_ACTION_FRAME = "ARM_FUNC_APPLY_ACTION_FRAME"
 ARM_FUNC_UTILITY = "ARM_FUNC_UTILITY"
 ARM_FUNC_ITEMS = [
-    (ARM_FUNC_RETARGET, "Retarget", ""),
-    (ARM_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frames of Action to Pose of active Armature"),
+    (ARM_FUNC_RETARGET, "Retarget", "Retarget animations from Mixamo armatures to other armatures"),
+    (ARM_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frame of an Action to Pose of active Armature"),
     (ARM_FUNC_UTILITY, "Utility", ""),
     ]
 
@@ -41,9 +41,7 @@ retarget_armature_presets = {}
 
 RETARGET_CONSTRAINT_NAME_PREFIX = "AMH2B Retarget "
 
-EVAL_FRAME_NUM = 0
-
-playback_dict = { "end_frame": None, "back_frames": None }
+playback_dict = { "return_frame": None, "start_frame": None, "end_frame": None }
 
 GLOBAL_POSE_PROP_DEFAULTS = {
     'location': (0.0, 0.0, 0.0),
@@ -55,6 +53,17 @@ GLOBAL_POSE_PROP_DEFAULTS = {
     'influence': 1.0,
     }
 GLOBAL_POSE_PROP_NAMES = [ x for x in GLOBAL_POSE_PROP_DEFAULTS.keys() ]
+
+ROTATION_MODE_STRINGS = {
+    -1: 'AXIS_ANGLE',
+    0: 'QUATERNION',
+    1: 'XYZ',
+    2: 'XZY',
+    3: 'YXZ',
+    4: 'YZX',
+    5: 'ZXY',
+    6: 'ZYX',
+    }
 
 # check all values for matches with types, where values and types can be individuals, or arrays / tuples
 def is_types(values, types):
@@ -756,7 +765,7 @@ def getBoneLeftRightLookups(bone_names):
         bone_base_lr[base_name][side] = b_name
     return bone_side, bone_base_lr
 
-def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror, only_selected,
+def copy_action_frame(ob, action_name, src_frame_num, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror, only_selected,
                       frame=None, result_action=None, use_defaults=None, blend_factor=1.0):
     arm = ob.data
     if arm is None:
@@ -784,7 +793,7 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor,
         if fc.data_path not in frame_data:
             frame_data[fc.data_path] = {}
         # check for 'use default value', and store the result value
-        value = fc.evaluate(EVAL_FRAME_NUM)
+        value = fc.evaluate(src_frame_num)
         if use_defaults == True and prop_name in GLOBAL_POSE_PROP_DEFAULTS:
             default_val = GLOBAL_POSE_PROP_DEFAULTS[prop_name]
             if hasattr(default_val, "__len__") and len(default_val) > 0:
@@ -912,40 +921,51 @@ def copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor,
                         setattr(thing_to_keyframe, prop_name, value)
     return frame_data
 
-def keyframe_copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
-                               only_selected, frame, blend_factor):
+def keyframe_copy_action_frame(ob, action_name, src_frame_num, loc_mult, rot_mult, scl_pow, left_factor, right_factor,
+                               mirror, only_selected, frame, blend_factor):
     # create animation / Action data if needed, before applying script
     if ob.animation_data is None:
         ob.animation_data_create()
     if ob.animation_data.action is None:
         ob.animation_data.action = bpy.data.actions.new(ob.name+"Action")
-    copy_action_frame(ob, action_name, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
+    copy_action_frame(ob, action_name, src_frame_num, loc_mult, rot_mult, scl_pow, left_factor, right_factor, mirror,
                       only_selected, frame, ob.animation_data.action, blend_factor=blend_factor)
     do_tag_redraw()
 
 def playback_frame_handler(scene):
-    if scene.frame_current >= playback_dict["end_frame"]:
+    if scene.frame_current >= playback_dict["end_frame"] or scene.frame_current >= scene.frame_end:
         bpy.ops.screen.animation_cancel()
-        scene.frame_current = playback_dict["return_frame"]
 
 def playback_remove_handler(scene):
     if playback_frame_handler in bpy.app.handlers.frame_change_pre:
         bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
     if playback_remove_handler in bpy.app.handlers.animation_playback_post:
         bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
+    scene.frame_current = playback_dict["return_frame"]
+    playback_dict["return_frame"] = None
+    playback_dict["start_frame"] = None
+    playback_dict["end_frame"] = None
 
 def playback_frames(scene, forward_frames, reverse_frames):
-    # ensure no previous instances of this handler are present before appending the handler
-    if playback_frame_handler in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
-    if playback_remove_handler in bpy.app.handlers.animation_playback_post:
-        bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
-    playback_dict["return_frame"] = bpy.context.scene.frame_current
-    playback_dict["end_frame"] = bpy.context.scene.frame_current + forward_frames
-    if scene.frame_current - reverse_frames < 0:
-        scene.frame_current = 0
+    # if already playing animation via playback_frames then restart at start_frame
+    if playback_dict["return_frame"] != None:
+        scene.frame_current = playback_dict["start_frame"]
     else:
-        scene.frame_current = scene.frame_current - reverse_frames
-    bpy.app.handlers.frame_change_pre.append(playback_frame_handler)
-    bpy.app.handlers.animation_playback_post.append(playback_remove_handler)
-    bpy.ops.screen.animation_play()
+        # ensure no previous instances of this handler are present before appending the handler
+        if playback_frame_handler in bpy.app.handlers.frame_change_pre:
+            bpy.app.handlers.frame_change_pre.remove(playback_frame_handler)
+        if playback_remove_handler in bpy.app.handlers.animation_playback_post:
+            bpy.app.handlers.animation_playback_post.remove(playback_remove_handler)
+        playback_dict["return_frame"] = scene.frame_current
+        if scene.frame_current + forward_frames > scene.frame_end:
+            playback_dict["end_frame"] = scene.frame_end
+        else:
+            playback_dict["end_frame"] = scene.frame_current + forward_frames
+        if scene.frame_current - reverse_frames < scene.frame_start:
+            playback_dict["start_frame"] = scene.frame_start
+        else:
+            playback_dict["start_frame"] = scene.frame_current - reverse_frames
+        scene.frame_current = playback_dict["start_frame"]
+        bpy.app.handlers.frame_change_pre.append(playback_frame_handler)
+        bpy.app.handlers.animation_playback_post.append(playback_remove_handler)
+        bpy.ops.screen.animation_play()
