@@ -54,7 +54,7 @@ from .anim_viseme.panel import (FUNC_GRP_ANIM_VISEME, draw_panel_anim_viseme, AM
     AMH2B_PT_DopesheetVisemeTranslation, AMH2B_PT_View3dVisemeTiming, AMH2B_PT_DopesheetVisemeTiming,
     AMH2B_PT_View3dVisemeAnimation, AMH2B_PT_DopesheetVisemeAnimation, AMH2B_PT_View3dVisemeOutput,
     AMH2B_PT_DopesheetVisemeOutput, AMH2B_PT_DopesheetVisemeBase)
-from .armature.func import ARM_FUNC_ITEMS
+from .armature.func import ARM_FUNC_ITEMS, ARM_SELECT_ACTION_ITEMS, ARM_SELECT_FRAME_RANGE_TYPE_ITEMS
 from .armature.operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
@@ -268,12 +268,22 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
         description="Generic prefix for bone rename.\nDefault value is 'G'", default="G")
     arm_apply_object_scale: BoolProperty(name="Apply Object Scale", description="Apply Scale transform to objects",
         default=True)
-    arm_play_forward_frames: IntProperty(name="Forward Frames", description="This many frames are played before stopping",
-        default=5, min=1)
-    arm_play_reverse_frames: IntProperty(name="Reverse Frames", description="This many frames will be subtracted from current " \
-        "frame before starting playback", default=5, min=0)
+    arm_play_forward_frames: IntProperty(name="Forward Frames", description="This many frames are played before " \
+        "stopping", default=5, min=1)
+    arm_play_reverse_frames: IntProperty(name="Reverse Frames", description="This many frames will be subtracted " \
+        "from current frame before starting playback", default=5, min=0)
     arm_apply_action: StringProperty(name="Source Action", description="Name of Action that will be applied to " \
         "Pose of active Armature")
+    arm_select_action_bone_type: EnumProperty(name="Action", description="Action Type to use for selecting bones",
+        items=ARM_SELECT_ACTION_ITEMS)
+    arm_select_action_bone_action: StringProperty(name="Action", description="Name of Action that will be used to " \
+        "select bones")
+    arm_select_action_bone_frame_range_type: EnumProperty(name="Frame Range Type", description="Only bones with " \
+        "keyframes of animation within this frame range type will be checked in order to to select bones",
+        items=ARM_SELECT_FRAME_RANGE_TYPE_ITEMS)
+    arm_select_action_bone_frame_range_min: IntProperty(name="Min Frame", description="Minimum frame for frame " \
+        "range, or frame to use for single frame")
+    arm_select_action_bone_frame_range_max: IntProperty(name="Max Frame", description="Maximum frame for frame range")
     attr_conv_function: EnumProperty(items=ATTR_CONV_FUNC_ITEMS)
     attr_conv_shapekey: StringProperty(name="ShapeKey", description="ShapeKey to convert to Attribute")
     attr_conv_attribute: StringProperty(name="Attribute", description="Attribute to convert to other")

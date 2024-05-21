@@ -30,11 +30,30 @@ from ..object_func import (get_scene_user_collection, is_object_in_sub_collectio
 ARM_FUNC_RETARGET = "ARM_FUNC_RETARGET"
 ARM_FUNC_APPLY_ACTION_FRAME = "ARM_FUNC_APPLY_ACTION_FRAME"
 ARM_FUNC_UTILITY = "ARM_FUNC_UTILITY"
+ARM_FUNC_SELECT_ACTION_BONES = "ARM_FUNC_SELECT_ACTION_BONES"
 ARM_FUNC_ITEMS = [
-    (ARM_FUNC_RETARGET, "Retarget", "Retarget animations from Mixamo armatures to other armatures"),
     (ARM_FUNC_APPLY_ACTION_FRAME, "Apply Action Frame", "Apply single frame of an Action to Pose of active Armature"),
+    (ARM_FUNC_RETARGET, "Retarget", "Retarget animations from Mixamo armatures to other armatures"),
+    (ARM_FUNC_SELECT_ACTION_BONES, "Select Action Bones", "Select bones that are used by an action"),
     (ARM_FUNC_UTILITY, "Utility", ""),
-    ]
+]
+ARM_SELECT_ACTION_CURRENT = "ARM_SELECT_ACTION_CURRENT"
+ARM_SELECT_ACTION_CHOOSE = "ARM_SELECT_ACTION_CHOOSE"
+ARM_SELECT_ACTION_ITEMS = [
+    (ARM_SELECT_ACTION_CURRENT, "Current", "Use current Action of object"),
+    (ARM_SELECT_ACTION_CHOOSE, "Choose", "Choose one Action"),
+]
+ARM_SELECT_FRAME_RANGE_ALL = "ARM_SELECT_FRAME_RANGE_ALL"
+ARM_SELECT_FRAME_RANGE_CURRENT = "ARM_SELECT_FRAME_RANGE_CURRENT"
+ARM_SELECT_FRAME_RANGE_MIN_MAX = "ARM_SELECT_FRAME_RANGE_MIN_MAX"
+ARM_SELECT_FRAME_RANGE_SINGLE = "ARM_SELECT_FRAME_RANGE_SINGLE"
+ARM_SELECT_FRAME_RANGE_TYPE_ITEMS = [
+    (ARM_SELECT_FRAME_RANGE_ALL, "All", "Select bones with keyframes in any frame of animation"),
+    (ARM_SELECT_FRAME_RANGE_CURRENT, "Current", "Select bones with keyframes in the current frame of animation"),
+    (ARM_SELECT_FRAME_RANGE_MIN_MAX, "Range",
+     "Select bones with keyrames between a minimum and maximum frame of animation"),
+    (ARM_SELECT_FRAME_RANGE_SINGLE, "Single", "Select bones with keyrames in a single frame"),
+]
 
 script_pose_presets = {}
 retarget_armature_presets = {}
@@ -685,19 +704,28 @@ def select_retarget_bones(ob):
             bone_count += 1
     return bone_count
 
-def select_fcurve_bones(ob):
-    if ob.animation_data is None or ob.animation_data.action is None:
-        return 0
-    select_count = 0
-    for fc in ob.animation_data.action.fcurves:
+def select_fcurve_bones(ob, action, frame_range_min, frame_range_max):
+    select_bone_names = {}
+    for fc in action.fcurves:
         fc_tokens, _ = lex_py_attributes(fc.data_path)
         if len(fc_tokens) < 4:
             continue
         bone_name = fc.data_path[ fc_tokens[2][0]+2 : fc_tokens[2][1]-2 ]
-        if bone_name in ob.data.bones:
+        if bone_name not in ob.data.bones or select_bone_names.get(bone_name) == True:
+            continue
+        if frame_range_min == None and frame_range_max == None:
+            select_bone_names[bone_name] = True
             ob.data.bones[bone_name].select = True
-            select_count += 1
-    return select_count
+            continue
+        for p in fc.keyframe_points:
+            if frame_range_min != None and p.co[0] < frame_range_min:
+                continue
+            if frame_range_max != None and p.co[0] > frame_range_max:
+                continue
+            select_bone_names[bone_name] = True
+            ob.data.bones[bone_name].select = True
+            break
+    return len(select_bone_names)
 
 def is_bone_action(action):
     if not isinstance(action, bpy.types.Action):

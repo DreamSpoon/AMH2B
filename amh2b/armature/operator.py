@@ -24,7 +24,8 @@ from .func import (armature_apply_scale, toggle_preserve_volume, rename_bone_gen
     cleanup_gizmos, script_pose, load_script_pose_presets, retarget_armature, load_retarget_armature_presets,
     is_mhx2_armature, retarget_armature_preset_items, script_pose_preset_items, remove_retarget_constraints,
     snap_transfer_target_constraints, select_retarget_bones, select_fcurve_bones, copy_action_frame,
-    keyframe_copy_action_frame, playback_frames)
+    keyframe_copy_action_frame, playback_frames, ARM_SELECT_ACTION_CURRENT, ARM_SELECT_FRAME_RANGE_ALL,
+    ARM_SELECT_FRAME_RANGE_CURRENT, ARM_SELECT_FRAME_RANGE_MIN_MAX, ARM_SELECT_FRAME_RANGE_SINGLE)
 
 class AMH2B_OT_ScriptPose(Operator):
     """Apply script to pose active object Armature's bones with World space rotations"""
@@ -338,22 +339,42 @@ class AMH2B_OT_SelectRetargetBones(Operator):
         return {'FINISHED'}
 
 class AMH2B_OT_SelectBonesWithFCurves(Operator):
-    """Select all bones in active object Armature that have F-Curves in the current Action (see Dope Sheet -> """ \
-        """Action Editor -> Action)"""
+    """Select all bones in selected object Armatures that have F-Curves in the given Action, with filter """ \
+        """(see Dope Sheet -> Action Editor -> Action)"""
     bl_idname = "amh2b.select_bones_w_fcurves"
-    bl_label = "Select Bones w F-Curves"
+    bl_label = "Select Action Bones"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object.type == 'ARMATURE'
+        return context.active_object != None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
-        act_ob = context.active_object
-        if act_ob is None or act_ob.type != 'ARMATURE':
-            return {'CANCELLED'}
-        bone_count = select_fcurve_bones(act_ob)
-        self.report({'INFO'}, "Selected %d bones with F-Curves" % bone_count)
+        amh2b = context.scene.amh2b
+        total_bone_count = 0
+        for ob in context.selected_objects:
+            if ob.type != 'ARMATURE':
+                continue
+            if amh2b.arm_select_action_bone_type == ARM_SELECT_ACTION_CURRENT:
+                if ob.animation_data is None or ob.animation_data.action is None:
+                    continue
+                use_action = ob.animation_data.action
+            else:
+                use_action = bpy.data.actions.get(amh2b.arm_select_action_bone_action)
+                if use_action is None:
+                    continue
+            if amh2b.arm_select_action_bone_frame_range_type == ARM_SELECT_FRAME_RANGE_CURRENT:
+                frame_min = frame_max = context.scene.frame_current
+            elif amh2b.arm_select_action_bone_frame_range_type == ARM_SELECT_FRAME_RANGE_MIN_MAX:
+                frame_min = amh2b.arm_select_action_bone_frame_range_min
+                frame_max = amh2b.arm_select_action_bone_frame_range_max
+            elif amh2b.arm_select_action_bone_frame_range_type == ARM_SELECT_FRAME_RANGE_SINGLE:
+                frame_min = frame_max = amh2b.arm_select_action_bone_frame_range_min
+            else:
+                frame_min = None
+                frame_max = None
+            total_bone_count += select_fcurve_bones(ob, use_action, frame_min, frame_max)
+        self.report({'INFO'}, "Selected %d bones with F-Curves" % total_bone_count)
         return {'FINISHED'}
 
 class AMH2B_OT_ApplyActionFrame(Operator):

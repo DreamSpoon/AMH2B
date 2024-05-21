@@ -18,7 +18,8 @@
 
 import bpy
 
-from .func import (ARM_FUNC_APPLY_ACTION_FRAME, ARM_FUNC_RETARGET, ARM_FUNC_UTILITY)
+from .func import (ARM_FUNC_APPLY_ACTION_FRAME, ARM_FUNC_RETARGET, ARM_FUNC_SELECT_ACTION_BONES, ARM_FUNC_UTILITY,
+    ARM_SELECT_ACTION_CHOOSE, ARM_SELECT_FRAME_RANGE_MIN_MAX, ARM_SELECT_FRAME_RANGE_SINGLE)
 from .operator import (AMH2B_OT_ScriptPose, AMH2B_OT_ApplyScale, AMH2B_OT_EnableModPreserveVolume,
     AMH2B_OT_DisableModPreserveVolume, AMH2B_OT_RenameGeneric, AMH2B_OT_UnNameGeneric, AMH2B_OT_CleanupGizmos,
     AMH2B_OT_RetargetArmature, AMH2B_OT_SnapMHX_FK, AMH2B_OT_SnapMHX_IK, AMH2B_OT_RemoveRetargetConstraints,
@@ -63,8 +64,18 @@ def draw_panel_armature(self, context, func_grp_box):
         col = layout.column()
         col.prop(a, "arm_play_reverse_frames")
         col.prop(a, "arm_play_forward_frames")
-    elif a.arm_function == ARM_FUNC_UTILITY:
+    elif a.arm_function == ARM_FUNC_SELECT_ACTION_BONES:
         layout.operator(AMH2B_OT_SelectBonesWithFCurves.bl_idname)
+        layout.prop(a, "arm_select_action_bone_type")
+        if a.arm_select_action_bone_type == ARM_SELECT_ACTION_CHOOSE:
+            layout.prop_search(a, "arm_select_action_bone_action", bpy.data, "actions")
+        layout.prop(a, "arm_select_action_bone_frame_range_type")
+        if a.arm_select_action_bone_frame_range_type == ARM_SELECT_FRAME_RANGE_MIN_MAX:
+            layout.prop(a, "arm_select_action_bone_frame_range_min")
+            layout.prop(a, "arm_select_action_bone_frame_range_max")
+        elif a.arm_select_action_bone_frame_range_type == ARM_SELECT_FRAME_RANGE_SINGLE:
+            layout.prop(a, "arm_select_action_bone_frame_range_min", text="Frame")
+    elif a.arm_function == ARM_FUNC_UTILITY:
         layout.operator(AMH2B_OT_CleanupGizmos.bl_idname)
         layout.separator()
         layout.operator(AMH2B_OT_EnableModPreserveVolume.bl_idname)
