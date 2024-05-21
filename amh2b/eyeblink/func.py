@@ -111,6 +111,8 @@ def generate_blink_action(arm_list, mesh_list, blink_settings):
                         val = blink_settings["close_shapekey_on"]
                     elif b_type == BLINK_FRAME_OPEN:
                         val = blink_settings["close_shapekey_off"]
+                    else:
+                        val = None
                     keyframe_shapekey_value(mesh_ob, blink_settings["close_shapekey"], frame_num, val)
         # allow random drift of beat timing, or ...
         if blink_settings["allow_random_drift"]:

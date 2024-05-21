@@ -242,7 +242,6 @@ class AMH2B_OT_ClearWordPhonemesDictionary(Operator):
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
-        return {'RUNNING_MODAL'}
 
     def draw(self, context):
         layout = self.layout

@@ -327,13 +327,13 @@ class AMH2B_OT_SelectRetargetBones(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object.type == 'ARMATURE'
+        return context.active_object != None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
         act_ob = context.active_object
         if act_ob is None or act_ob.type != 'ARMATURE':
             return {'CANCELLED'}
-        bone_count = select_retarget_bones(context, act_ob)
+        bone_count = select_retarget_bones(act_ob)
         self.report({'INFO'}, "Selected %d retarget bones" % bone_count)
         return {'FINISHED'}
 

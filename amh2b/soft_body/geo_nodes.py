@@ -35,12 +35,10 @@ def create_geo_ng_signed_nearest():
         new_node_group.inputs.clear()
         new_node_group.outputs.clear()
     # create new group inputs and outputs
-    new_in_socket = {}
     if bpy.app.version >= (4, 0, 0):
         new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Target", in_out='INPUT')
     else:
         new_node_group.inputs.new(type='NodeSocketGeometry', name="Target")
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         new_node_group.interface.new_socket(socket_type='NodeSocketVector', name="Position", in_out='OUTPUT')
         new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Distance", in_out='OUTPUT')
@@ -270,7 +268,6 @@ def create_weight_sb_mod_geo_node_group(new_node_group):
     new_in_socket[13].default_value = 1.000000
     new_in_socket[16].default_value = 1.000000
     new_in_socket[18].default_value = 1.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
         new_node_group.interface.new_socket(socket_type='NodeSocketFloat', name="Goal", in_out='OUTPUT')
@@ -634,7 +631,6 @@ def create_geo_ng_spring_connect_vert():
     new_in_socket[8].max_value = 1.000000
     new_in_socket[8].default_value = 0.500000
     new_in_socket[9].min_value = 0.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
         new_node_group.interface.new_socket(socket_type='NodeSocketBool', name="Include", in_out='OUTPUT')
@@ -1070,7 +1066,6 @@ def create_spring_connect_mod_geo_node_group(new_node_group):
     new_in_socket[2].max_value = 1.000000
     new_in_socket[2].default_value = 1.000000
     new_in_socket[3].hide_value = True
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         new_node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
     else:

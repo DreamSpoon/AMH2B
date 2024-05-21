@@ -6,14 +6,13 @@ Automate as much as possible of MakeHuman to Blender workflow, e.g. armature, an
 
 v3.3+ Blender Addon
 
-YouTube video demos of this addon:
-https://youtu.be/In1HBX2pOf0
-https://youtu.be/0ED17WtHDkg
-https://youtu.be/zh26nmjNrWw
-https://youtu.be/d2-ACrF9jNI
+## YouTube Tutorials
 
-YouTube video demo of older version of this addon:
-https://youtu.be/XkOtsTrHRPg
+[Add Mixamo animations to MakeHuman characters with face bones](https://youtu.be/In1HBX2pOf0)
+[Add blinking to MakeHuman characters](https://youtu.be/0ED17WtHDkg)
+[Shrinkwrap geometry nodes](https://youtu.be/zh26nmjNrWw)
+[Create Realistic Talking MakeHuman Characters](https://youtu.be/d2-ACrF9jNI)
+[Tutorial with older version of this addon](https://youtu.be/XkOtsTrHRPg)
 
 ## Install Addon in Blender
 1) Start Blender

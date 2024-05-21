@@ -4,7 +4,7 @@
         { "op": "create_transfer_armature" },
         { "op": "transfer_transforms", "data": [
                 ("Hips", "root", 0.0, 0.0, 1.0),
-                ("LeftForeArm""elbow.pt.ik.L", 0.0, 0.0, 1.0), ("LeftForeArm", "elbow.link.L", 0.0, 0.0, 1.0),
+                ("LeftForeArm", "elbow.pt.ik.L", 0.0, 0.0, 1.0), ("LeftForeArm", "elbow.link.L", 0.0, 0.0, 1.0),
                 ("LeftHand", "hand.ik.L", 0.0, 0.0, 1.0),
                 ("LeftLeg", "knee.pt.ik.L", 0.0, 0.0, 1.0), ("LeftLeg", "knee.link.L", 0.0, 0.0, 1.0),
                 ("LeftFoot", "foot.ik.L", 0.0, 0.0, 1.0),

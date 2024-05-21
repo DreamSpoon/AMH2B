@@ -20,10 +20,9 @@ import os
 import traceback
 
 import bpy
-from mathutils import Quaternion
 
-from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, do_tag_redraw, get_next_name,
-    keyframe_shapekey_value, get_thing_to_keyframe)
+from ..bl_util import (ast_literal_eval_lines, get_file_eval_dict, get_next_name, keyframe_shapekey_value,
+    get_thing_to_keyframe)
 from ..const import ADDON_BASE_FILE
 from ..lex_py_attributes import lex_py_attributes
 from ..armature.func import (copy_action_frame, is_bone_action)
@@ -120,7 +119,7 @@ def get_frame_save_data(context, arm, action_frame_label, ref_bones_action_name)
     if len(action_frames) == 0:
         return None
     save_data = { "action_frames": action_frames }
-    old_3dview_mode = bpy.context.object.mode
+    old_3dview_mode = context.object.mode
     bpy.ops.object.mode_set(mode='EDIT')
     ref_bone_loc_data = get_ref_bone_loc_data(arm, ref_bones_action_name)
     bpy.ops.object.mode_set(mode=old_3dview_mode)

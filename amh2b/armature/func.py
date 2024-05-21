@@ -503,7 +503,6 @@ def op_transfer_constraint(context, op_data, script_state, constraint_type):
             # put new bones in their own layer collections
             xfer_arm.collections["Src Bones"].assign(xfer_source_bone)
             xfer_arm.collections["Dest Bones"].assign(xfer_dest_bone)
-            pass
         else:
             # put new bones in first and second layers
             for i in range(32):
@@ -674,7 +673,7 @@ def snap_transfer_target_constraints(context, target_ob, transfer_ob, limit_ct_h
         bpy.ops.object.mode_set(mode=old_3dview_mode)
     return bone_count
 
-def select_retarget_bones(context, ob):
+def select_retarget_bones(ob):
     bone_count = 0
     for pose_bone in ob.pose.bones:
         did_sel = False

@@ -16,8 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import bpy
-
 from .func import (ATTRIB_SHAPEKEY, SHAPEKEY_ATTRIB)
 from .operator import AMH2B_OT_AttributeConvert
 

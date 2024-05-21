@@ -137,7 +137,7 @@ def copy_shapekeys_by_name_prefix(context, src_obj, dest_objects, copy_prefix, a
         check_create_basis_shape_key(dest_obj)
         for sk in src_obj.data.shape_keys.key_blocks:
             if sk.name == 'Basis':
-                    continue
+                continue
             if is_name_prefix_match(sk.name, copy_prefix):
                 src_obj.active_shape_key_index = src_obj.data.shape_keys.key_blocks.find(sk.name)
                 bpy.ops.object.shape_key_transfer()
@@ -214,7 +214,7 @@ def search_file_for_auto_sk(sel_obj_list, chosen_blend_file, name_prefix, adapt_
         # de-select all objects because copying shape keys requires bpy.ops.object.shape_key_transfer,
         # and this requires exactly two specific objects be selected per shape key copy
         bpy.ops.object.select_all(action='DESELECT')
-        copy_shapekeys_by_name_prefix(appended_obj, [sel], name_prefix, adapt_size)
+        copy_shapekeys_by_name_prefix(bpy.context, appended_obj, [sel], name_prefix, adapt_size)
         bpy.ops.object.select_all(action='DESELECT')
 
         # re-select the objects that were appended

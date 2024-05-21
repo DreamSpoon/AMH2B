@@ -89,7 +89,6 @@ class AMH2B_PT_DopesheetVisemeBase(Panel):
         return context.space_data.mode == 'ACTION'
 
     def draw(self, context):
-        v_pg = context.scene.amh2b.viseme
         layout = self.layout
         layout.label(text="Marker Words to Visemes")
 

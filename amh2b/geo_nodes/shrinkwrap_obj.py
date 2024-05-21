@@ -51,7 +51,6 @@ def create_obj_mod_geo_nodes_shrinkwrap(node_group):
         node_group.inputs.new(type='NodeSocketFloat', name="Relative Offset Factor")
     new_in_socket[1].default_value = 1.000000
     new_in_socket[4].default_value = 340282346638528859811704183484516925440.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
     else:
@@ -145,7 +144,6 @@ def create_obj_mod_geo_nodes_thick_shrinkwrap(node_group):
     new_in_socket[1].default_value = 1.000000
     new_in_socket[4].default_value = 340282346638528859811704183484516925440.000000
     new_in_socket[7].default_value = 1.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
     else:
@@ -244,7 +242,6 @@ def create_obj_mod_geo_nodes_directional_shrinkwrap(node_group):
     new_in_socket[8].min_value = 0.000000
     new_in_socket[8].max_value = 1.000000
     new_in_socket[8].default_value = 1.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
     else:
@@ -357,7 +354,6 @@ def create_obj_mod_geo_nodes_directional_thick_shrinkwrap(node_group):
     new_in_socket[9].min_value = 0.000000
     new_in_socket[9].max_value = 1.000000
     new_in_socket[9].default_value = 1.000000
-    new_out_socket = {}
     if bpy.app.version >= (4, 0, 0):
         node_group.interface.new_socket(socket_type='NodeSocketGeometry', name="Geometry", in_out='OUTPUT')
     else:
