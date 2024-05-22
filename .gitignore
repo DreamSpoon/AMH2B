@@ -12,3 +12,6 @@ local.properties
 .classpath
 .settings/
 .loadpath
+*.pyproj
+.git
+.vs
