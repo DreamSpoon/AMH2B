@@ -21,6 +21,7 @@ import math
 import os
 
 import bpy
+from mathutils import Quaternion
 
 from ..bl_util import (ast_literal_eval_textblock, get_file_eval_dict, do_tag_redraw, get_thing_to_keyframe)
 from ..const import ADDON_BASE_FILE
