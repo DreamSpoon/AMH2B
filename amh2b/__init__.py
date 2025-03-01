@@ -20,17 +20,6 @@
 # A set of tools to automate repetitive tasks after importing data from MakeHuman, and enhance imported data.
 # Includes support for MPFB2.
 
-bl_info = {
-    "name": "Automate MakeHuman 2 Blender (AMH2B)",
-    "description": "Automate process of importing and animating MakeHuman models.",
-    "author": "Dave",
-    "version": (2, 5, 0),
-    "blender": (3, 30, 0),
-    "location": "View 3D -> Tools -> AMH2B",
-    "doc_url": "https://github.com/DreamSpoon/AMH2B#readme",
-    "category": "Import MakeHuman Automation",
-}
-
 import bpy
 from bpy.types import (Panel, PropertyGroup)
 from bpy.props import (BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty,
