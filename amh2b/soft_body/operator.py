@@ -19,7 +19,7 @@
 from bpy.types import Operator
 
 from .func import (create_weighting_object, get_sbw_geo_nodes_mod, finish_weighting_object, data_transfer_sb_weights,
-    preset_soft_body, add_soft_body_spring, remove_soft_body_spring)
+    preset_soft_body)
 
 class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
     """Create Soft Body vertex weights test mesh by duplicating active object. Select two mesh objects, first """ \
@@ -42,7 +42,7 @@ class AMH2B_OT_AddSoftBodyWeightTestCalc(Operator):
         act_ob = context.active_object
         sel_ob = context.selected_objects
         create_weighting_object(context, a.nodes_override_create, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1],
-            a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
+            a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name)
         return {'FINISHED'}
 
 class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
@@ -67,7 +67,7 @@ class AMH2B_OT_FinishSoftBodyWeightCalc(Operator):
             return {'CANCELLED'}
         a = context.scene.amh2b
         finish_weighting_object(context, context.active_object, gn_mod, context.scene.amh2b.sb_apply_sk_mix,
-            a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
+            a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name)
         return {'FINISHED'}
 
 class AMH2B_OT_DataTransferSBWeight(Operator):
@@ -92,8 +92,7 @@ class AMH2B_OT_DataTransferSBWeight(Operator):
         a = context.scene.amh2b
         data_transfer_sb_weights(context, act_ob, sel_ob[0] if sel_ob[0] != act_ob else sel_ob[1],
             a.sb_dt_vert_mapping, a.sb_dt_individual, a.sb_dt_apply_mod, a.sb_dt_include_goal, a.sb_dt_include_mask,
-            a.sb_dt_include_mass, a.sb_dt_include_spring, a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name,
-            a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
+            a.sb_dt_include_mass, a.sb_dt_goal_vg_name, a.sb_dt_mask_vg_name, a.sb_dt_mass_vg_name)
         return {'FINISHED'}
 
 class AMH2B_OT_PresetSoftBody(Operator):
@@ -111,45 +110,5 @@ class AMH2B_OT_PresetSoftBody(Operator):
     def execute(self, context):
         act_ob = context.active_object
         a = context.scene.amh2b
-        preset_soft_body(act_ob, a.sb_dt_goal_vg_name, a.sb_dt_mass_vg_name, a.sb_dt_spring_vg_name)
-        return {'FINISHED'}
-
-class AMH2B_OT_AddSoftBodySpring(Operator):
-    """With active object Mesh, add vertexes/edges to connect Mesh with locations given by Attribute. """ \
-        """Optionally, Mesh vertexes can connect with closest point on another object's Mesh - by editing """ \
-        """Geometry Nodes tree"""
-    bl_idname = "amh2b.add_soft_body_spring"
-    bl_label = "Add Springs"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
-
-    def execute(self, context):
-        act_ob = context.active_object
-        other_sel = [ ob for ob in context.selected_objects if ob != context.active_object ]
-        if len(other_sel) == 0:
-            other_ob = None
-        else:
-            other_ob = other_sel[0]
-        a = context.scene.amh2b
-        add_soft_body_spring(a.nodes_override_create, act_ob, a.sb_add_spring_attrib, other_ob)
-        return {'FINISHED'}
-
-class AMH2B_OT_RemoveSoftBodySpring(Operator):
-    """With active object and all selected objects Meshes, remove soft body springs by using Mesh Cleanup -> """ \
-        """Delete Loose (verts/edges) to remove soft body springs"""
-    bl_idname = "amh2b.remove_soft_body_spring"
-    bl_label = "Remove Springs"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        act_ob = context.active_object
-        return act_ob != None and act_ob.type == 'MESH' and context.mode == 'OBJECT'
-
-    def execute(self, context):
-        remove_soft_body_spring(context)
+        preset_soft_body(act_ob, a.sb_dt_goal_vg_name, a.sb_dt_mass_vg_name)
         return {'FINISHED'}

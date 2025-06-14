@@ -71,7 +71,7 @@ from .geo_nodes.panel import (AMH2B_PT_NodeEditorGeoNodes, draw_panel_geometry_n
 from .soft_body.func import SB_FUNCTION_ITEMS
 from .soft_body.geo_nodes import SB_WEIGHT_GEO_NG_NAME
 from .soft_body.operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody)
 from .soft_body.panel import draw_panel_soft_body
 from .template import AMH2B_OT_MakeObjectSearchable
 from .vgroup import (AMH2B_OT_CopyVertexGroupsByPrefix, AMH2B_OT_DeleteVertexGroupsByPrefix,
@@ -354,7 +354,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     sb_dt_include_goal: BoolProperty(name="Goal", description="Include 'SB-goal'", default=True)
     sb_dt_include_mask: BoolProperty(name="Mask", description="Include 'SB-mask'", default=True)
     sb_dt_include_mass: BoolProperty(name="Mass", description="Include 'SB-mass'", default=True)
-    sb_dt_include_spring: BoolProperty(name="Spring", description="Include 'SB-spring'", default=True)
     sb_dt_vert_mapping: bpy.props.EnumProperty(name="Vertex Data Mapping", description="Method used to map source " \
         "vertices to destination ones", items=[
             ("NEAREST", "Nearest Vertex", ""),
@@ -368,8 +367,6 @@ class AMH2B_PG_ScnAMH2B(PropertyGroup):
     sb_dt_mask_vg_name: StringProperty(name="Mask", description="Mask object modifier vertex group name",
         default="SB-mask")
     sb_dt_mass_vg_name: StringProperty(name="Mass", description="Soft Body Mass vertex group name", default="SB-mass")
-    sb_dt_spring_vg_name: StringProperty(name="Spring", description="Soft Body Spring vertex group name",
-        default="SB-spring")
     sk_active_function: EnumProperty(name="Function", description="ShapeKey menu active function",
         items=SK_FUNC_ITEMS)
     sk_bind_frame: IntProperty(name="Bind Frame", description="In this frame, modified (after viewport visible " \
@@ -484,8 +481,6 @@ classes = [
     AMH2B_OT_FinishSoftBodyWeightCalc,
     AMH2B_OT_DataTransferSBWeight,
     AMH2B_OT_PresetSoftBody,
-    AMH2B_OT_AddSoftBodySpring,
-    AMH2B_OT_RemoveSoftBodySpring,
     AMH2B_OT_AttributeConvert,
     AMH2B_PT_NodeEditorGeoNodes,
     AMH2B_OT_ActionFrameSaveText,

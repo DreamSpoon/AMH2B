@@ -17,8 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 from .operator import (AMH2B_OT_AddSoftBodyWeightTestCalc, AMH2B_OT_FinishSoftBodyWeightCalc,
-    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody, AMH2B_OT_AddSoftBodySpring, AMH2B_OT_RemoveSoftBodySpring)
-from .func import (SB_FUNCTION_WEIGHT, SB_FUNCTION_MODIFIER, SB_FUNCTION_DATA_TRANSFER, SB_FUNCTION_SPRING)
+    AMH2B_OT_DataTransferSBWeight, AMH2B_OT_PresetSoftBody)
+from .func import (SB_FUNCTION_WEIGHT, SB_FUNCTION_MODIFIER, SB_FUNCTION_DATA_TRANSFER)
 
 def draw_panel_soft_body(self, context, box):
     scn = context.scene
@@ -28,15 +28,7 @@ def draw_panel_soft_body(self, context, box):
     box.prop(a, "sb_function", text="")
     layout.separator()
 
-    if a.sb_function == SB_FUNCTION_SPRING:
-        layout.operator(AMH2B_OT_RemoveSoftBodySpring.bl_idname)
-        layout.operator(AMH2B_OT_AddSoftBodySpring.bl_idname)
-        if act_ob.type != 'MESH' or act_ob.data is None:
-            layout.prop(a, "sb_add_spring_attrib", text="")
-        else:
-            layout.prop_search(a, "sb_add_spring_attrib", act_ob.data, "attributes", text="")
-        layout.prop(a, "nodes_override_create")
-    elif a.sb_function == SB_FUNCTION_WEIGHT:
+    if a.sb_function == SB_FUNCTION_WEIGHT:
         layout.operator(AMH2B_OT_AddSoftBodyWeightTestCalc.bl_idname)
         layout.prop(a, "nodes_override_create")
         layout.separator()
@@ -56,15 +48,5 @@ def draw_panel_soft_body(self, context, box):
         col.prop(a, "sb_dt_include_goal")
         col.prop(a, "sb_dt_include_mask")
         col.prop(a, "sb_dt_include_mass")
-        col.prop(a, "sb_dt_include_spring")
     elif a.sb_function == SB_FUNCTION_MODIFIER:
         layout.operator(AMH2B_OT_PresetSoftBody.bl_idname)
-
-    if a.sb_function != SB_FUNCTION_SPRING:
-        layout.separator()
-        layout.label(text="Vertex Group Name")
-        col = layout.box().column()
-        col.prop(a, "sb_dt_goal_vg_name")
-        col.prop(a, "sb_dt_mask_vg_name")
-        col.prop(a, "sb_dt_mass_vg_name")
-        col.prop(a, "sb_dt_spring_vg_name")

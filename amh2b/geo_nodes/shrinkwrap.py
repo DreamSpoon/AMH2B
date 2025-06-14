@@ -332,7 +332,7 @@ def create_geo_ng_shrinkwrap():
     # create links
     tree_links = new_node_group.links
     create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math"], "Value", 2)
     create_nodetree_link(tree_links, new_nodes["Vector Math.002"], "Vector", 0, new_nodes["Vector Math.003"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Vector Math.002"], "Vector", 0)
@@ -759,7 +759,7 @@ def create_geo_ng_thick_shrinkwrap():
     tree_links = new_node_group.links
     create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Target Solid", 0, new_nodes["Geometry Proximity"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.010"], "Value", 2)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.002"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Vector Math.001"], "Vector", 0, new_nodes["Vector Math.002"], "Vector", 1)
@@ -773,7 +773,7 @@ def create_geo_ng_thick_shrinkwrap():
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Factor", 0, new_nodes["Vector Math.004"], "Scale", 0)
     create_nodetree_link(tree_links, new_nodes["Vector Math.003"], "Vector", 0, new_nodes["Vector Math.004"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.001"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Math.001"], "Value", 0, new_nodes["Math.003"], "Value", 1)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.003"], "Value", 0)
@@ -1270,7 +1270,7 @@ def create_geo_ng_directional_shrinkwrap():
     tree_links = new_node_group.links
     create_nodetree_link(tree_links, new_nodes["Set Position"], "Geometry", 0, new_nodes["Group Output"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Set Position"], "Geometry", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.001"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.007"], "Value", 2)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Distance", 0, new_nodes["Math.007"], "Value", 1)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity.001"], "Position", 0, new_nodes["Vector Math.011"], "Vector", 1)
@@ -1289,7 +1289,7 @@ def create_geo_ng_directional_shrinkwrap():
     create_nodetree_link(tree_links, new_nodes["Vector Math.008"], "Vector", 0, new_nodes["Vector Math.009"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Position.004"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
     create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Geometry Proximity"], "Source Position", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Position"], "Position", 0, new_nodes["Raycast"], "Source Position", 0)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity"], "Position", 0, new_nodes["Vector Math.001"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Position.001"], "Position", 0, new_nodes["Vector Math.001"], "Vector", 1)
@@ -2088,7 +2088,7 @@ def create_geo_ng_directional_thick_shrinkwrap():
     new_nodes["Group Input"] = node
     # create links
     tree_links = new_node_group.links
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.002"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Geometry Proximity.002"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Distance", 0, new_nodes["Math.026"], "Value", 2)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Vector Math.013"], "Vector", 1)
     create_nodetree_link(tree_links, new_nodes["Vector Math.013"], "Vector", 0, new_nodes["Vector Math.014"], "Vector", 0)
@@ -2100,7 +2100,7 @@ def create_geo_ng_directional_thick_shrinkwrap():
     create_nodetree_link(tree_links, new_nodes["Math.025"], "Value", 0, new_nodes["Vector Math"], "Scale", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.026"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Geometry Proximity.002"], "Position", 0, new_nodes["Geometry Proximity.001"], "Source Position", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity.001"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Math"], "Value", 0, new_nodes["Math.024"], "Value", 1)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.024"], "Value", 0)
@@ -2126,7 +2126,7 @@ def create_geo_ng_directional_thick_shrinkwrap():
     create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.003"], "Vector", 1)
     create_nodetree_link(tree_links, new_nodes["Raycast"], "Hit Position", 0, new_nodes["Vector Math.001"], "Vector", 0)
     create_nodetree_link(tree_links, new_nodes["Raycast"], "Is Hit", 0, new_nodes["Math.009"], "Value", 1)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity.003"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Target", 0, new_nodes["Geometry Proximity.003"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Solid Target", 0, new_nodes["Raycast"], "Target Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Direction Factor", 0, new_nodes["Math.009"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Position.006"], "Position", 0, new_nodes["Vector Math.017"], "Vector", 1)
@@ -2137,7 +2137,7 @@ def create_geo_ng_directional_thick_shrinkwrap():
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Relative Offset Factor", 0, new_nodes["Math.011"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Math.007"], "Value", 0, new_nodes["Math.004"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Math.004"], "Value", 0, new_nodes["Vector Math.005"], "Scale", 0)
-    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity"], "Target", 0)
+    create_nodetree_link(tree_links, new_nodes["Group Input"], "Geometry", 0, new_nodes["Geometry Proximity"], "Geometry", 0)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Thick Factor", 0, new_nodes["Math.006"], "Value", 0)
     create_nodetree_link(tree_links, new_nodes["Math.006"], "Value", 0, new_nodes["Math.005"], "Value", 1)
     create_nodetree_link(tree_links, new_nodes["Group Input"], "Min Distance", 0, new_nodes["Math.005"], "Value", 0)
